@@ -58,6 +58,12 @@ export type GitHubClient = {
   }): Promise<{ number: number; url: string }>
   getPullRequest(number: number): Promise<PullRequest>
   squashMerge(number: number): Promise<void>
+  getLabel(name: string): Promise<{ name: string } | null>
+  createLabel(input: {
+    name: string
+    description: string
+    color: string
+  }): Promise<void>
 }
 
 const ISSUE_JSON_FIELDS = "number,title,body,state,labels,url"
@@ -135,6 +141,30 @@ function assertLabelName(label: string): void {
   if (label.length === 0 || label !== label.trim() || label.includes(",")) {
     reject("ラベル名が不正です")
   }
+}
+
+function assertLabelColor(color: string): void {
+  if (!/^[0-9A-Fa-f]{6}$/.test(color)) {
+    reject("ラベルの色が不正です")
+  }
+}
+
+function assertLabelDescription(description: string): void {
+  if (description.trim().length === 0) {
+    reject("ラベルの説明が空です")
+  }
+}
+
+function parseLabelNameResponse(stdout: string, expectedName: string): { name: string } {
+  const parsed = parseJson(stdout)
+  if (typeof parsed !== "object" || parsed === null) {
+    reject(PARSE_ERROR)
+  }
+  const name = (parsed as { name?: unknown }).name
+  if (typeof name !== "string" || name !== expectedName) {
+    reject(PARSE_ERROR)
+  }
+  return { name }
 }
 
 function assertBranchName(name: string): void {
@@ -521,6 +551,51 @@ export function createGitHub(options: {
       if (!pr.merged) {
         reject(NOT_MERGED)
       }
+    },
+
+    async getLabel(name) {
+      assertLabelName(name)
+      const encoded = encodeURIComponent(name)
+      const result = await ghCall(
+        gh,
+        ["api", `repos/${parts.owner}/${parts.name}/labels/${encoded}`],
+        cwd,
+      )
+      if (result.exitCode !== 0) {
+        if (result.stderr.includes("HTTP 404")) {
+          return null
+        }
+        reject(failReason(result))
+      }
+      return parseLabelNameResponse(result.stdout, name)
+    },
+
+    async createLabel(input) {
+      assertLabelName(input.name)
+      assertLabelColor(input.color)
+      assertLabelDescription(input.description)
+      const payload = JSON.stringify({
+        name: input.name,
+        color: input.color,
+        description: input.description,
+      })
+      const result = await ghCall(
+        gh,
+        [
+          "api",
+          "--method",
+          "POST",
+          `repos/${parts.owner}/${parts.name}/labels`,
+          "--input",
+          "-",
+        ],
+        cwd,
+        payload,
+      )
+      if (result.exitCode !== 0) {
+        reject(failReason(result))
+      }
+      parseLabelNameResponse(result.stdout, input.name)
     },
   }
 }

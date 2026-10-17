@@ -18,6 +18,7 @@
 ```sh
 bun src/cli.ts install [project-root]
 bun src/cli.ts run [--interval-min <1 以上 1440 以下の整数>]
+bun src/cli.ts labels
 bun test
 ```
 
@@ -25,6 +26,7 @@ bun test
 |---|---|
 | `install` | `skills/` 直下の各スキルディレクトリをコピーする。引数を省くと `~/.cursor/skills`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` |
 | `run` | SIGINT または SIGTERM まで、課題のポーリングと処理を繰り返す。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
+| `labels` | 作業ツリーのリポジトリに、計画の五つの業務ラベルを作る。無いものだけ作る |
 | `bun test` | テスト。`gh` は起動しない |
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。いま `skills/` に置くスキルはまだ無い。`run` の既定の `poll` は仕事を返さない。
@@ -78,8 +80,9 @@ src/install.ts        スキルのコピー
 src/run.ts            ポーリングのループ
 src/runner.ts         poll と process
 src/github.ts         GitHub Issue と GitHub
+src/labels.ts         業務フロー用ラベル
 src/*.test.ts
 skills/<名前>/        install がコピーするスキル
 ```
 
-設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md) と [GitHub 接続](docs/specs/2/design.md) である。
+設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md) である。

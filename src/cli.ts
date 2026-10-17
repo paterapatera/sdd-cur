@@ -7,12 +7,19 @@ import {
   installSkills,
   parseInstallArgs,
 } from "./install.ts"
+import {
+  createGitHub,
+  defaultGhRunner,
+  resolveRepo,
+} from "./github.ts"
+import { ensureWorkflowLabels } from "./labels.ts"
 import { parseRunArgs, runLoop } from "./run.ts"
 import { defaultRunner } from "./runner.ts"
 
-function printUsage(): void {
+export function printUsage(): void {
   console.error("sdd-cur install [project-root]")
   console.error("sdd-cur run [--interval-min <1 以上 1440 以下の整数>]")
+  console.error("sdd-cur labels")
 }
 
 function wantsHelp(argv: string[]): boolean {
@@ -81,6 +88,31 @@ async function cmdRun(args: string[]): Promise<number> {
   return code
 }
 
+async function cmdLabels(args: string[]): Promise<number> {
+  if (args.length > 0) {
+    printUsage()
+    return 1
+  }
+
+  try {
+    const cwd = process.cwd()
+    const repo = await resolveRepo(defaultGhRunner, cwd)
+    const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
+    const results = await ensureWorkflowLabels(github)
+    for (const result of results) {
+      if (result.status === "created") {
+        console.log(`作成しました: ${result.name}`)
+      } else {
+        console.log(`既にあります: ${result.name}`)
+      }
+    }
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
 async function main(): Promise<number> {
   const argv = process.argv.slice(2)
   if (wantsHelp(argv)) {
@@ -101,6 +133,8 @@ async function main(): Promise<number> {
       return await cmdInstall(rest)
     case "run":
       return await cmdRun(rest)
+    case "labels":
+      return await cmdLabels(rest)
     default:
       printUsage()
       return 1

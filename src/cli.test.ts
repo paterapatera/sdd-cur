@@ -49,5 +49,23 @@ describe("cli subprocess", () => {
       stderr: "pipe",
     })
     expect(await proc.exited).toBe(0)
+    const stderr = await new Response(proc.stderr).text()
+    expect(stderr).toContain("sdd-cur labels")
+  })
+
+  test("labels extra は使い方の三行で終了コード 1", async () => {
+    const bunExe = process.execPath
+    const proc = Bun.spawn([bunExe, cliPath, "labels", "extra"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: path.dirname(bunExe) },
+    })
+    expect(await proc.exited).toBe(1)
+    const stderr = await new Response(proc.stderr).text()
+    expect(stderr).toBe(
+      "sdd-cur install [project-root]\n" +
+        "sdd-cur run [--interval-min <1 以上 1440 以下の整数>]\n" +
+        "sdd-cur labels\n",
+    )
   })
 })

@@ -342,6 +342,120 @@ describe("createGitHub", () => {
     )
     expect(calls.length).toBe(0)
   })
+
+  test("getLabel は符号化済みパスで api を呼ぶ", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okJson({ name: "実装依頼" }),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    const label = await github.getLabel("実装依頼")
+    expect(label).toEqual({ name: "実装依頼" })
+    expect(calls[0]?.args).toEqual([
+      "api",
+      "repos/o/r/labels/%E5%AE%9F%E8%A3%85%E4%BE%9D%E9%A0%BC",
+    ])
+    expect(calls[0]?.options.stdin).toBeUndefined()
+  })
+
+  test("getLabel は HTTP 404 を null にする", async () => {
+    const { runner } = recordingRunner(() =>
+      fail("gh: Not Found (HTTP 404)\n", 1),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getLabel("実装依頼")).resolves.toBeNull()
+  })
+
+  test("getLabel は HTTP 404 以外の失敗を拒否する", async () => {
+    const { runner } = recordingRunner(() => fail("forbidden", 1))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getLabel("実装依頼")).rejects.toThrow("forbidden")
+  })
+
+  test("getLabel は name が一致しないとき拒否する", async () => {
+    const { runner } = recordingRunner(() => okJson({ name: "other" }))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getLabel("実装依頼")).rejects.toThrow(
+      "gh の応答を解釈できません",
+    )
+  })
+
+  test("getLabel の標準出力が JSON でないとき拒否する", async () => {
+    const { runner } = recordingRunner(() => okText("not json"))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getLabel("実装依頼")).rejects.toThrow(
+      "gh の応答を解釈できません",
+    )
+  })
+
+  test("createLabel は JSON の順序と stdin", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okJson({ name: "実装依頼" }),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await github.createLabel({
+      name: "実装依頼",
+      color: "FBCA04",
+      description: "設計が終わり、実装してよい",
+    })
+    expect(calls[0]?.args).toEqual([
+      "api",
+      "--method",
+      "POST",
+      "repos/o/r/labels",
+      "--input",
+      "-",
+    ])
+    expect(calls[0]?.options.stdin).toBe(
+      JSON.stringify({
+        name: "実装依頼",
+        color: "FBCA04",
+        description: "設計が終わり、実装してよい",
+      }),
+    )
+  })
+
+  test("createLabel は応答の name が一致しないとき拒否する", async () => {
+    const { runner } = recordingRunner(() => okJson({ name: "other" }))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(
+      github.createLabel({
+        name: "実装依頼",
+        color: "FBCA04",
+        description: "d",
+      }),
+    ).rejects.toThrow("gh の応答を解釈できません")
+  })
+
+  test("createLabel の標準出力が JSON でないとき拒否する", async () => {
+    const { runner } = recordingRunner(() => okText("not json"))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(
+      github.createLabel({
+        name: "実装依頼",
+        color: "FBCA04",
+        description: "d",
+      }),
+    ).rejects.toThrow("gh の応答を解釈できません")
+  })
+
+  test("不正なラベル名は getLabel で run を呼ばない", async () => {
+    const { runner, calls } = recordingRunner(() => okJson({ name: "x" }))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getLabel("")).rejects.toThrow("ラベル名が不正です")
+    expect(calls.length).toBe(0)
+  })
+
+  test("不正な色と説明は createLabel で run を呼ばない", async () => {
+    const { runner, calls } = recordingRunner(() => okJson({ name: "x" }))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(
+      github.createLabel({ name: "a", color: "bad", description: "d" }),
+    ).rejects.toThrow("ラベルの色が不正です")
+    await expect(
+      github.createLabel({ name: "a", color: "FFFFFF", description: "  " }),
+    ).rejects.toThrow("ラベルの説明が空です")
+    expect(calls.length).toBe(0)
+  })
 })
 
 describe("writeGhStdin", () => {
