@@ -9,6 +9,10 @@ export const subagentFileNames = [
   "sdd-cur-req-reviewer.md",
   "sdd-cur-req-fix-proposer.md",
   "sdd-cur-req-fixer.md",
+  "sdd-cur-design-author.md",
+  "sdd-cur-design-reviewer.md",
+  "sdd-cur-design-fix-proposer.md",
+  "sdd-cur-design-fixer.md",
 ] as const
 
 export function resolveSkillsDestination(

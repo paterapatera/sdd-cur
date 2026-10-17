@@ -7,6 +7,7 @@ import {
   reflectedCloseLine,
   reflectedOpenLine,
 } from "./conventions.ts"
+import { subagentFileNames } from "./install.ts"
 import type { Issue, IssueComment } from "./github.ts"
 import {
   applyIncorporatedAnswer,
@@ -475,6 +476,11 @@ description: このプロジェクトの課題について、着手候補の提�
       "指摘はどこにも置かない",
       "判定が合格なら設計に進むことができる",
       "人が答えるまで",
+      "sdd-cur-design-author",
+      "sdd-cur-design-reviewer",
+      "sdd-cur-design-fix-proposer",
+      "sdd-cur-design-fixer",
+      "判定が合格なら実装依頼に進むことができる",
     ]
     for (const phrase of required) {
       expect(text).toContain(phrase)
@@ -499,12 +505,7 @@ description: このプロジェクトの課題について、着手候補の提�
       )
       const source = await readFile(skillPath, "utf8")
       expect(copied).toBe(source)
-      for (const name of [
-        "sdd-cur-req-author.md",
-        "sdd-cur-req-reviewer.md",
-        "sdd-cur-req-fix-proposer.md",
-        "sdd-cur-req-fixer.md",
-      ]) {
+      for (const name of subagentFileNames) {
         const copiedAgent = await readFile(
           path.join(temp, ".cursor", "agents", name),
           "utf8",
