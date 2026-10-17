@@ -1,1 +1,85 @@
 # sdd-cur
+
+`@paterapatera/sdd-cur` は、このプロジェクト専用の SDD スキルと課題ランナーである。課題の作成、要件、設計、お客さまへの確認は人が Cursor で行う。実装と、選んだ場合の完了処理は、課題ランナーが別のクローンで行う。
+
+計画の全文は [docs/plan.md](docs/plan.md) にある。
+
+## 前提
+
+- [Bun](https://bun.sh)
+- GitHub を操作するときは、ログイン済みの [`gh`](https://cli.github.com/)
+
+依存パッケージは置かない。TypeScript は Bun が直接実行する。
+
+## 開発中の起動
+
+公開前は、このリポジトリで次を実行する。
+
+```sh
+bun src/cli.ts install [project-root]
+bun src/cli.ts run [--interval-min <1 以上 1440 以下の整数>]
+bun test
+```
+
+| コマンド | すること |
+|---|---|
+| `install` | `skills/` 直下の各スキルディレクトリをコピーする。引数を省くと `~/.cursor/skills`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` |
+| `run` | SIGINT または SIGTERM まで、課題のポーリングと処理を繰り返す。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
+| `bun test` | テスト。`gh` は起動しない |
+
+`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。いま `skills/` に置くスキルはまだ無い。`run` の既定の `poll` は仕事を返さない。
+
+使い方は `bun src/cli.ts --help` で標準エラーへ出る。
+
+## 公開後の起動
+
+パッケージ名は `@paterapatera/sdd-cur`、実行ファイル名は `sdd-cur` である。
+
+```sh
+bunx @paterapatera/sdd-cur install [project-root]
+bunx @paterapatera/sdd-cur run [--interval-min <分>]
+```
+
+パスへ入ったあとは `sdd-cur install` と `sdd-cur run` で同じ入口を呼ぶ。
+
+## 役割
+
+| もの | 動く場所 | 役割 |
+|---|---|---|
+| SDD スキル | 人が開いている Project A の Cursor | 着手する課題の提案、要件、設計、回答の取り込み、完了処理 |
+| 課題ランナー | Project A をクローンしたディレクトリ | 「実装依頼」の実装、「動作確認OK」の完了処理 |
+
+課題を作るのは人である。SDD スキルも課題ランナーも、課題は作らない。課題ランナーは Project A の作業ディレクトリでは動かさない。クローンは複数でよく、別の課題を同時に実装できる。
+
+人が Project A で書いた `docs/specs` をリモートへ push してから、課題に「実装依頼」を付ける。クローンはその push を含むリモートから作業する。
+
+## ラベル
+
+ラベルは次の順に進む。課題は閉じない。お客さまの確認が取れてから、人が閉じる。
+
+| ラベル | 付ける主体 | 意味 |
+|---|---|---|
+| 実装依頼 | 人 | 設計が終わり、実装してよい |
+| 実装中 | 課題ランナー | 実装を始めた |
+| 実装完了 | 課題ランナー | 実装が終わり、受け入れ手順がコメントにある |
+| 動作確認OK | 人 | 受け入れテストに合格した |
+| マージ済み | 完了処理 | スカッシュマージと同時に付ける |
+
+完了処理は、マージリクエストのスカッシュマージと「マージ済み」ラベルの付与である。呼ぶ場所は、課題ランナーと、Cursor の SDD スキルのどちらか一つである。
+
+## ディレクトリ
+
+```
+docs/plan.md          計画
+docs/specs/<番号>/    課題ごとの要件と設計
+package.json
+src/cli.ts            install と run の入口
+src/install.ts        スキルのコピー
+src/run.ts            ポーリングのループ
+src/runner.ts         poll と process
+src/github.ts         GitHub Issue と GitHub
+src/*.test.ts
+skills/<名前>/        install がコピーするスキル
+```
+
+設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md) と [GitHub 接続](docs/specs/2/design.md) である。
