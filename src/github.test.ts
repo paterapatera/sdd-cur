@@ -493,3 +493,105 @@ describe("resolveRepo", () => {
     expect(calls[0]?.options.stdin).toBeUndefined()
   })
 })
+
+describe("listPullRequests", () => {
+  test("pr list を head と state all で呼ぶ", async () => {
+    const { runner, calls } = recordingRunner(() => okJson([]))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    const result = await github.listPullRequests({ head: "sdd-cur/7" })
+    expect(result).toEqual([])
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.args).toEqual([
+      "pr",
+      "list",
+      "--repo",
+      "o/r",
+      "--head",
+      "sdd-cur/7",
+      "--state",
+      "all",
+      "--limit",
+      "100",
+      "--json",
+      "number,url,state,mergedAt",
+    ])
+    expect(calls[0]?.options.stdin).toBeUndefined()
+  })
+
+  test("mergedAt がある要素は merged が true", async () => {
+    const { runner } = recordingRunner(() =>
+      okJson([
+        {
+          number: 1,
+          url: "https://pr/1",
+          state: "MERGED",
+          mergedAt: "2020-01-01T00:00:00Z",
+        },
+      ]),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    const result = await github.listPullRequests({ head: "feat/x" })
+    expect(result[0]?.merged).toBe(true)
+  })
+
+  test("配列でない応答は拒否する", async () => {
+    const { runner } = recordingRunner(() => okJson({}))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(
+      github.listPullRequests({ head: "main" }),
+    ).rejects.toThrow("gh の応答を解釈できません")
+  })
+
+  test("不正な head と limit は gh を呼ばない", async () => {
+    const { runner, calls } = recordingRunner(() => okJson([]))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(
+      github.listPullRequests({ head: "bad:branch" }),
+    ).rejects.toThrow("ブランチ名が不正です")
+    await expect(
+      github.listPullRequests({ head: "ok", limit: 0 }),
+    ).rejects.toThrow("取得件数の指定が不正です")
+    await expect(
+      github.listPullRequests({ head: "ok", limit: 101 }),
+    ).rejects.toThrow("取得件数の指定が不正です")
+    expect(calls.length).toBe(0)
+  })
+})
+
+describe("getDefaultBranch", () => {
+  test("defaultBranchRef.name が main のとき main を返す", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okJson({ defaultBranchRef: { name: "main" } }),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r", cwd: "/tmp" })
+    const branch = await github.getDefaultBranch()
+    expect(branch).toBe("main")
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.args).toEqual([
+      "repo",
+      "view",
+      "--json",
+      "defaultBranchRef",
+    ])
+    expect(calls[0]?.options.cwd).toBe("/tmp")
+  })
+
+  test("name が無いとき gh の応答を解釈できません", async () => {
+    const { runner } = recordingRunner(() => okJson({}))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getDefaultBranch()).rejects.toThrow(
+      "gh の応答を解釈できません",
+    )
+  })
+
+  test("規則を満たさない name は gh の応答を解釈できません", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okJson({ defaultBranchRef: { name: ".." } }),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getDefaultBranch()).rejects.toThrow(
+      "gh の応答を解釈できません",
+    )
+    expect(calls).toHaveLength(1)
+  })
+})
