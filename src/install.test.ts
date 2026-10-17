@@ -4,9 +4,12 @@ import os from "node:os"
 import path from "node:path"
 import {
   assertDirectoryExists,
+  installAll,
   installSkills,
   parseInstallArgs,
+  resolveAgentsDestination,
   resolveSkillsDestination,
+  subagentFileNames,
 } from "./install.ts"
 
 describe("resolveSkillsDestination", () => {
@@ -19,6 +22,19 @@ describe("resolveSkillsDestination", () => {
     const root = "/tmp/myproject"
     const dest = resolveSkillsDestination("/home/test", root)
     expect(dest).toBe(path.join(root, ".cursor", "skills"))
+  })
+})
+
+describe("resolveAgentsDestination", () => {
+  test("引数なしの宛先は homedir に .cursor/agents を足す", () => {
+    const dest = resolveAgentsDestination("/home/test", undefined)
+    expect(dest).toBe(path.join("/home/test", ".cursor", "agents"))
+  })
+
+  test("プロジェクトのルートを渡すと <root>/.cursor/agents になる", () => {
+    const root = "/tmp/myproject"
+    const dest = resolveAgentsDestination("/home/test", root)
+    expect(dest).toBe(path.join(root, ".cursor", "agents"))
   })
 })
 
@@ -133,5 +149,107 @@ describe("installSkills", () => {
     await expect(assertDirectoryExists(file)).rejects.toThrow(
       "ディレクトリではありません",
     )
+  })
+})
+
+async function writeMinimalAgents(agentsSource: string): Promise<void> {
+  await mkdir(agentsSource, { recursive: true })
+  for (const name of subagentFileNames) {
+    await writeFile(path.join(agentsSource, name), `# ${name}\n`)
+  }
+}
+
+describe("installAll", () => {
+  let tempRoot: string
+  let skillsSource: string
+  let agentsSource: string
+  let destParent: string
+
+  beforeEach(async () => {
+    tempRoot = await mkdtemp(path.join(os.tmpdir(), "sdd-cur-install-all-"))
+    skillsSource = path.join(tempRoot, "skills-src")
+    agentsSource = path.join(tempRoot, "agents-src")
+    destParent = path.join(tempRoot, "dest-parent")
+    await mkdir(skillsSource, { recursive: true })
+    await mkdir(destParent, { recursive: true })
+    await writeMinimalAgents(agentsSource)
+  })
+
+  afterEach(async () => {
+    await rm(tempRoot, { recursive: true, force: true })
+  })
+
+  test("サブエージェントがコピーされる", async () => {
+    await mkdir(path.join(skillsSource, "aaa"), { recursive: true })
+    await writeFile(path.join(skillsSource, "aaa", "SKILL.md"), "skill")
+
+    await installAll({
+      homedir: destParent,
+      projectRoot: destParent,
+      skillsSourceDir: skillsSource,
+      agentsSourceDir: agentsSource,
+    })
+
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+    for (const name of subagentFileNames) {
+      const content = await readFile(path.join(agentsDest, name), "utf8")
+      expect(content).toBe(`# ${name}\n`)
+    }
+  })
+
+  test("宛先に既にある別のファイルは残る", async () => {
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+    await mkdir(agentsDest, { recursive: true })
+    await writeFile(path.join(agentsDest, "other.md"), "keep")
+
+    await installAll({
+      homedir: destParent,
+      projectRoot: destParent,
+      skillsSourceDir: skillsSource,
+      agentsSourceDir: agentsSource,
+    })
+
+    const keep = await readFile(path.join(agentsDest, "other.md"), "utf8")
+    expect(keep).toBe("keep")
+  })
+
+  test("同名のサブエージェントは置き換わる", async () => {
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+    await mkdir(agentsDest, { recursive: true })
+    await writeFile(path.join(agentsDest, subagentFileNames[0]), "old")
+
+    await installAll({
+      homedir: destParent,
+      projectRoot: destParent,
+      skillsSourceDir: skillsSource,
+      agentsSourceDir: agentsSource,
+    })
+
+    const content = await readFile(
+      path.join(agentsDest, subagentFileNames[0]),
+      "utf8",
+    )
+    expect(content).toBe(`# ${subagentFileNames[0]}\n`)
+  })
+
+  test("四つのいずれかが無いときは失敗し、スキルの宛先もサブエージェントの宛先も作られない", async () => {
+    const incomplete = path.join(tempRoot, "agents-incomplete")
+    await mkdir(incomplete, { recursive: true })
+    await writeFile(path.join(incomplete, subagentFileNames[0]), "x")
+
+    const skillsDest = path.join(destParent, ".cursor", "skills")
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+
+    await expect(
+      installAll({
+        homedir: destParent,
+        projectRoot: destParent,
+        skillsSourceDir: skillsSource,
+        agentsSourceDir: incomplete,
+      }),
+    ).rejects.toThrow("サブエージェントがありません")
+
+    await expect(stat(skillsDest)).rejects.toThrow()
+    await expect(stat(agentsDest)).rejects.toThrow()
   })
 })

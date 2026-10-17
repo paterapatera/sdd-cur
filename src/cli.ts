@@ -4,8 +4,9 @@ import process from "node:process"
 import { specPaths } from "./conventions.ts"
 import {
   assertDirectoryExists,
+  defaultAgentsSourceDir,
   defaultSkillsSourceDir,
-  installSkills,
+  installAll,
   parseInstallArgs,
 } from "./install.ts"
 import { completeIssue, readCompletionCaller } from "./complete.ts"
@@ -77,11 +78,18 @@ async function cmdInstall(args: string[]): Promise<number> {
     }
   }
 
-  const result = await installSkills({
-    homedir: home,
-    projectRoot: parsed.projectRoot,
-    skillsSourceDir: defaultSkillsSourceDir,
-  })
+  let result: Awaited<ReturnType<typeof installAll>>
+  try {
+    result = await installAll({
+      homedir: home,
+      projectRoot: parsed.projectRoot,
+      skillsSourceDir: defaultSkillsSourceDir,
+      agentsSourceDir: defaultAgentsSourceDir,
+    })
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
 
   console.log(result.destDir)
   if (result.skillNames.length === 0) {

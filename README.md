@@ -29,7 +29,7 @@ bun test
 
 | コマンド | すること |
 |---|---|
-| `install` | `skills/` 直下の各スキルディレクトリをコピーする。引数を省くと `~/.cursor/skills`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` |
+| `install` | `skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の四つをコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents` |
 | `run` | SIGINT または SIGTERM まで、「実装依頼」を探して「実装完了」まで行う。作業ツリー直下の `sdd-cur.completion` が `runner` のときは、「動作確認OK」の完了処理も行う。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
 | `labels` | 作業ツリーのリポジトリに、計画の五つの業務ラベルを作る。無いものだけ作る |
 | `candidates` | 着手候補の課題を JSON で一行出力する |
@@ -87,7 +87,8 @@ docs/conventions.md   要件・設計の置き場所と課題コメントの約�
 docs/specs/<番号>/    課題ごとの要件と設計
 package.json
 src/cli.ts            install、run、labels、SDD サブコマンドの入口
-src/install.ts        スキルのコピー
+src/install.ts        スキルとサブエージェントのコピー
+agents/               install がコピーする要求レビュー用サブエージェント
 src/run.ts            ポーリングのループ
 src/runner.ts         poll と process（実装依頼から実装完了）
 src/git.ts            クローン上の git 操作

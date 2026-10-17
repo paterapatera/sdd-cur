@@ -463,6 +463,18 @@ description: このプロジェクトの課題について、着手候補の提�
       "反映済みブロックより前",
       "既存の正しい見出しは変えない",
       "本文には id を書かない",
+      "sdd-cur-req-author",
+      "sdd-cur-req-reviewer",
+      "sdd-cur-req-fix-proposer",
+      "sdd-cur-req-fixer",
+      "model は渡さない",
+      "判定: 合格",
+      "判定: 不合格",
+      "確認: あり",
+      "確認: なし",
+      "指摘はどこにも置かない",
+      "判定が合格なら設計に進むことができる",
+      "人が答えるまで",
     ]
     for (const phrase of required) {
       expect(text).toContain(phrase)
@@ -472,8 +484,9 @@ description: このプロジェクトの課題について、着手候補の提�
     expect(text).not.toContain(reflectedOpenLine)
   })
 
-  test("install で SKILL.md がコピーされる", async () => {
+  test("install で SKILL.md とサブエージェントがコピーされる", async () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-install-skill-"))
+    const agentsDir = path.join(import.meta.dir, "../agents")
     try {
       const proc = Bun.spawn(["bun", cliPath, "install", temp], {
         stdout: "pipe",
@@ -486,6 +499,19 @@ description: このプロジェクトの課題について、着手候補の提�
       )
       const source = await readFile(skillPath, "utf8")
       expect(copied).toBe(source)
+      for (const name of [
+        "sdd-cur-req-author.md",
+        "sdd-cur-req-reviewer.md",
+        "sdd-cur-req-fix-proposer.md",
+        "sdd-cur-req-fixer.md",
+      ]) {
+        const copiedAgent = await readFile(
+          path.join(temp, ".cursor", "agents", name),
+          "utf8",
+        )
+        const agentSource = await readFile(path.join(agentsDir, name), "utf8")
+        expect(copiedAgent).toBe(agentSource)
+      }
     } finally {
       await rm(temp, { recursive: true, force: true })
     }
