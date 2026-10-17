@@ -16,7 +16,7 @@
 
 | 場所 | 役割 |
 |---|---|
-| `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels` |
+| `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`confirm`、`reflect` |
 | `src/install.ts` | `skills/<名前>/` を `~/.cursor/skills` または `<project>/.cursor/skills` へコピーする |
 | `src/run.ts` | 停止まで `poll` と `process` を繰り返す。処理のあいだは次の `poll` を呼ばない |
 | `src/runner.ts` | `poll` と `process`。ループの形はここを差し替えて保つ |
@@ -24,6 +24,7 @@
 | `src/labels.ts` | 業務フロー用ラベル名と `ensureWorkflowLabels` |
 | `docs/conventions.md` | 要件・設計の置き場所と課題コメントの約束 |
 | `src/conventions.ts` | 上記約束の判定（パス、種別、対応、反映済み、未反映） |
+| `src/sdd.ts` | SDD スキル用の候補、表示、確認投稿、回答の反映 |
 | `skills/<名前>/` | `install` がコピーするスキル。直下のディレクトリだけが対象 |
 
 GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起動し、認証は `gh` のログインに任せる。このモジュールはトークンも環境変数も読まない。
@@ -51,6 +52,10 @@ bun test
 bun src/cli.ts install [project-root]
 bun src/cli.ts run [--interval-min <1 以上 1440 以下の整数>]
 bun src/cli.ts labels
+bun src/cli.ts candidates
+bun src/cli.ts show <番号>
+bun src/cli.ts confirm <番号>
+bun src/cli.ts reflect <番号> <requirements|design>
 bun test
 ```
 

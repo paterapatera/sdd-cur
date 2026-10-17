@@ -19,6 +19,10 @@
 bun src/cli.ts install [project-root]
 bun src/cli.ts run [--interval-min <1 以上 1440 以下の整数>]
 bun src/cli.ts labels
+bun src/cli.ts candidates
+bun src/cli.ts show <番号>
+bun src/cli.ts confirm <番号>
+bun src/cli.ts reflect <番号> <requirements|design>
 bun test
 ```
 
@@ -27,9 +31,13 @@ bun test
 | `install` | `skills/` 直下の各スキルディレクトリをコピーする。引数を省くと `~/.cursor/skills`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` |
 | `run` | SIGINT または SIGTERM まで、課題のポーリングと処理を繰り返す。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
 | `labels` | 作業ツリーのリポジトリに、計画の五つの業務ラベルを作る。無いものだけ作る |
+| `candidates` | 着手候補の課題を JSON で一行出力する |
+| `show` | 課題と仕様の状態を JSON で一行出力する |
+| `confirm` | 承認した確認本文を標準入力から受け取り、課題にコメントする |
+| `reflect` | 取り込み先の全文を標準入力から受け取り、未反映の回答を一件記録する |
 | `bun test` | テスト。`gh` は起動しない |
 
-`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。いま `skills/` に置くスキルはまだ無い。`run` の既定の `poll` は仕事を返さない。
+`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur` である。`run` の既定の `poll` は仕事を返さない。
 
 使い方は `bun src/cli.ts --help` で標準エラーへ出る。
 
@@ -76,15 +84,16 @@ docs/plan.md          計画
 docs/conventions.md   要件・設計の置き場所と課題コメントの約束
 docs/specs/<番号>/    課題ごとの要件と設計
 package.json
-src/cli.ts            install と run の入口
+src/cli.ts            install、run、labels、SDD サブコマンドの入口
 src/install.ts        スキルのコピー
 src/run.ts            ポーリングのループ
 src/runner.ts         poll と process
 src/github.ts         GitHub Issue と GitHub
 src/labels.ts         業務フロー用ラベル
 src/conventions.ts    specs パスと課題コメントの判定
+src/sdd.ts            SDD スキル用の判定と投稿
 src/*.test.ts
-skills/<名前>/        install がコピーするスキル
+skills/sdd-cur/       install がコピーする SDD スキル
 ```
 
-設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md) である。
+設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md)、[SDD スキル](docs/specs/5/design.md) である。
