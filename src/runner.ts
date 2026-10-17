@@ -1,6 +1,11 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
+import {
+  completeIssue,
+  type CompletionCaller,
+  selectCompletionIssue,
+} from "./complete.ts"
 import { commentMarkers } from "./conventions.ts"
 import type { GitHubClient, Issue } from "./github.ts"
 import type { GitClient } from "./git.ts"
@@ -25,6 +30,7 @@ const allMarkers = new Set<string>(Object.values(commentMarkers))
 const LABEL_REQUEST = workflowLabels[0].name
 const LABEL_IN_PROGRESS = workflowLabels[1].name
 const LABEL_DONE = workflowLabels[2].name
+const LABEL_VERIFIED = workflowLabels[3].name
 
 function reject(message: string): never {
   throw new Error(message)
@@ -104,6 +110,7 @@ export async function defaultCreateProcedureFile(): Promise<{
 }
 
 type RunnerDeps = {
+  completionCaller: CompletionCaller | null
   github: {
     listIssues: GitHubClient["listIssues"]
     getIssue: GitHubClient["getIssue"]
@@ -112,6 +119,8 @@ type RunnerDeps = {
     createBranch: GitHubClient["createBranch"]
     createPullRequest: GitHubClient["createPullRequest"]
     addComment: GitHubClient["addComment"]
+    listPullRequests: GitHubClient["listPullRequests"]
+    squashMerge: GitHubClient["squashMerge"]
   }
   git: GitClient
   agent: {
@@ -133,10 +142,20 @@ export function createRunner(deps: RunnerDeps): Runner {
         deps.github.listIssues({ labels: [LABEL_REQUEST], limit: 100 }),
       )
       const selected = selectImplementationIssue(issues)
-      if (selected === null) {
+      if (selected !== null) {
+        return { id: String(selected.number) }
+      }
+      if (deps.completionCaller !== "runner") {
         return null
       }
-      return { id: String(selected.number) }
+      const completionIssues = await withRetry(() =>
+        deps.github.listIssues({ labels: [LABEL_VERIFIED], limit: 100 }),
+      )
+      const completion = selectCompletionIssue(completionIssues)
+      if (completion === null) {
+        return null
+      }
+      return { id: String(completion.number) }
     },
 
     async process(item) {
@@ -145,10 +164,26 @@ export function createRunner(deps: RunnerDeps): Runner {
       const issue = await withRetry(() => deps.github.getIssue(issueNumber))
       const hasRequest = issue.labels.includes(LABEL_REQUEST)
       const hasInProgress = issue.labels.includes(LABEL_IN_PROGRESS)
-      if (!hasRequest || hasInProgress) {
+      if (hasRequest && !hasInProgress) {
+        await runImplementation(deps, issueNumber, issue)
         return
       }
 
+      if (
+        deps.completionCaller === "runner" &&
+        issue.labels.includes(LABEL_VERIFIED)
+      ) {
+        await completeIssue(deps.github, issueNumber)
+      }
+    },
+  }
+}
+
+async function runImplementation(
+  deps: RunnerDeps,
+  issueNumber: number,
+  issue: Issue,
+): Promise<void> {
       await withRetry(() =>
         deps.github.editLabels(issueNumber, {
           remove: [LABEL_REQUEST],
@@ -224,8 +259,6 @@ export function createRunner(deps: RunnerDeps): Runner {
         }
         throw error
       }
-    },
-  }
 }
 
 export const defaultRunner: Runner = {

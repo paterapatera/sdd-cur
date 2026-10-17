@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises"
+import { completionCallerFileName } from "./complete.ts"
 import os from "node:os"
 import path from "node:path"
 import { reflectedOpenLine } from "./conventions.ts"
@@ -15,7 +16,8 @@ const usageText =
   "sdd-cur candidates\n" +
   "sdd-cur show <番号>\n" +
   "sdd-cur confirm <番号>\n" +
-  "sdd-cur reflect <番号> <requirements|design>\n"
+  "sdd-cur reflect <番号> <requirements|design>\n" +
+  "sdd-cur complete <番号>\n"
 
 describe("cli subprocess", () => {
   test("install が <temp>/.cursor/skills を作る", async () => {
@@ -84,7 +86,7 @@ describe("cli subprocess", () => {
     expect(stderr).toBe(usageText)
   })
 
-  test("candidates extra は使い方の七行で終了コード 1", async () => {
+  test("candidates extra は使い方の八行で終了コード 1", async () => {
     const proc = Bun.spawn([bunExe, cliPath, "candidates", "extra"], {
       stdout: "pipe",
       stderr: "pipe",
@@ -165,6 +167,84 @@ describe("cli subprocess", () => {
       await expect(
         stat(path.join(temp, "docs", "specs", "5", "requirements.md")),
       ).rejects.toThrow()
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("complete の引数が無いときは使い方", async () => {
+    const proc = Bun.spawn([bunExe, cliPath, "complete"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: isolatedPath },
+    })
+    expect(await proc.exited).toBe(1)
+    expect(await new Response(proc.stderr).text()).toBe(usageText)
+  })
+
+  test("complete 01 は番号が不正です", async () => {
+    const proc = Bun.spawn([bunExe, cliPath, "complete", "01"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: isolatedPath },
+    })
+    expect(await proc.exited).toBe(1)
+    expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+      "番号が不正です",
+    )
+  })
+
+  test("complete 7 は未設定の呼び出し元", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-complete-"))
+    try {
+      const proc = Bun.spawn([bunExe, cliPath, "complete", "7"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await proc.exited).toBe(1)
+      expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+        "完了の呼び出し元が未設定です",
+      )
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("complete 7 は runner の呼び出し元", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-complete-run-"))
+    try {
+      await writeFile(path.join(temp, completionCallerFileName), "runner")
+      const proc = Bun.spawn([bunExe, cliPath, "complete", "7"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await proc.exited).toBe(1)
+      expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+        "完了は課題ランナーが行います",
+      )
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("complete 7 は skill で gh 無し", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-complete-skill-"))
+    try {
+      await writeFile(path.join(temp, completionCallerFileName), "skill")
+      const proc = Bun.spawn([bunExe, cliPath, "complete", "7"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await proc.exited).toBe(1)
+      expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+        "gh を実行できません",
+      )
     } finally {
       await rm(temp, { recursive: true, force: true })
     }

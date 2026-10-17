@@ -21,6 +21,8 @@ const bunExe = process.execPath
 const LABEL_REQUEST = workflowLabels[0].name
 const LABEL_IN_PROGRESS = workflowLabels[1].name
 const LABEL_DONE = workflowLabels[2].name
+const LABEL_VERIFIED = workflowLabels[3].name
+const LABEL_MERGED = workflowLabels[4].name
 
 function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
   return {
@@ -65,6 +67,7 @@ describe("createRunner", () => {
   test("poll は listIssues を実装依頼で呼び候補が無いとき null", async () => {
     let calls = 0
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues(query) {
           calls += 1
@@ -113,6 +116,7 @@ describe("createRunner", () => {
   test("poll は listIssues が一度拒否し二度目に返す", async () => {
     let calls = 0
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           calls += 1
@@ -161,6 +165,7 @@ describe("createRunner", () => {
   test("process はラベルが違うとき editLabels を呼ばない", async () => {
     let editCalled = false
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           return []
@@ -210,6 +215,7 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順本文", "utf8")
 
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           return []
@@ -301,6 +307,7 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           return []
@@ -354,6 +361,7 @@ describe("createRunner", () => {
   test("implement が二度拒否したとき後続を呼ばない", async () => {
     let commitCalled = false
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           return []
@@ -408,6 +416,7 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           return []
@@ -460,6 +469,7 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           return []
@@ -515,6 +525,7 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           return []
@@ -577,6 +588,7 @@ describe("createRunner", () => {
     store.set(2, [LABEL_REQUEST])
 
     const runner = createRunner({
+      completionCaller: null,
       github: {
         async listIssues() {
           return [
@@ -634,6 +646,376 @@ describe("createRunner", () => {
     const second = await runner.poll()
     expect(second?.id).toBe("2")
     await rm(path.dirname(procedurePath), { recursive: true, force: true })
+  })
+})
+
+describe("createRunner completion", () => {
+  test("completionCaller null または skill では動作確認OK を探さない", async () => {
+    let listCalls = 0
+    for (const caller of [null, "skill"] as const) {
+      listCalls = 0
+      const runner = createRunner({
+        completionCaller: caller,
+        github: {
+          async listIssues() {
+            listCalls += 1
+            return []
+          },
+          async getIssue() {
+            return issue({ number: 1 })
+          },
+          async editLabels() {},
+          async getDefaultBranch() {
+            return "main"
+          },
+          async createBranch() {},
+          async createPullRequest() {
+            return { number: 1, url: "https://pr" }
+          },
+          async addComment() {
+            return { url: "https://c" }
+          },
+          async listPullRequests() {
+            return []
+          },
+          async squashMerge() {},
+        },
+        git: {
+          async remoteName() {
+            return "origin"
+          },
+          async fetch() {},
+          async checkoutFetched() {},
+          async hasChanges() {
+            return true
+          },
+          async commitAll() {},
+          async push() {},
+        },
+        agent: { async implement() {} },
+        createProcedureFile: async () => ({
+          path: "/tmp/x",
+          async remove() {},
+        }),
+      })
+      expect(await runner.poll()).toBe(null)
+      expect(listCalls).toBe(1)
+    }
+  })
+
+  test("runner で実装依頼があれば動作確認OK を探さない", async () => {
+    let secondList = false
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            secondList = true
+          }
+          return [issue({ number: 3 })]
+        },
+        async getIssue() {
+          return issue({ number: 3 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return false
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    expect(item?.id).toBe("3")
+    expect(secondList).toBe(false)
+  })
+
+  test("runner で動作確認OK のみを返す", async () => {
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [issue({ number: 8, labels: [LABEL_VERIFIED] })]
+        },
+        async getIssue() {
+          return issue({ number: 8, labels: [LABEL_VERIFIED] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [
+            {
+              number: 11,
+              url: "https://pr/11",
+              state: "merged",
+              merged: true,
+            },
+          ]
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    expect(await runner.poll()).toEqual({ id: "8" })
+  })
+
+  test("実装依頼課題では complete の依存を呼ばない", async () => {
+    let squashCalled = false
+    const procDir = await mkdtemp(path.join(os.tmpdir(), "sdd-runner-proc-"))
+    const procedurePath = path.join(procDir, "procedure.txt")
+    await writeFile(procedurePath, "手順", "utf8")
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async listIssues() {
+          return [issue({ number: 1 })]
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          squashCalled = true
+          return []
+        },
+        async squashMerge() {
+          squashCalled = true
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return false
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    await expect(runner.process(item!)).rejects.toThrow(
+      "実装の変更がありません",
+    )
+    expect(squashCalled).toBe(false)
+    await rm(procDir, { recursive: true, force: true })
+  })
+
+  test("動作確認OK では squashMerge と完了 editLabels だけ", async () => {
+    const calls: string[] = []
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [issue({ number: 5, labels: [LABEL_VERIFIED] })]
+        },
+        async getIssue() {
+          return issue({ number: 5, labels: [LABEL_VERIFIED] })
+        },
+        async editLabels(n, change) {
+          calls.push(`edit:${n}:${change.remove?.join(",")}:${change.add?.join(",")}`)
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {
+          calls.push("createBranch")
+        },
+        async createPullRequest() {
+          calls.push("createPullRequest")
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          calls.push("addComment")
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [
+            {
+              number: 2,
+              url: "https://pr/2",
+              state: "open",
+              merged: false,
+            },
+          ]
+        },
+        async squashMerge(n) {
+          calls.push(`squash:${n}`)
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {
+          calls.push("commitAll")
+        },
+        async push() {
+          calls.push("push")
+        },
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    await runner.process(item!)
+    expect(calls).toEqual([
+      "squash:2",
+      `edit:5:${LABEL_VERIFIED}:${LABEL_MERGED}`,
+    ])
+  })
+
+  test("完了後の poll はその課題を返さない", async () => {
+    let verifiedIssues = [issue({ number: 6, labels: [LABEL_VERIFIED] })]
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return verifiedIssues
+        },
+        async getIssue(n) {
+          const found = verifiedIssues.find((i) => i.number === n)
+          return found ?? issue({ number: n, labels: [LABEL_VERIFIED] })
+        },
+        async editLabels(n, change) {
+          verifiedIssues = verifiedIssues.map((i) => {
+            if (i.number !== n) {
+              return i
+            }
+            let labels = i.labels.filter((l) => !change.remove?.includes(l))
+            labels = [...labels, ...(change.add ?? [])]
+            return { ...i, labels }
+          })
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [
+            {
+              number: 3,
+              url: "https://pr/3",
+              state: "merged",
+              merged: true,
+            },
+          ]
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    expect(item?.id).toBe("6")
+    await runner.process(item!)
+    expect(await runner.poll()).toBe(null)
   })
 })
 

@@ -23,21 +23,23 @@ bun src/cli.ts candidates
 bun src/cli.ts show <番号>
 bun src/cli.ts confirm <番号>
 bun src/cli.ts reflect <番号> <requirements|design>
+bun src/cli.ts complete <番号>
 bun test
 ```
 
 | コマンド | すること |
 |---|---|
 | `install` | `skills/` 直下の各スキルディレクトリをコピーする。引数を省くと `~/.cursor/skills`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` |
-| `run` | SIGINT または SIGTERM まで、「実装依頼」を探して「実装完了」まで行う。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
+| `run` | SIGINT または SIGTERM まで、「実装依頼」を探して「実装完了」まで行う。作業ツリー直下の `sdd-cur.completion` が `runner` のときは、「動作確認OK」の完了処理も行う。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
 | `labels` | 作業ツリーのリポジトリに、計画の五つの業務ラベルを作る。無いものだけ作る |
 | `candidates` | 着手候補の課題を JSON で一行出力する |
 | `show` | 課題と仕様の状態を JSON で一行出力する |
 | `confirm` | 承認した確認本文を標準入力から受け取り、課題にコメントする |
 | `reflect` | 取り込み先の全文を標準入力から受け取り、未反映の回答を一件記録する |
+| `complete` | 作業ツリー直下の `sdd-cur.completion` が `skill` のとき、指定課題の完了処理を行う |
 | `bun test` | テスト。`gh` は起動しない |
 
-`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur` と `skills/sdd-cur-implement` である。
+`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-implement`、`skills/sdd-cur-complete` である。
 
 使い方は `bun src/cli.ts --help` で標準エラーへ出る。
 
@@ -94,9 +96,11 @@ src/github.ts         GitHub Issue と GitHub
 src/labels.ts         業務フロー用ラベル
 src/conventions.ts    specs パスと課題コメントの判定
 src/sdd.ts            SDD スキル用の判定と投稿
+src/complete.ts       完了処理と呼び出し元の読み取り
 src/*.test.ts
 skills/sdd-cur/       install がコピーする SDD スキル
 skills/sdd-cur-implement/  install がコピーする実装スキル
+skills/sdd-cur-complete/   install がコピーする完了スキル
 ```
 
-設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md)、[SDD スキル](docs/specs/5/design.md)、[課題ランナー](docs/specs/6/design.md) である。
+設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md)、[SDD スキル](docs/specs/5/design.md)、[課題ランナー](docs/specs/6/design.md)、[完了処理](docs/specs/7/design.md) である。

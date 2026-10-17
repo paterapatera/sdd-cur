@@ -57,6 +57,10 @@ export type GitHubClient = {
     body: string
   }): Promise<{ number: number; url: string }>
   getPullRequest(number: number): Promise<PullRequest>
+  listPullRequests(query: {
+    head: string
+    limit?: number
+  }): Promise<PullRequest[]>
   squashMerge(number: number): Promise<void>
   getLabel(name: string): Promise<{ name: string } | null>
   createLabel(input: {
@@ -196,6 +200,12 @@ function assertIssueState(state: string): void {
 
 function assertLimit(limit: number): void {
   if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
+    reject("取得件数の指定が不正です")
+  }
+}
+
+function assertPullRequestLimit(limit: number): void {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
     reject("取得件数の指定が不正です")
   }
 }
@@ -543,6 +553,31 @@ export function createGitHub(options: {
         "number,url,state,mergedAt",
       ])
       return normalizePullRequest(parseJson(result.stdout))
+    },
+
+    async listPullRequests(query) {
+      assertBranchName(query.head)
+      const limit = query.limit ?? 100
+      assertPullRequestLimit(limit)
+      const result = await runGh([
+        "pr",
+        "list",
+        "--repo",
+        repo,
+        "--head",
+        query.head,
+        "--state",
+        "all",
+        "--limit",
+        String(limit),
+        "--json",
+        "number,url,state,mergedAt",
+      ])
+      const parsed = parseJson(result.stdout)
+      if (!Array.isArray(parsed)) {
+        reject(PARSE_ERROR)
+      }
+      return parsed.map((item) => normalizePullRequest(item))
     },
 
     async squashMerge(number) {

@@ -8,6 +8,7 @@ import {
   installSkills,
   parseInstallArgs,
 } from "./install.ts"
+import { completeIssue, readCompletionCaller } from "./complete.ts"
 import {
   createGitHub,
   defaultGhRunner,
@@ -45,6 +46,7 @@ export function printUsage(): void {
   console.error("sdd-cur show <番号>")
   console.error("sdd-cur confirm <番号>")
   console.error("sdd-cur reflect <番号> <requirements|design>")
+  console.error("sdd-cur complete <番号>")
 }
 
 function wantsHelp(argv: string[]): boolean {
@@ -104,6 +106,14 @@ async function cmdRun(args: string[]): Promise<number> {
   process.on("SIGTERM", onSignal)
 
   const cwd = process.cwd()
+  let completionCaller
+  try {
+    completionCaller = await readCompletionCaller(cwd)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
   let github
   try {
     const repo = await resolveRepo(defaultGhRunner, cwd)
@@ -116,6 +126,7 @@ async function cmdRun(args: string[]): Promise<number> {
   const git = createGit({ git: defaultGitRunner, cwd })
   const agent = createAgent({ agent: defaultAgentRunner, cwd })
   const runner = createRunner({
+    completionCaller,
     github,
     git,
     agent,
@@ -280,6 +291,50 @@ async function cmdReflect(args: string[]): Promise<number> {
   }
 }
 
+async function cmdComplete(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const cwd = process.cwd()
+  let caller
+  try {
+    caller = await readCompletionCaller(cwd)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  if (caller === null) {
+    console.error("完了の呼び出し元が未設定です")
+    return 1
+  }
+  if (caller === "runner") {
+    console.error("完了は課題ランナーが行います")
+    return 1
+  }
+
+  try {
+    const repo = await resolveRepo(defaultGhRunner, cwd)
+    const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
+    await completeIssue(github, issueNumber)
+    console.log(`完了しました: ${issueNumber}`)
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
 async function main(): Promise<number> {
   const argv = process.argv.slice(2)
   if (wantsHelp(argv)) {
@@ -310,6 +365,8 @@ async function main(): Promise<number> {
       return await cmdConfirm(rest)
     case "reflect":
       return await cmdReflect(rest)
+    case "complete":
+      return await cmdComplete(rest)
     default:
       printUsage()
       return 1
