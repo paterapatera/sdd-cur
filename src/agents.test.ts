@@ -53,6 +53,30 @@ const expected = [
     model: "composer-2.5[fast=false]",
     bodyIncludes: [] as string[],
   },
+  {
+    file: "sdd-cur-implement-author.md",
+    name: "sdd-cur-implement-author",
+    model: "grok-4.7[reasoning_effort=high,fast=false]",
+    bodyIncludes: [] as string[],
+  },
+  {
+    file: "sdd-cur-implement-reviewer.md",
+    name: "sdd-cur-implement-reviewer",
+    model: "grok-4.7[reasoning_effort=medium,fast=false]",
+    bodyIncludes: ["判定: 合格", "判定: 不合格"],
+  },
+  {
+    file: "sdd-cur-implement-fix-proposer.md",
+    name: "sdd-cur-implement-fix-proposer",
+    model: "grok-4.7[reasoning_effort=high,fast=false]",
+    bodyIncludes: ["確認: なし", "人に確認しない"],
+  },
+  {
+    file: "sdd-cur-implement-fixer.md",
+    name: "sdd-cur-implement-fixer",
+    model: "composer-2.5[fast=false]",
+    bodyIncludes: [] as string[],
+  },
 ] as const
 
 describe("agents/*.md", () => {
