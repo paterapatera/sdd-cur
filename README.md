@@ -2,7 +2,7 @@
 
 `@paterapatera/sdd-cur` は、このプロジェクト専用の SDD スキルと課題ランナーである。課題の作成、要件、設計、お客さまへの確認は人が Cursor で行う。実装と、選んだ場合の完了処理は、課題ランナーが別のクローンで行う。
 
-計画の全文は [docs/plan.md](docs/plan.md) にある。
+計画の全文は [docs/plan.md](docs/plan.md) にある。要件と設計の置き場所と課題コメントの約束は [docs/conventions.md](docs/conventions.md) にある。
 
 ## 前提
 
@@ -73,6 +73,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 ```
 docs/plan.md          計画
+docs/conventions.md   要件・設計の置き場所と課題コメントの約束
 docs/specs/<番号>/    課題ごとの要件と設計
 package.json
 src/cli.ts            install と run の入口
@@ -81,8 +82,9 @@ src/run.ts            ポーリングのループ
 src/runner.ts         poll と process
 src/github.ts         GitHub Issue と GitHub
 src/labels.ts         業務フロー用ラベル
+src/conventions.ts    specs パスと課題コメントの判定
 src/*.test.ts
 skills/<名前>/        install がコピーするスキル
 ```
 
-設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md) である。
+設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md) である。

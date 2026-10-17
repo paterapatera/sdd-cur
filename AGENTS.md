@@ -5,7 +5,8 @@
 ## 着手前に読むもの
 
 1. [docs/plan.md](docs/plan.md)
-2. 対象課題の `docs/specs/<番号>/design.md`
+2. [docs/conventions.md](docs/conventions.md)
+3. 対象課題の `docs/specs/<番号>/design.md`
 
 設計の受け入れ条件、決定、範囲の中で実装する。設計に書いた「範囲外」は作らない。設計が無い挙動は足さない。
 
@@ -21,6 +22,8 @@
 | `src/runner.ts` | `poll` と `process`。ループの形はここを差し替えて保つ |
 | `src/github.ts` | Issue の取得、コメント、ラベル、ブランチ、マージリクエスト、スカッシュマージ |
 | `src/labels.ts` | 業務フロー用ラベル名と `ensureWorkflowLabels` |
+| `docs/conventions.md` | 要件・設計の置き場所と課題コメントの約束 |
+| `src/conventions.ts` | 上記約束の判定（パス、種別、対応、反映済み、未反映） |
 | `skills/<名前>/` | `install` がコピーするスキル。直下のディレクトリだけが対象 |
 
 GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起動し、認証は `gh` のログインに任せる。このモジュールはトークンも環境変数も読まない。
