@@ -493,3 +493,41 @@ describe("resolveRepo", () => {
     expect(calls[0]?.options.stdin).toBeUndefined()
   })
 })
+
+describe("getDefaultBranch", () => {
+  test("defaultBranchRef.name が main のとき main を返す", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okJson({ defaultBranchRef: { name: "main" } }),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r", cwd: "/tmp" })
+    const branch = await github.getDefaultBranch()
+    expect(branch).toBe("main")
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.args).toEqual([
+      "repo",
+      "view",
+      "--json",
+      "defaultBranchRef",
+    ])
+    expect(calls[0]?.options.cwd).toBe("/tmp")
+  })
+
+  test("name が無いとき gh の応答を解釈できません", async () => {
+    const { runner } = recordingRunner(() => okJson({}))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getDefaultBranch()).rejects.toThrow(
+      "gh の応答を解釈できません",
+    )
+  })
+
+  test("規則を満たさない name は gh の応答を解釈できません", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okJson({ defaultBranchRef: { name: ".." } }),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.getDefaultBranch()).rejects.toThrow(
+      "gh の応答を解釈できません",
+    )
+    expect(calls).toHaveLength(1)
+  })
+})

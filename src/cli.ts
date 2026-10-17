@@ -14,8 +14,13 @@ import {
   resolveRepo,
 } from "./github.ts"
 import { ensureWorkflowLabels } from "./labels.ts"
+import { createAgent, defaultAgentRunner } from "./agent.ts"
+import { createGit, defaultGitRunner } from "./git.ts"
 import { parseRunArgs, runLoop } from "./run.ts"
-import { defaultRunner } from "./runner.ts"
+import {
+  createRunner,
+  defaultCreateProcedureFile,
+} from "./runner.ts"
 import {
   applyIncorporatedAnswer,
   assertSpecFilesReflected,
@@ -98,9 +103,28 @@ async function cmdRun(args: string[]): Promise<number> {
   process.on("SIGINT", onSignal)
   process.on("SIGTERM", onSignal)
 
+  const cwd = process.cwd()
+  let github
+  try {
+    const repo = await resolveRepo(defaultGhRunner, cwd)
+    github = createGitHub({ gh: defaultGhRunner, repo, cwd })
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const git = createGit({ git: defaultGitRunner, cwd })
+  const agent = createAgent({ agent: defaultAgentRunner, cwd })
+  const runner = createRunner({
+    github,
+    git,
+    agent,
+    createProcedureFile: defaultCreateProcedureFile,
+  })
+
   const lines: string[] = []
   const code = await runLoop({
-    runner: defaultRunner,
+    runner,
     intervalMin: parsed.intervalMin,
     shouldStop: () => stop,
     sleep: (ms) => Bun.sleep(ms),

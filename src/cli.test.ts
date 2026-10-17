@@ -35,16 +35,25 @@ describe("cli subprocess", () => {
     }
   })
 
-  test("run は SIGTERM で 1 分待たず終了コード 0", async () => {
-    const proc = Bun.spawn(["bun", cliPath, "run", "--interval-min", "1"], {
-      stdout: "pipe",
-      stderr: "pipe",
-    })
-
-    await Bun.sleep(50)
-    proc.kill("SIGTERM")
-    const exitCode = await proc.exited
-    expect(exitCode).toBe(0)
+  test("run は gh 無しの cwd で終了コード 1", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-run-"))
+    try {
+      const proc = Bun.spawn(
+        [bunExe, cliPath, "run", "--interval-min", "1"],
+        {
+          cwd: temp,
+          stdout: "pipe",
+          stderr: "pipe",
+          env: { ...process.env, PATH: isolatedPath },
+        },
+      )
+      const exitCode = await proc.exited
+      expect(exitCode).toBe(1)
+      const stderr = await new Response(proc.stderr).text()
+      expect(stderr.trim()).toBe("gh を実行できません")
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
   })
 
   test("未知のサブコマンドは終了コード 1", async () => {

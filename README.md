@@ -29,7 +29,7 @@ bun test
 | コマンド | すること |
 |---|---|
 | `install` | `skills/` 直下の各スキルディレクトリをコピーする。引数を省くと `~/.cursor/skills`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` |
-| `run` | SIGINT または SIGTERM まで、課題のポーリングと処理を繰り返す。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
+| `run` | SIGINT または SIGTERM まで、「実装依頼」を探して「実装完了」まで行う。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
 | `labels` | 作業ツリーのリポジトリに、計画の五つの業務ラベルを作る。無いものだけ作る |
 | `candidates` | 着手候補の課題を JSON で一行出力する |
 | `show` | 課題と仕様の状態を JSON で一行出力する |
@@ -37,7 +37,7 @@ bun test
 | `reflect` | 取り込み先の全文を標準入力から受け取り、未反映の回答を一件記録する |
 | `bun test` | テスト。`gh` は起動しない |
 
-`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur` である。`run` の既定の `poll` は仕事を返さない。
+`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur` と `skills/sdd-cur-implement` である。
 
 使い方は `bun src/cli.ts --help` で標準エラーへ出る。
 
@@ -87,13 +87,16 @@ package.json
 src/cli.ts            install、run、labels、SDD サブコマンドの入口
 src/install.ts        スキルのコピー
 src/run.ts            ポーリングのループ
-src/runner.ts         poll と process
+src/runner.ts         poll と process（実装依頼から実装完了）
+src/git.ts            クローン上の git 操作
+src/agent.ts          Cursor agent の起動
 src/github.ts         GitHub Issue と GitHub
 src/labels.ts         業務フロー用ラベル
 src/conventions.ts    specs パスと課題コメントの判定
 src/sdd.ts            SDD スキル用の判定と投稿
 src/*.test.ts
 skills/sdd-cur/       install がコピーする SDD スキル
+skills/sdd-cur-implement/  install がコピーする実装スキル
 ```
 
-設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md)、[SDD スキル](docs/specs/5/design.md) である。
+設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md)、[SDD スキル](docs/specs/5/design.md)、[課題ランナー](docs/specs/6/design.md) である。

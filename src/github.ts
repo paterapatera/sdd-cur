@@ -64,6 +64,7 @@ export type GitHubClient = {
     description: string
     color: string
   }): Promise<void>
+  getDefaultBranch(): Promise<string>
 }
 
 const ISSUE_JSON_FIELDS = "number,title,body,state,labels,url"
@@ -596,6 +597,28 @@ export function createGitHub(options: {
         reject(failReason(result))
       }
       parseLabelNameResponse(result.stdout, input.name)
+    },
+
+    async getDefaultBranch() {
+      const result = await ghCall(
+        gh,
+        ["repo", "view", "--json", "defaultBranchRef"],
+        cwd,
+      )
+      assertGhOk(result)
+      const parsed = parseJson(result.stdout) as {
+        defaultBranchRef?: { name?: unknown }
+      }
+      const name = parsed.defaultBranchRef?.name
+      if (typeof name !== "string") {
+        reject(PARSE_ERROR)
+      }
+      try {
+        assertBranchName(name)
+      } catch {
+        reject(PARSE_ERROR)
+      }
+      return name
     },
   }
 }
