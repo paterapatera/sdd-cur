@@ -193,7 +193,6 @@ async function runImplementation(
 
       const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
       const branch = implementationBranch(issueNumber)
-      await withRetry(() => deps.github.createBranch(branch, defaultBranch))
 
       const remote = await withRetry(() => deps.git.remoteName())
       await withRetry(() => deps.git.fetch(remote, branch))

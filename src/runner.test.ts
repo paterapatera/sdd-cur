@@ -234,11 +234,13 @@ describe("createRunner", () => {
           log.push("getDefaultBranch")
           return "main"
         },
-        async createBranch(name, from) {
-          log.push(`createBranch:${name}:${from}`)
+        async createBranch() {
+          log.push("createBranch")
         },
         async createPullRequest(input) {
           log.push(`createPullRequest:${input.body}`)
+          expect(input.base).toBe("main")
+          expect(input.head).toBe("sdd-cur/1")
           expect(input.body).toBe("https://issue/1")
           expect(input.body).not.toContain("Fixes")
           expect(input.body).not.toContain("Closes")
@@ -257,8 +259,8 @@ describe("createRunner", () => {
         async fetch(remote, branch) {
           log.push(`fetch:${remote}:${branch}`)
         },
-        async checkoutFetched() {
-          log.push("checkoutFetched")
+        async checkoutFetched(branch) {
+          log.push(`checkoutFetched:${branch}`)
         },
         async hasChanges() {
           log.push("hasChanges")
@@ -283,13 +285,13 @@ describe("createRunner", () => {
     })
 
     await runner.process({ id: "1" })
+    expect(log).not.toContain("createBranch")
     expect(log).toEqual([
       "editLabels:start",
       "getDefaultBranch",
-      "createBranch:sdd-cur/1:main",
       "remoteName",
       "fetch:origin:sdd-cur/1",
-      "checkoutFetched",
+      "checkoutFetched:sdd-cur/1",
       "implement",
       "hasChanges",
       "commitAll",
@@ -463,9 +465,11 @@ describe("createRunner", () => {
     await rm(procedurePath, { force: true })
   })
 
-  test("createBranch が一度拒否し二度目に成功", async () => {
-    let branchCalls = 0
-    const procedurePath = "/tmp/procedure-branch.txt"
+  test("fetch が一度拒否し二度目に成功", async () => {
+    let fetchCalls = 0
+    let checkoutCalls = 0
+    let implementCalls = 0
+    const procedurePath = "/tmp/procedure-fetch.txt"
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
@@ -482,10 +486,7 @@ describe("createRunner", () => {
           return "main"
         },
         async createBranch() {
-          branchCalls += 1
-          if (branchCalls === 1) {
-            throw new Error("branch fail")
-          }
+          throw new Error("createBranch must not run")
         },
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
@@ -498,15 +499,26 @@ describe("createRunner", () => {
         async remoteName() {
           return "origin"
         },
-        async fetch() {},
-        async checkoutFetched() {},
+        async fetch() {
+          fetchCalls += 1
+          if (fetchCalls === 1) {
+            throw new Error("fetch fail")
+          }
+        },
+        async checkoutFetched() {
+          checkoutCalls += 1
+        },
         async hasChanges() {
           return true
         },
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: {
+        async implement() {
+          implementCalls += 1
+        },
+      },
       createProcedureFile: async () => ({
         path: procedurePath,
         async remove() {},
@@ -514,7 +526,74 @@ describe("createRunner", () => {
     })
 
     await runner.process({ id: "1" })
-    expect(branchCalls).toBe(2)
+    expect(checkoutCalls).toBe(1)
+    expect(fetchCalls).toBe(2)
+    expect(implementCalls).toBe(1)
+    await rm(procedurePath, { force: true })
+  })
+
+  test("fetch が二度拒否したときは checkout と implement を呼ばない", async () => {
+    let fetchCalls = 0
+    let checkoutCalls = 0
+    let implementCalls = 0
+    const procedurePath = "/tmp/procedure-fetch-fail.txt"
+    await writeFile(procedurePath, "手順", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {
+          throw new Error("createBranch must not run")
+        },
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {
+          fetchCalls += 1
+          throw new Error("fetch fail")
+        },
+        async checkoutFetched() {
+          checkoutCalls += 1
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async implement() {
+          implementCalls += 1
+        },
+      },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+
+    await expect(runner.process({ id: "1" })).rejects.toThrow("fetch fail")
+    expect(fetchCalls).toBe(2)
+    expect(checkoutCalls).toBe(0)
+    expect(implementCalls).toBe(0)
     await rm(procedurePath, { force: true })
   })
 

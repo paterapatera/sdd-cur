@@ -481,6 +481,13 @@ description: このプロジェクトの課題について、着手候補の提�
       "sdd-cur-design-fix-proposer",
       "sdd-cur-design-fixer",
       "判定が合格なら実装依頼に進むことができる",
+      "作業ブランチを用意する",
+      "implementationBranch",
+      "実装のランナーは、この用意をしない",
+      "デフォルトブランチには書かない",
+      "同じ作業ブランチ",
+      "デフォルトブランチから作業ブランチを作り直さない",
+      "要求と設計を含む作業ブランチ",
     ]
     for (const phrase of required) {
       expect(text).toContain(phrase)
