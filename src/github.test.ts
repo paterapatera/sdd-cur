@@ -77,7 +77,7 @@ describe("createGitHub", () => {
       "--limit",
       "100",
       "--json",
-      "number,title,body,state,labels,url",
+      "number,title,body,state,labels,assignees,url",
     ])
     expect(calls[0]?.options.stdin).toBeUndefined()
   })
@@ -100,7 +100,7 @@ describe("createGitHub", () => {
       "--limit",
       "100",
       "--json",
-      "number,title,body,state,labels,url",
+      "number,title,body,state,labels,assignees,url",
     ])
   })
 
@@ -113,6 +113,7 @@ describe("createGitHub", () => {
           body: null,
           state: "OPEN",
           labels: [{ name: "bug" }],
+          assignees: [],
           url: "https://github.com/o/r/issues/2",
         },
       ]),
@@ -125,8 +126,93 @@ describe("createGitHub", () => {
       body: "",
       state: "open",
       labels: ["bug"],
+      assignees: [],
       url: "https://github.com/o/r/issues/2",
     })
+  })
+
+  test("viewerLogin は api user を一回だけ呼ぶ", async () => {
+    const { runner, calls } = recordingRunner(() => okJson({ login: "octocat" }))
+    const github = createGitHub({ gh: runner, repo: "o/r", cwd: "/tmp" })
+    const login = await github.viewerLogin()
+    expect(login).toBe("octocat")
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.args).toEqual(["api", "user"])
+    expect(calls[0]?.options.cwd).toBe("/tmp")
+    expect(calls[0]?.options.stdin).toBeUndefined()
+  })
+
+  test("viewerLogin は login が無いとき空のとき拒否する", async () => {
+    const { runner } = recordingRunner(() => okJson({}))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.viewerLogin()).rejects.toThrow("gh の応答を解釈できません")
+    const { runner: runner2 } = recordingRunner(() => okJson({ login: "" }))
+    const github2 = createGitHub({ gh: runner2, repo: "o/r" })
+    await expect(github2.viewerLogin()).rejects.toThrow("gh の応答を解釈できません")
+  })
+
+  test("listIssues の assignee と assignees 正規化", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okJson([
+        {
+          number: 1,
+          title: "t",
+          body: "",
+          state: "OPEN",
+          labels: [],
+          assignees: [{ login: "octocat" }],
+          url: "https://github.com/o/r/issues/1",
+        },
+      ]),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    const issues = await github.listIssues({
+      labels: ["実装依頼"],
+      assignee: "octocat",
+    })
+    expect(issues[0]?.assignees).toEqual(["octocat"])
+    const args = calls[0]?.args ?? []
+    const labelIndex = args.indexOf("--label")
+    const assigneeIndex = args.indexOf("--assignee")
+    const stateIndex = args.indexOf("--state")
+    expect(labelIndex).toBeGreaterThan(-1)
+    expect(assigneeIndex).toBeGreaterThan(labelIndex)
+    expect(stateIndex).toBeGreaterThan(assigneeIndex)
+    expect(args[assigneeIndex + 1]).toBe("octocat")
+  })
+
+  test("assignee を省いたときは --assignee が無い", async () => {
+    const { runner, calls } = recordingRunner(() => okJson([]))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await github.listIssues()
+    expect(calls[0]?.args).not.toContain("--assignee")
+  })
+
+  test("空の assignee は gh を呼ばない", async () => {
+    const { runner, calls } = recordingRunner(() => okJson([]))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.listIssues({ assignee: "  " })).rejects.toThrow(
+      "アサインの指定が不正です",
+    )
+    expect(calls.length).toBe(0)
+  })
+
+  test("assignees が配列でないとき拒否する", async () => {
+    const { runner } = recordingRunner(() =>
+      okJson([
+        {
+          number: 1,
+          title: "t",
+          body: "",
+          state: "OPEN",
+          labels: [],
+          assignees: null,
+          url: "https://github.com/o/r/issues/1",
+        },
+      ]),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.listIssues()).rejects.toThrow("gh の応答を解釈できません")
   })
 
   test("getIssue と listComments の引数", async () => {
@@ -148,6 +234,7 @@ describe("createGitHub", () => {
         body: "b",
         state: "CLOSED",
         labels: [],
+        assignees: [],
         url: "https://github.com/o/r/issues/1",
       })
     })

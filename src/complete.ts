@@ -64,9 +64,12 @@ export async function readCompletionCaller(
 
 export function selectCompletionIssue(
   issues: readonly Issue[],
+  login: string,
 ): Issue | null {
-  const filtered = issues.filter((issue) =>
-    issue.labels.includes(LABEL_VERIFIED),
+  const filtered = issues.filter(
+    (issue) =>
+      issue.labels.includes(LABEL_VERIFIED) &&
+      issue.assignees.includes(login),
   )
   const sorted = [...filtered].sort((a, b) => a.number - b.number)
   return sorted[0] ?? null

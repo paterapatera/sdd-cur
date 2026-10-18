@@ -19,6 +19,7 @@ export type Issue = {
   body: string
   state: "open" | "closed"
   labels: string[]
+  assignees: string[]
   url: string
 }
 
@@ -37,9 +38,11 @@ export type PullRequest = {
 }
 
 export type GitHubClient = {
+  viewerLogin(): Promise<string>
   listIssues(query?: {
     state?: "open" | "closed" | "all"
     labels?: string[]
+    assignee?: string
     limit?: number
   }): Promise<Issue[]>
   getIssue(number: number): Promise<Issue>
@@ -71,7 +74,9 @@ export type GitHubClient = {
   getDefaultBranch(): Promise<string>
 }
 
-const ISSUE_JSON_FIELDS = "number,title,body,state,labels,url"
+const ISSUE_JSON_FIELDS =
+  "number,title,body,state,labels,assignees,url"
+const INVALID_ASSIGNEE = "アサインの指定が不正です"
 const PARSE_ERROR = "gh の応答を解釈できません"
 const NOT_MERGED = "マージリクエストはマージされていません"
 
@@ -204,6 +209,12 @@ function assertLimit(limit: number): void {
   }
 }
 
+function assertAssigneeQuery(assignee: string): void {
+  if (assignee.trim().length === 0) {
+    reject(INVALID_ASSIGNEE)
+  }
+}
+
 function assertPullRequestLimit(limit: number): void {
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
     reject("取得件数の指定が不正です")
@@ -254,12 +265,28 @@ function normalizeIssue(raw: unknown): Issue {
     }
     labels.push(name)
   }
+  const assigneesRaw = o.assignees
+  if (!Array.isArray(assigneesRaw)) {
+    reject(PARSE_ERROR)
+  }
+  const assignees: string[] = []
+  for (const item of assigneesRaw) {
+    if (typeof item !== "object" || item === null) {
+      reject(PARSE_ERROR)
+    }
+    const login = (item as { login?: unknown }).login
+    if (typeof login !== "string") {
+      reject(PARSE_ERROR)
+    }
+    assignees.push(login)
+  }
   return {
     number: o.number,
     title: o.title,
     body,
     state: normalizeIssueState(o.state),
     labels,
+    assignees,
     url: o.url,
   }
 }
@@ -369,6 +396,19 @@ export function createGitHub(options: {
   }
 
   return {
+    async viewerLogin() {
+      const result = await runGh(["api", "user"])
+      const parsed = parseJson(result.stdout)
+      if (typeof parsed !== "object" || parsed === null) {
+        reject(PARSE_ERROR)
+      }
+      const login = (parsed as { login?: unknown }).login
+      if (typeof login !== "string" || login.length === 0) {
+        reject(PARSE_ERROR)
+      }
+      return login
+    },
+
     async listIssues(query = {}) {
       const state = query.state ?? "open"
       assertIssueState(state)
@@ -378,12 +418,18 @@ export function createGitHub(options: {
       for (const label of labels) {
         assertLabelName(label)
       }
+      const assigneeArgs: string[] = []
+      if (query.assignee !== undefined) {
+        assertAssigneeQuery(query.assignee)
+        assigneeArgs.push("--assignee", query.assignee)
+      }
       const args = [
         "issue",
         "list",
         "--repo",
         repo,
         ...labels.flatMap((label) => ["--label", label]),
+        ...assigneeArgs,
         "--state",
         state,
         "--limit",

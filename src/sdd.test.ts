@@ -34,6 +34,7 @@ function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
     body: "",
     state: "open",
     labels: [],
+    assignees: [],
     url: "https://example.com/1",
     ...partial,
   }
