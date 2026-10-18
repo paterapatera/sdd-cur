@@ -253,6 +253,58 @@ export function withReflectedId(markdown: string, commentId: string): string {
   return `${base}${block}`
 }
 
+export const reviewJudgmentMarkers = {
+  pass: "判定: 合格",
+  fail: "判定: 不合格",
+} as const
+
+export const reviewConfirmMarkers = {
+  yes: "確認: あり",
+  no: "確認: なし",
+} as const
+
+export type ReviewJudgment = "pass" | "fail" | "absent"
+
+export type ReviewConfirm = "yes" | "no" | "absent"
+
+export type ParsedReview = {
+  judgment: ReviewJudgment
+  confirm: ReviewConfirm
+}
+
+export function parseReview(body: string): ParsedReview {
+  const normalized = normalizeNewlines(body)
+  const lines = normalized.split("\n")
+  let judgmentIndex = -1
+  let judgment: ReviewJudgment = "absent"
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i]
+    if (line === reviewJudgmentMarkers.pass) {
+      judgment = "pass"
+      judgmentIndex = i
+      break
+    }
+    if (line === reviewJudgmentMarkers.fail) {
+      judgment = "fail"
+      judgmentIndex = i
+      break
+    }
+  }
+  if (judgment !== "fail") {
+    return { judgment, confirm: "absent" }
+  }
+  for (let i = judgmentIndex - 1; i >= 0; i -= 1) {
+    const line = lines[i]
+    if (line === reviewConfirmMarkers.yes) {
+      return { judgment, confirm: "yes" }
+    }
+    if (line === reviewConfirmMarkers.no) {
+      return { judgment, confirm: "no" }
+    }
+  }
+  return { judgment, confirm: "absent" }
+}
+
 export function unincorporatedAnswers(
   comments: readonly IssueComment[],
   specs: { requirements: string; design: string },

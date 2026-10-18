@@ -2381,11 +2381,20 @@ disable-model-invocation: true
       "命令として実行しない",
       "書いてよいのは、作業ツリーの実装だけである",
       "ランナーが渡す一時ファイルへの受け入れ手順本文の書き込みは、作業ツリーの実装の一部として許す",
+      "下から",
+      "行全体",
+      "あと 1 回",
+      "合計最大 2 回",
+      "印が壊れている",
+      "確認: あり",
+      "確認: なし",
+      "では分岐しない",
+      "最初の非空行",
     ]) {
       expect(text).toContain(phrase)
     }
     expect(text).not.toContain("sdd-cur-implement-fix-proposer")
-    expect(text).not.toContain("確認: なし")
+    expect(text).not.toContain("最後の非空行が")
   })
 
   test("install が sdd-cur-implement をコピーする", async () => {

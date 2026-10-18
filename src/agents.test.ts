@@ -139,6 +139,44 @@ describe("agents/*.md", () => {
     })
   }
 
+  const reviewerFiles = [
+    "sdd-cur-req-reviewer.md",
+    "sdd-cur-design-reviewer.md",
+    "sdd-cur-implement-reviewer.md",
+  ] as const
+
+  for (const file of reviewerFiles) {
+    test(`${file} の判定の書き方`, async () => {
+      const text = await readFile(path.join(agentsDir, file), "utf8")
+      expect(text).toContain("行全体")
+      expect(text).toContain("判定: 合格")
+      expect(text).toContain("判定: 不合格")
+      expect(text).not.toContain("最後の非空行")
+    })
+  }
+
+  for (const file of [
+    "sdd-cur-req-reviewer.md",
+    "sdd-cur-design-reviewer.md",
+  ] as const) {
+    test(`${file} の確認の書き方`, async () => {
+      const text = await readFile(path.join(agentsDir, file), "utf8")
+      expect(text).toContain("下から")
+      expect(text).toContain("確認: あり")
+      expect(text).toContain("確認: なし")
+      expect(text).not.toContain("直前の非空行")
+    })
+  }
+
+  test("sdd-cur-implement-reviewer.md は確認を書かない", async () => {
+    const text = await readFile(
+      path.join(agentsDir, "sdd-cur-implement-reviewer.md"),
+      "utf8",
+    )
+    expect(text).toContain("人に確認しない")
+    expect(text).toContain("`確認: あり` も `確認: なし` も書かない")
+  })
+
   for (const file of abolished) {
     test(`${file} は存在しない`, async () => {
       await expect(access(path.join(agentsDir, file))).rejects.toThrow()
