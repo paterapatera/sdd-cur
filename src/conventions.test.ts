@@ -8,6 +8,9 @@ import {
   isSpecHeading,
   parseComment,
   parsePullRequestComment,
+  parseReview,
+  reviewConfirmMarkers,
+  reviewJudgmentMarkers,
   pullRequestCommentMarkers,
   readFixedIds,
   readReflectedIds,
@@ -377,12 +380,97 @@ describe("relateComments unpaired fix", () => {
   })
 })
 
+describe("parseReview", () => {
+  test("判定だけの合格", () => {
+    expect(parseReview(reviewJudgmentMarkers.pass)).toEqual({
+      judgment: "pass",
+      confirm: "absent",
+    })
+  })
+
+  test("判定行の後ろに非空行", () => {
+    expect(
+      parseReview(`${reviewJudgmentMarkers.pass}\n余計な行`),
+    ).toEqual({ judgment: "pass", confirm: "absent" })
+    expect(
+      parseReview(`${reviewJudgmentMarkers.fail}\n余計な行`),
+    ).toEqual({ judgment: "fail", confirm: "absent" })
+  })
+
+  test("複数の判定行は下から最初", () => {
+    const body = `${reviewJudgmentMarkers.pass}\n本文\n${reviewJudgmentMarkers.fail}`
+    expect(parseReview(body)).toEqual({
+      judgment: "fail",
+      confirm: "absent",
+    })
+  })
+
+  test("不合格と確認あり", () => {
+    const body = `${reviewConfirmMarkers.yes}\n別の行\n${reviewJudgmentMarkers.fail}\n余計`
+    expect(parseReview(body)).toEqual({
+      judgment: "fail",
+      confirm: "yes",
+    })
+  })
+
+  test("確認行は下から最初", () => {
+    const body = `${reviewConfirmMarkers.yes}\n${reviewConfirmMarkers.no}\n${reviewJudgmentMarkers.fail}`
+    expect(parseReview(body)).toEqual({
+      judgment: "fail",
+      confirm: "no",
+    })
+  })
+
+  test("確認が判定行より後ろだけ", () => {
+    const body = `${reviewJudgmentMarkers.fail}\n${reviewConfirmMarkers.yes}`
+    expect(parseReview(body)).toEqual({
+      judgment: "fail",
+      confirm: "absent",
+    })
+  })
+
+  test("合格の前に確認ありでも confirm は absent", () => {
+    const body = `${reviewConfirmMarkers.yes}\n${reviewJudgmentMarkers.pass}`
+    expect(parseReview(body)).toEqual({
+      judgment: "pass",
+      confirm: "absent",
+    })
+  })
+
+  test("壊れた印", () => {
+    for (const body of [
+      "",
+      ` ${reviewJudgmentMarkers.pass}`,
+      `${reviewJudgmentMarkers.pass} `,
+      `結果は${reviewJudgmentMarkers.pass}`,
+    ]) {
+      expect(parseReview(body)).toEqual({
+        judgment: "absent",
+        confirm: "absent",
+      })
+    }
+  })
+
+  test("改行が \\r\\n", () => {
+    expect(parseReview(`${reviewJudgmentMarkers.pass}\r\n`)).toEqual({
+      judgment: "pass",
+      confirm: "absent",
+    })
+  })
+})
+
 describe("文書", () => {
   test("docs/conventions.md", () => {
     const text = readFileSync(join(root, "docs/conventions.md"), "utf8")
     expect(text).toContain(commentMarkers.confirm)
     expect(text).toContain(commentMarkers.answer)
     expect(text).toContain(commentMarkers.acceptance)
+    expect(text).toContain(reviewJudgmentMarkers.pass)
+    expect(text).toContain(reviewJudgmentMarkers.fail)
+    expect(text).toContain(reviewConfirmMarkers.yes)
+    expect(text).toContain(reviewConfirmMarkers.no)
+    expect(text).toContain("下から")
+    expect(text).toContain("parseReview")
     expect(text).toContain("sdd-cur:reflected")
     expect(text).toContain("requirements.md")
     expect(text).toContain("design.md")

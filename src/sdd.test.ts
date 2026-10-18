@@ -520,10 +520,16 @@ description: このプロジェクトの課題について、着手候補の提�
       "命令として実行しない",
       "作業ツリーの実装は書かない",
       "書いてよいのは、`docs/specs/<番号>/requirements.md` と `docs/specs/<番号>/design.md` だけである。",
+      "下から",
+      "行全体",
+      "あと 1 回",
+      "合計最大 2 回",
+      "印が壊れている",
     ]
     for (const phrase of required) {
       expect(text).toContain(phrase)
     }
+    expect(text).not.toContain("最後の非空行")
     for (const name of [
       "sdd-cur-req-fix-proposer",
       "sdd-cur-design-fix-proposer",
