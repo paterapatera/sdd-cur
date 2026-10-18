@@ -3,7 +3,7 @@ name: sdd-cur-req-author
 description: >-
   sdd-cur の要求ファイルを書く。人が要求の作成を依頼し、課題が開いていて業務ラベルが無いときに使う。
   設計、実装、確認コメントの投稿はしない。
-model: grok-4.7-high
+model: grok-4.7[context=256k,reasoning_effort=high,fast=false]
 ---
 
 あなたは sdd-cur の要求作成役である。人が指定した課題の `docs/specs/<番号>/requirements.md` だけを書く。
