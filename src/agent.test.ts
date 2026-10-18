@@ -113,4 +113,32 @@ describe("createAgent", () => {
     ])
     expect(calls[0]?.args).not.toContain("--api-key")
   })
+
+  test("quick のプロンプトと不正な結果パス", async () => {
+    const { runner, calls } = recordingRunner(() => ({
+      stdout: "",
+      stderr: "",
+      exitCode: 0,
+    }))
+    const agent = createAgent({ agent: runner, cwd: "/proj" })
+    await expect(
+      agent.quick({ issueNumber: 1, resultPath: "" }),
+    ).rejects.toThrow("quick の結果パスが不正です")
+    expect(calls).toHaveLength(0)
+    await agent.quick({
+      issueNumber: 6,
+      resultPath: "/tmp/quick-result.txt",
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.args).toEqual([
+      "-p",
+      "--force",
+      "--trust",
+      "--workspace",
+      "/proj",
+      "--output-format",
+      "text",
+      "/sdd-cur-quick 6 /tmp/quick-result.txt",
+    ])
+  })
 })

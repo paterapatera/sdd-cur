@@ -39,6 +39,7 @@ function assertAgentOk(result: GitResult): void {
 
 const INVALID_PROCEDURE_PATH = "受け入れ手順のパスが不正です"
 const INVALID_RESULT_PATH = "修正結果のパスが不正です"
+const INVALID_QUICK_RESULT_PATH = "quick の結果パスが不正です"
 const NO_BUGS_TO_FIX = "修正する不具合がありません"
 const INVALID_FIX_ID = "修正するコメントが不正です"
 const BAD_FIX_IDS = "修正の記録を解釈できません"
@@ -94,6 +95,7 @@ export function createAgent(options: {
     resultPath: string
     bugs: readonly { id: string; payload: string }[]
   }): Promise<void>
+  quick(input: { issueNumber: number; resultPath: string }): Promise<void>
 } {
   const agent = options.agent
   const cwd = options.cwd
@@ -140,6 +142,40 @@ export function createAgent(options: {
         input.bugs.map((b) => ({ id: b.id, payload: b.payload })),
       )
       const prompt = `${line1}\n${line2}`
+      const args = [
+        "-p",
+        "--force",
+        "--trust",
+        "--workspace",
+        cwd,
+        "--output-format",
+        "text",
+        prompt,
+      ]
+
+      let result: GitResult
+      try {
+        result = await agent.run(args, { cwd })
+      } catch {
+        reject("agent を実行できません")
+      }
+      assertAgentOk(result)
+    },
+
+    async quick(input) {
+      if (!Number.isSafeInteger(input.issueNumber) || input.issueNumber < 1) {
+        reject("番号が不正です")
+      }
+      parseIssueNumberString(String(input.issueNumber))
+      if (
+        input.resultPath.length === 0 ||
+        input.resultPath !== input.resultPath.trim() ||
+        /[\s\n\r]/.test(input.resultPath)
+      ) {
+        reject(INVALID_QUICK_RESULT_PATH)
+      }
+
+      const prompt = `/sdd-cur-quick ${input.issueNumber} ${input.resultPath}`
       const args = [
         "-p",
         "--force",

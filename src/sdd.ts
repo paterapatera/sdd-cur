@@ -125,6 +125,22 @@ export function candidateViews(issues: readonly Issue[]): Candidate[] {
   return result
 }
 
+const QUICK_TARGET_LABEL = "quick 対象"
+const QUICK_TARGET_BODY = "quick 対象"
+
+export function isQuickTarget(issue: {
+  body: string
+  labels: readonly string[]
+}): boolean {
+  if (issue.labels.includes(QUICK_TARGET_LABEL)) {
+    return true
+  }
+  if (issue.body.includes(QUICK_TARGET_BODY)) {
+    return true
+  }
+  return false
+}
+
 export async function listStartCandidates(github: {
   listIssues: GitHubClient["listIssues"]
 }): Promise<Candidate[]> {
