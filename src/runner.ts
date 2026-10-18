@@ -15,7 +15,12 @@ import {
 import type { GitHubClient, Issue, IssueComment, PullRequest } from "./github.ts"
 import type { GitClient } from "./git.ts"
 import { workflowLabels } from "./labels.ts"
-import { parseIssueNumberString } from "./sdd.ts"
+import {
+  isQuickTarget,
+  parseIssueNumberString,
+  readSpecPair,
+  specStatus,
+} from "./sdd.ts"
 
 export type WorkItem = {
   id: string
@@ -31,8 +36,16 @@ const MARKER_IN_ACCEPTANCE = "受け入れ手順に印を含めない"
 const NO_CHANGES = "実装の変更がありません"
 const AMBIGUOUS_PR = "マージリクエストを特定できません"
 const OUT_OF_SCOPE_LINE = "設計の範囲外のため直していない"
+const NO_REQUIREMENTS = "要件がありません"
+const BAD_REQ_HEADING = "要件の見出しが不正です"
+const NO_DESIGN = "設計がありません"
+const BAD_DES_HEADING = "設計の見出しが不正です"
+const BAD_QUICK_RESULT = "quick の結果を解釈できません"
+const NOT_MINOR_LINE = "処理の途中で軽微な修正でないと分かりました"
+const UNDECIDED_LINE = "決められない点があるため止めました"
 
 const allMarkers = new Set<string>(Object.values(commentMarkers))
+const workflowLabelNames = new Set(workflowLabels.map((l) => l.name))
 
 const LABEL_REQUEST = workflowLabels[0].name
 const LABEL_IN_PROGRESS = workflowLabels[1].name
@@ -107,6 +120,94 @@ export function issueHasFixLabels(issue: Issue): boolean {
     return false
   }
   return true
+}
+
+export function selectQuickIssue(
+  issues: readonly Issue[],
+  login: string,
+): Issue | null {
+  const filtered = issues.filter((issue) => {
+    if (issue.state !== "open") {
+      return false
+    }
+    if (!issue.assignees.includes(login)) {
+      return false
+    }
+    if (issue.labels.some((label) => workflowLabelNames.has(label))) {
+      return false
+    }
+    if (!isQuickTarget(issue)) {
+      return false
+    }
+    return true
+  })
+  const sorted = [...filtered].sort((a, b) => a.number - b.number)
+  return sorted[0] ?? null
+}
+
+function issueHasWorkflowLabel(labels: readonly string[]): boolean {
+  return labels.some((label) => workflowLabelNames.has(label))
+}
+
+type QuickParseResult =
+  | { kind: "continue" }
+  | { kind: "not-minor"; tail: string }
+  | { kind: "undecided"; tail: string }
+
+function parseQuickResult(content: string): QuickParseResult {
+  const normalized = normalizeNewlines(content)
+  const lines = normalized.split("\n")
+  const index = firstNonemptyLineIndex(lines)
+  if (index < 0) {
+    reject(BAD_QUICK_RESULT)
+  }
+  const first = lines[index]
+  const tail = lines.slice(index + 1).join("\n")
+  if (first === "続行") {
+    return { kind: "continue" }
+  }
+  if (first === "軽微でない") {
+    return { kind: "not-minor", tail }
+  }
+  if (first === "決められない") {
+    return { kind: "undecided", tail }
+  }
+  reject(BAD_QUICK_RESULT)
+}
+
+function quickStopComment(kind: "not-minor" | "undecided", tail: string): string {
+  const head = kind === "not-minor" ? NOT_MINOR_LINE : UNDECIDED_LINE
+  const trimmedTail = tail.trim()
+  if (trimmedTail.length === 0) {
+    return head
+  }
+  return `${head}\n${tail}`
+}
+
+async function assertSpecsReadyForImplement(issueNumber: number): Promise<void> {
+  const pair = await readSpecPair(issueNumber)
+  const reqStatus = specStatus(
+    pair.requirements.exists,
+    pair.requirements.markdown,
+    issueNumber,
+  )
+  if (reqStatus === "missing") {
+    reject(NO_REQUIREMENTS)
+  }
+  if (reqStatus === "invalid") {
+    reject(BAD_REQ_HEADING)
+  }
+  const desStatus = specStatus(
+    pair.design.exists,
+    pair.design.markdown,
+    issueNumber,
+  )
+  if (desStatus === "missing") {
+    reject(NO_DESIGN)
+  }
+  if (desStatus === "invalid") {
+    reject(BAD_DES_HEADING)
+  }
 }
 
 export function selectFixIssues(
@@ -207,6 +308,10 @@ type RunnerDeps = {
       resultPath: string
       bugs: readonly { id: string; payload: string }[]
     }): Promise<void>
+    quick(input: {
+      issueNumber: number
+      resultPath: string
+    }): Promise<void>
   }
   createProcedureFile: () => Promise<{
     path: string
@@ -270,6 +375,18 @@ export function createRunner(deps: RunnerDeps): Runner {
         return fixItem
       }
 
+      const quickIssues = await withRetry(() =>
+        deps.github.listIssues({
+          state: "open",
+          assignee: login,
+          limit: 100,
+        }),
+      )
+      const quickSelected = selectQuickIssue(quickIssues, login)
+      if (quickSelected !== null) {
+        return { id: String(quickSelected.number) }
+      }
+
       if (deps.completionCaller !== "runner") {
         return null
       }
@@ -303,6 +420,17 @@ export function createRunner(deps: RunnerDeps): Runner {
         return
       }
 
+      const login = await withRetry(() => deps.github.viewerLogin())
+      if (
+        issue.state === "open" &&
+        !issueHasWorkflowLabel(issue.labels) &&
+        issue.assignees.includes(login) &&
+        isQuickTarget(issue)
+      ) {
+        await runQuick(deps, issueNumber, issue)
+        return
+      }
+
       if (
         deps.completionCaller === "runner" &&
         issue.labels.includes(LABEL_VERIFIED)
@@ -310,6 +438,151 @@ export function createRunner(deps: RunnerDeps): Runner {
         await completeIssue(deps.github, issueNumber)
       }
     },
+  }
+}
+
+async function runQuick(
+  deps: RunnerDeps,
+  issueNumber: number,
+  issue: Issue,
+): Promise<void> {
+  await withRetry(() =>
+    deps.github.editLabels(issueNumber, {
+      add: [LABEL_IN_PROGRESS],
+    }),
+  )
+
+  const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
+  const branch = implementationBranch(issueNumber)
+
+  const remote = await withRetry(() => deps.git.remoteName())
+  await withRetry(() => deps.git.fetch(remote, defaultBranch))
+  await withRetry(() => deps.git.checkoutFetched(branch))
+
+  const quickResult = await deps.createProcedureFile()
+  try {
+    try {
+      await withRetry(() =>
+        deps.agent.quick({
+          issueNumber,
+          resultPath: quickResult.path,
+        }),
+      )
+    } catch {
+      try {
+        await withRetry(() =>
+          deps.agent.quick({
+            issueNumber,
+            resultPath: quickResult.path,
+          }),
+        )
+      } catch {
+        await quickResult.remove()
+        return
+      }
+    }
+
+    let parsed: QuickParseResult
+    try {
+      const content = await readFile(quickResult.path, "utf8")
+      parsed = parseQuickResult(content)
+    } catch (error) {
+      await quickResult.remove()
+      if (error instanceof Error && error.message === BAD_QUICK_RESULT) {
+        reject(BAD_QUICK_RESULT)
+      }
+      reject(BAD_QUICK_RESULT)
+    }
+    await quickResult.remove()
+
+    if (parsed.kind === "not-minor") {
+      await withRetry(() =>
+        deps.github.addComment(
+          issueNumber,
+          quickStopComment("not-minor", parsed.tail),
+        ),
+      )
+      return
+    }
+    if (parsed.kind === "undecided") {
+      await withRetry(() =>
+        deps.github.addComment(
+          issueNumber,
+          quickStopComment("undecided", parsed.tail),
+        ),
+      )
+      return
+    }
+
+    await assertSpecsReadyForImplement(issueNumber)
+
+    const procedure = await deps.createProcedureFile()
+    try {
+      try {
+        await withRetry(() =>
+          deps.agent.implement({
+            issueNumber,
+            procedurePath: procedure.path,
+          }),
+        )
+      } catch (error) {
+        await procedure.remove()
+        throw error
+      }
+
+      let commentBody: string
+      try {
+        const payload = await readFile(procedure.path, "utf8")
+        commentBody = acceptanceComment(payload)
+      } catch (error) {
+        await procedure.remove()
+        throw error
+      }
+      await procedure.remove()
+
+      const changed = await withRetry(() => deps.git.hasChanges())
+      if (!changed) {
+        reject(NO_CHANGES)
+      }
+
+      const commitMessage = `feat: 課題 ${issueNumber} を実装する`
+      await withRetry(() => deps.git.commitAll(commitMessage))
+      await withRetry(() => deps.git.push(remote, branch))
+
+      await withRetry(() =>
+        deps.github.createPullRequest({
+          base: defaultBranch,
+          head: branch,
+          title: issue.title,
+          body: issue.url,
+        }),
+      )
+
+      await withRetry(() =>
+        deps.github.addComment(issueNumber, commentBody),
+      )
+
+      await withRetry(() =>
+        deps.github.editLabels(issueNumber, {
+          remove: [LABEL_IN_PROGRESS],
+          add: [LABEL_DONE],
+        }),
+      )
+    } catch (error) {
+      try {
+        await procedure.remove()
+      } catch {
+        // ignore cleanup errors
+      }
+      throw error
+    }
+  } catch (error) {
+    try {
+      await quickResult.remove()
+    } catch {
+      // ignore cleanup errors
+    }
+    throw error
   }
 }
 

@@ -15,6 +15,7 @@ import {
   implementationBranch,
   selectFixIssues,
   selectImplementationIssue,
+  selectQuickIssue,
 } from "./runner.ts"
 
 const implementSkillPath = path.join(
@@ -43,6 +44,20 @@ function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
     ...partial,
   }
 }
+
+describe("selectQuickIssue", () => {
+  test("条件を満たす最小番号を返す", () => {
+    const issues = [
+      issue({ number: 10, body: "quick 対象", labels: [] }),
+      issue({ number: 2, body: "quick 対象", labels: [] }),
+      issue({ number: 3, state: "closed", body: "quick 対象" }),
+      issue({ number: 4, labels: [LABEL_REQUEST] }),
+      issue({ number: 5, body: "quick 対象", assignees: ["other"] }),
+      issue({ number: 6, body: "通常" }),
+    ]
+    expect(selectQuickIssue(issues, VIEWER_LOGIN)?.number).toBe(2)
+  })
+})
 
 describe("selectImplementationIssue", () => {
   test("実装中と実装依頼なしと両方を除き number 昇順", () => {
@@ -160,8 +175,16 @@ describe("createRunner", () => {
             })
             return []
           }
+          if (calls === 2) {
+            expect(query).toEqual({
+              labels: [LABEL_DONE],
+              assignee: VIEWER_LOGIN,
+              limit: 100,
+            })
+            return []
+          }
           expect(query).toEqual({
-            labels: [LABEL_DONE],
+            state: "open",
             assignee: VIEWER_LOGIN,
             limit: 100,
           })
@@ -207,6 +230,7 @@ describe("createRunner", () => {
       agent: {
         async implement() {},
         async fix() {},
+        async quick() {},
       },
       createProcedureFile: async () => ({
         path: "/tmp/p",
@@ -214,7 +238,7 @@ describe("createRunner", () => {
       }),
     })
     await expect(runner.poll()).resolves.toBeNull()
-    expect(calls).toBe(2)
+    expect(calls).toBe(3)
   })
 
   test("poll は listIssues が一度拒否し二度目に返す", async () => {
@@ -259,7 +283,7 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/p",
         async remove() {},
@@ -323,7 +347,7 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/p",
         async remove() {},
@@ -331,7 +355,7 @@ describe("createRunner", () => {
     })
     await expect(runner.poll()).resolves.toBeNull()
     expect(viewerCalls).toBe(2)
-    expect(listCalls).toBe(2)
+    expect(listCalls).toBe(3)
   })
 
   test("viewerLogin が二度とも拒否すると listIssues は呼ばない", async () => {
@@ -373,7 +397,7 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/p",
         async remove() {},
@@ -429,14 +453,14 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
       }),
     })
     expect(await runner.poll()).toBeNull()
-    expect(listCalls).toBe(3)
+    expect(listCalls).toBe(4)
   })
 
   test("process はラベルが違うとき editLabels を呼ばない", async () => {
@@ -479,7 +503,7 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/p",
         async remove() {},
@@ -629,6 +653,7 @@ describe("createRunner", () => {
         async push() {},
       },
       agent: {
+        async quick() {},
         async implement() {
           implementCalls += 1
           if (implementCalls === 1) {
@@ -744,7 +769,7 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: procedurePath,
         async remove() {},
@@ -811,6 +836,7 @@ describe("createRunner", () => {
         async push() {},
       },
       agent: {
+        async quick() {},
         async implement() {
           implementCalls += 1
         },
@@ -879,6 +905,7 @@ describe("createRunner", () => {
         async push() {},
       },
       agent: {
+        async quick() {},
         async implement() {
           implementCalls += 1
         },
@@ -944,7 +971,7 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: procedurePath,
         async remove() {},
@@ -1014,7 +1041,7 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: procedurePath,
         async remove() {},
@@ -1030,6 +1057,539 @@ describe("createRunner", () => {
     const second = await runner.poll()
     expect(second?.id).toBe("2")
     await rm(path.dirname(procedurePath), { recursive: true, force: true })
+  })
+
+  test("poll は不具合修正があるとき quick の listIssues を呼ばない", async () => {
+    let quickListed = false
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (
+            !query.labels?.includes(LABEL_REQUEST) &&
+            !query.labels?.includes(LABEL_DONE)
+          ) {
+            quickListed = true
+          }
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [issue({ number: 2, labels: [LABEL_DONE] })]
+        },
+        async getIssue() {
+          return issue({ number: 2, labels: [LABEL_DONE] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [{ number: 9, url: "https://pr/9", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_bug",
+              body: `${pullRequestCommentMarkers.bug}\n内容`,
+              author: "u",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    expect(item?.id).toBe("2")
+    expect(quickListed).toBe(false)
+  })
+
+  test("poll は実装依頼があるとき quick の listIssues を呼ばない", async () => {
+    let quickListed = false
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (!query.labels?.includes(LABEL_REQUEST) && !query.labels?.includes(LABEL_DONE)) {
+            quickListed = true
+          }
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return [issue({ number: 1 })]
+          }
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    expect(item?.id).toBe("1")
+    expect(quickListed).toBe(false)
+  })
+
+  test("poll は quick があるとき動作確認OK を探さない", async () => {
+    let verifiedListed = false
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            verifiedListed = true
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            return []
+          }
+          if (query.state === "open" && !query.labels) {
+            return [
+              issue({ number: 7, body: "quick 対象", labels: [], assignees: [VIEWER_LOGIN] }),
+            ]
+          }
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 7, body: "quick 対象", labels: [] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    expect(item?.id).toBe("7")
+    expect(verifiedListed).toBe(false)
+  })
+
+  test("quick process は仕様から実装完了までの順序", async () => {
+    const log: string[] = []
+    let procedureRound = 0
+    const quickPath = "/tmp/quick-result-order.txt"
+    const implementPath = "/tmp/quick-impl-order.txt"
+    await writeFile(quickPath, "続行\n", "utf8")
+    await writeFile(implementPath, "手順", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({
+            number: 56,
+            body: "quick 対象",
+            labels: [],
+            title: "題",
+            url: "https://issue/56",
+          })
+        },
+        async editLabels(_n, change) {
+          if (change.add?.includes(LABEL_IN_PROGRESS)) {
+            log.push("editLabels:start")
+          } else {
+            log.push("editLabels:done")
+          }
+        },
+        async getDefaultBranch() {
+          log.push("getDefaultBranch")
+          return "main"
+        },
+        async createBranch() {
+          log.push("createBranch")
+        },
+        async createPullRequest(input) {
+          log.push("createPullRequest")
+          expect(input.head).toBe("task-56")
+          expect(input.base).toBe("main")
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment(_n, body) {
+          log.push(`addComment:${body.split("\n")[0]}`)
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          log.push("remoteName")
+          return "origin"
+        },
+        async fetch(remote, branch) {
+          log.push(`fetch:${remote}:${branch}`)
+        },
+        async checkoutFetched(branch) {
+          log.push(`checkoutFetched:${branch}`)
+        },
+        async hasChanges() {
+          log.push("hasChanges")
+          return true
+        },
+        async commitAll() {
+          log.push("commitAll")
+        },
+        async push() {
+          log.push("push")
+        },
+      },
+      agent: {
+        async quick() {
+          log.push("quick")
+        },
+        async implement() {
+          log.push("implement")
+        },
+        async fix() {},
+      },
+      createProcedureFile: async () => {
+        procedureRound += 1
+        const path =
+          procedureRound === 1 ? quickPath : implementPath
+        return {
+          path,
+          async remove() {},
+        }
+      },
+    })
+
+    await runner.process({ id: "56" })
+    expect(log).not.toContain("createBranch")
+    expect(log).toEqual([
+      "editLabels:start",
+      "getDefaultBranch",
+      "remoteName",
+      "fetch:origin:main",
+      "checkoutFetched:task-56",
+      "quick",
+      "implement",
+      "hasChanges",
+      "commitAll",
+      "push",
+      "createPullRequest",
+      `addComment:${commentMarkers.acceptance}`,
+      "editLabels:done",
+    ])
+    await rm(quickPath, { force: true })
+    await rm(implementPath, { force: true })
+  })
+
+  test("quick が軽微でないとき状況コメントのみ", async () => {
+    let implementCalled = false
+    let commentBody = ""
+    const quickPath = "/tmp/quick-not-minor.txt"
+    await writeFile(quickPath, "軽微でない\n詳細", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1, body: "quick 対象", labels: [] })
+        },
+        async editLabels(_n, change) {
+          expect(change.add).toEqual([LABEL_IN_PROGRESS])
+          expect(change.remove).toBeUndefined()
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment(_n, body) {
+          commentBody = body
+        },
+        async listPullRequests() {
+          return []
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {
+          throw new Error("unexpected")
+        },
+        async push() {
+          throw new Error("unexpected")
+        },
+      },
+      agent: {
+        async quick() {},
+        async implement() {
+          implementCalled = true
+        },
+        async fix() {},
+      },
+      createProcedureFile: async () => ({
+        path: quickPath,
+        async remove() {},
+      }),
+    })
+
+    await runner.process({ id: "1" })
+    expect(implementCalled).toBe(false)
+    expect(commentBody.startsWith("処理の途中で軽微な修正でないと分かりました")).toBe(
+      true,
+    )
+    expect(commentBody).toContain("詳細")
+    await rm(quickPath, { force: true })
+  })
+
+  test("quick が決められないとき状況コメントに点を含める", async () => {
+    let commentBody = ""
+    const quickPath = "/tmp/quick-undecided.txt"
+    await writeFile(quickPath, "決められない\n未記載の点", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1, body: "quick 対象", labels: [] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment(_n, body) {
+          commentBody = body
+        },
+        async listPullRequests() {
+          return []
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async quick() {},
+        async implement() {
+          throw new Error("unexpected")
+        },
+        async fix() {},
+      },
+      createProcedureFile: async () => ({
+        path: quickPath,
+        async remove() {},
+      }),
+    })
+
+    await runner.process({ id: "1" })
+    expect(commentBody.startsWith("決められない点があるため止めました")).toBe(
+      true,
+    )
+    expect(commentBody).toContain("未記載の点")
+    await rm(quickPath, { force: true })
+  })
+
+  test("agent.quick が二度拒否したとき状況コメントを投稿しない", async () => {
+    let commentCalled = false
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1, body: "quick 対象", labels: [] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          commentCalled = true
+        },
+        async listPullRequests() {
+          return []
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async quick() {
+          throw new Error("fail")
+        },
+        async implement() {},
+        async fix() {},
+      },
+      createProcedureFile: async () => ({
+        path: "/tmp/quick-fail.txt",
+        async remove() {},
+      }),
+    })
+
+    await runner.process({ id: "1" })
+    expect(commentCalled).toBe(false)
   })
 })
 
@@ -1085,14 +1645,14 @@ describe("createRunner completion", () => {
           async commitAll() {},
           async push() {},
         },
-        agent: { async implement() {}, async fix() {} },
+        agent: { async implement() {}, async fix() {}, async quick() {} },
         createProcedureFile: async () => ({
           path: "/tmp/x",
           async remove() {},
         }),
       })
       expect(await runner.poll()).toBe(null)
-      expect(listCalls).toBe(2)
+      expect(listCalls).toBe(3)
     }
   })
 
@@ -1141,7 +1701,7 @@ describe("createRunner completion", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1205,7 +1765,7 @@ describe("createRunner completion", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1262,7 +1822,7 @@ describe("createRunner completion", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: procedurePath,
         async remove() {},
@@ -1325,7 +1885,7 @@ describe("createRunner completion", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: procedurePath,
         async remove() {},
@@ -1401,7 +1961,7 @@ describe("createRunner completion", () => {
           calls.push("push")
         },
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1477,7 +2037,7 @@ describe("createRunner completion", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1586,7 +2146,7 @@ describe("createRunner completion", () => {
           calls.push("push")
         },
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1653,7 +2213,7 @@ describe("createRunner fix", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1723,7 +2283,7 @@ describe("createRunner fix", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1786,7 +2346,7 @@ describe("createRunner fix", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1966,7 +2526,7 @@ describe("createRunner fix", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -2037,7 +2597,7 @@ describe("createRunner fix", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -2112,7 +2672,7 @@ describe("createRunner fix", () => {
           log.push("push")
         },
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: procedurePath,
         async remove() {},
@@ -2185,7 +2745,7 @@ describe("createRunner fix", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: procedurePath,
         async remove() {},
@@ -2330,13 +2890,68 @@ describe("createRunner fix", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {}, async fix() {} },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
       }),
     })
     expect(await runner.poll()).toBeNull()
+  })
+})
+
+const quickSkillPath = path.join(
+  import.meta.dir,
+  "../skills/sdd-cur-quick/SKILL.md",
+)
+
+describe("skills/sdd-cur-quick/SKILL.md", () => {
+  test("フロントマターと必須の文言", async () => {
+    const text = await readFile(quickSkillPath, "utf8")
+    expect(text.startsWith(`---
+name: sdd-cur-quick
+description: クローンの作業ツリーで、quick 対象の課題の要件と設計を、人への質問と確認コメントなしで書く。課題ランナーが agent から起動する。
+disable-model-invocation: true
+---
+`)).toBe(true)
+    for (const phrase of [
+      "sdd-cur-req-author",
+      "sdd-cur-req-reviewer",
+      "sdd-cur-req-fixer",
+      "sdd-cur-design-author",
+      "sdd-cur-design-reviewer",
+      "sdd-cur-design-fixer",
+      "確認: あり",
+      "決められない",
+      "軽微でない",
+      "続行",
+      "質問する未記載",
+      "grok-4.7-high",
+      "`confirm` は実行しない",
+      "「実装依頼」は付けない",
+    ]) {
+      expect(text).toContain(phrase)
+    }
+    expect(text).not.toContain("sdd-cur-implement-author")
+  })
+
+  test("install が sdd-cur-quick をコピーする", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-runner-quick-install-"))
+    try {
+      const proc = Bun.spawn(["bun", cliPath, "install", temp], {
+        stdout: "pipe",
+        stderr: "pipe",
+      })
+      expect(await proc.exited).toBe(0)
+      const installed = await readFile(
+        path.join(temp, ".cursor", "skills", "sdd-cur-quick", "SKILL.md"),
+        "utf8",
+      )
+      const source = await readFile(quickSkillPath, "utf8")
+      expect(installed).toBe(source)
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
   })
 })
 

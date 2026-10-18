@@ -23,6 +23,7 @@ import {
   specHeading,
   specStatus,
   writeSpecFile,
+  isQuickTarget,
 } from "./sdd.ts"
 
 const skillPath = path.join(import.meta.dir, "../skills/sdd-cur/SKILL.md")
@@ -49,6 +50,18 @@ function comment(
     ...partial,
   }
 }
+
+describe("isQuickTarget", () => {
+  test("本文またはラベルの quick 対象", () => {
+    expect(
+      isQuickTarget({ body: "本文に quick 対象 を含む", labels: [] }),
+    ).toBe(true)
+    expect(isQuickTarget({ body: "", labels: ["quick 対象"] })).toBe(true)
+    expect(isQuickTarget({ body: "", labels: [] })).toBe(false)
+    expect(isQuickTarget({ body: "quick対象", labels: [] })).toBe(false)
+    expect(isQuickTarget({ body: "Quick 対象", labels: [] })).toBe(false)
+  })
+})
 
 describe("candidateViews", () => {
   test("業務ラベルと閉じた課題を除き number 昇順", () => {
