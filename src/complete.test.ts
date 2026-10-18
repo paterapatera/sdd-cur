@@ -9,8 +9,34 @@ import {
   readCompletionCaller,
   selectCompletionIssue,
 } from "./complete.ts"
-import type { Issue } from "./github.ts"
+import {
+  createGitHub,
+  type GhResult,
+  type GhRunner,
+  type GhRunOptions,
+  type Issue,
+} from "./github.ts"
 import { workflowLabels } from "./labels.ts"
+
+type RecordedCall = { args: string[]; options: GhRunOptions }
+
+function recordingRunner(
+  handler: (call: RecordedCall, index: number) => GhResult,
+): { runner: GhRunner; calls: RecordedCall[] } {
+  const calls: RecordedCall[] = []
+  const runner: GhRunner = {
+    async run(args, options) {
+      const call = { args, options }
+      calls.push(call)
+      return handler(call, calls.length - 1)
+    },
+  }
+  return { runner, calls }
+}
+
+function okJson(stdout: unknown): GhResult {
+  return { stdout: JSON.stringify(stdout), stderr: "", exitCode: 0 }
+}
 
 const completeSkillPath = path.join(
   import.meta.dir,
@@ -357,6 +383,76 @@ describe("completeIssue", () => {
     ).rejects.toThrow("ラベル失敗")
     expect(squashAttempts).toBe(1)
     expect(editAttempts).toBe(2)
+  })
+
+  test("completeIssue の依存に deleteBranch は無い", () => {
+    type Deps = Parameters<typeof completeIssue>[0]
+    const keys: (keyof Deps)[] = [
+      "editLabels",
+      "getIssue",
+      "listPullRequests",
+      "squashMerge",
+    ]
+    expect(keys.sort()).toEqual([
+      "editLabels",
+      "getIssue",
+      "listPullRequests",
+      "squashMerge",
+    ])
+    expect(keys).not.toContain("deleteBranch" as keyof Deps)
+  })
+
+  test("merged false で squashMerge が一回 issue close は呼ばない", async () => {
+    const { runner, calls } = recordingRunner((call) => {
+      if (call.args[0] === "issue" && call.args[1] === "view") {
+        return okJson({
+          number: 7,
+          title: "t",
+          body: "",
+          state: "OPEN",
+          labels: [{ name: LABEL_VERIFIED }],
+          url: "https://github.com/o/r/issues/7",
+        })
+      }
+      if (call.args[0] === "pr" && call.args[1] === "list") {
+        return okJson([
+          {
+            number: 9,
+            url: "https://github.com/o/r/pull/9",
+            state: "OPEN",
+            mergedAt: null,
+          },
+        ])
+      }
+      if (call.args[0] === "pr" && call.args[1] === "merge") {
+        return okJson({})
+      }
+      if (call.args[0] === "pr" && call.args[1] === "view") {
+        return okJson({
+          number: 9,
+          url: "https://github.com/o/r/pull/9",
+          state: "MERGED",
+          mergedAt: "2026-01-01",
+        })
+      }
+      if (call.args[0] === "issue" && call.args[1] === "edit") {
+        return okJson({})
+      }
+      return okJson({})
+    })
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await completeIssue(github, 7)
+    const mergeCalls = calls.filter(
+      (c) => c.args[0] === "pr" && c.args[1] === "merge",
+    )
+    expect(mergeCalls.length).toBe(1)
+    expect(mergeCalls[0]?.args).toContain("--delete-branch")
+    for (const call of calls) {
+      expect(call.args).not.toContain("close")
+      if (call.args[0] === "issue" && call.args[1] === "edit") {
+        expect(call.args).not.toContain("--state")
+      }
+    }
   })
 })
 

@@ -582,7 +582,15 @@ export function createGitHub(options: {
 
     async squashMerge(number) {
       assertPositiveInteger(number)
-      await runGh(["pr", "merge", String(number), "--repo", repo, "--squash"])
+      await runGh([
+        "pr",
+        "merge",
+        String(number),
+        "--repo",
+        repo,
+        "--squash",
+        "--delete-branch",
+      ])
       const pr = await this.getPullRequest(number)
       if (!pr.merged) {
         reject(NOT_MERGED)
