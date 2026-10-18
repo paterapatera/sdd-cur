@@ -3,11 +3,17 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import {
   commentMarkers,
+  fixComment,
+  fixedOpenLine,
   isSpecHeading,
   parseComment,
+  parsePullRequestComment,
+  pullRequestCommentMarkers,
+  readFixedIds,
   readReflectedIds,
   reflectedOpenLine,
   relateComments,
+  selectUnprocessedBugs,
   specPaths,
   unincorporatedAnswers,
   withReflectedId,
@@ -254,6 +260,108 @@ describe("unincorporatedAnswers", () => {
   })
 })
 
+describe("parsePullRequestComment", () => {
+  test("不具合と修正の印と other", () => {
+    const bug = parsePullRequestComment(
+      `\n${pullRequestCommentMarkers.bug}\n本文`,
+    )
+    expect(bug.kind).toBe("bug")
+    expect(bug.payload).toBe("本文")
+    const fix = parsePullRequestComment(
+      `${pullRequestCommentMarkers.fix}\n修正`,
+    )
+    expect(fix.kind).toBe("fix")
+    expect(fix.payload).toBe("修正")
+    const spaced = parsePullRequestComment(
+      ` ${pullRequestCommentMarkers.bug} \n全体`,
+    )
+    expect(spaced.kind).toBe("other")
+    expect(spaced.payload).toContain("全体")
+  })
+})
+
+describe("parseComment PR markers", () => {
+  test("不具合と修正の印は other", () => {
+    expect(parseComment(`${pullRequestCommentMarkers.bug}\nx`).kind).toBe(
+      "other",
+    )
+    expect(parseComment(`${pullRequestCommentMarkers.fix}\nx`).kind).toBe(
+      "other",
+    )
+  })
+})
+
+describe("readFixedIds", () => {
+  test("例と拒否", () => {
+    const block = `<!-- sdd-cur:fixed\nIC_kwDOExample123\n-->`
+    expect(readFixedIds(block)).toEqual(["IC_kwDOExample123"])
+    expect(readFixedIds("no block")).toEqual([])
+    expect(() =>
+      readFixedIds(`${fixedOpenLine}\na\n${fixedOpenLine}\nb\n-->`),
+    ).toThrow("修正の記録が複数あります")
+    expect(() => readFixedIds(`${fixedOpenLine}\na`)).toThrow(
+      "修正の記録を解釈できません",
+    )
+    expect(() =>
+      readFixedIds(`${fixedOpenLine}\n bad\n-->\n`),
+    ).toThrow("修正の記録を解釈できません")
+    expect(() =>
+      readFixedIds(`${fixedOpenLine}\na\na\n-->`),
+    ).toThrow("修正の記録を解釈できません")
+    expect(() =>
+      readFixedIds(`${fixedOpenLine}\na\n-->\ntrail`),
+    ).toThrow("修正の記録を解釈できません")
+  })
+})
+
+describe("selectUnprocessedBugs", () => {
+  test("fixed と順序", () => {
+    const comments = [
+      comment("b2", `${pullRequestCommentMarkers.bug}\n2`, "2026-01-02"),
+      comment("b1", `${pullRequestCommentMarkers.bug}\n1`, "2026-01-01"),
+      comment(
+        "f1",
+        `${pullRequestCommentMarkers.fix}\nok\n<!-- sdd-cur:fixed\nb1\n-->`,
+        "2026-01-03",
+      ),
+      comment(
+        "o1",
+        `<!-- sdd-cur:fixed\nb2\n-->`,
+        "2026-01-04",
+      ),
+    ]
+    const before = comments.map((c) => ({ ...c }))
+    const bugs = selectUnprocessedBugs(comments)
+    expect(comments).toEqual(before)
+    expect(bugs.map((b) => b.id)).toEqual(["b2"])
+  })
+})
+
+describe("fixComment", () => {
+  test("拒否と成功", () => {
+    expect(() => fixComment("  ", ["a"])).toThrow("修正コメントが空です")
+    for (const marker of [
+      commentMarkers.confirm,
+      commentMarkers.answer,
+      commentMarkers.acceptance,
+      pullRequestCommentMarkers.bug,
+      pullRequestCommentMarkers.fix,
+    ]) {
+      expect(() => fixComment(`${marker}\nx`, ["IC_x"])).toThrow(
+        "修正コメントに印を含めない",
+      )
+    }
+    expect(() =>
+      fixComment(`x\n${fixedOpenLine}\n`, ["IC_x"]),
+    ).toThrow("修正コメントに印を含めない")
+    expect(() => fixComment("ok", [])).toThrow("修正する不具合がありません")
+    const body = fixComment(" 本文  ", ["IC_a", "IC_b"])
+    expect(body.split("\n")[0]).toBe(pullRequestCommentMarkers.fix)
+    expect(body).toContain(" 本文  ")
+    expect(readFixedIds(body)).toEqual(["IC_a", "IC_b"])
+  })
+})
+
 describe("relateComments unpaired fix", () => {
   test("確認のあとにだけ回答を組にする", () => {
     const comments = [
@@ -280,6 +388,9 @@ describe("文書", () => {
     expect(text).toContain("design.md")
     expect(text).toContain("課題のコメントだけに書く")
     expect(text).toContain("未回答の確認があるあいだ、次の確認は投稿しない")
+    expect(text).toContain(pullRequestCommentMarkers.bug)
+    expect(text).toContain(pullRequestCommentMarkers.fix)
+    expect(text).toContain("sdd-cur:fixed")
 
     const fences = text.split("```")
     let inFence = false

@@ -6,8 +6,13 @@ import {
   type CompletionCaller,
   selectCompletionIssue,
 } from "./complete.ts"
-import { commentMarkers } from "./conventions.ts"
-import type { GitHubClient, Issue } from "./github.ts"
+import {
+  commentMarkers,
+  fixComment,
+  parsePullRequestComment,
+  selectUnprocessedBugs,
+} from "./conventions.ts"
+import type { GitHubClient, Issue, IssueComment, PullRequest } from "./github.ts"
 import type { GitClient } from "./git.ts"
 import { workflowLabels } from "./labels.ts"
 import { parseIssueNumberString } from "./sdd.ts"
@@ -24,6 +29,8 @@ export type Runner = {
 const EMPTY_ACCEPTANCE = "受け入れ手順が空です"
 const MARKER_IN_ACCEPTANCE = "受け入れ手順に印を含めない"
 const NO_CHANGES = "実装の変更がありません"
+const AMBIGUOUS_PR = "マージリクエストを特定できません"
+const OUT_OF_SCOPE_LINE = "設計の範囲外のため直していない"
 
 const allMarkers = new Set<string>(Object.values(commentMarkers))
 
@@ -31,6 +38,7 @@ const LABEL_REQUEST = workflowLabels[0].name
 const LABEL_IN_PROGRESS = workflowLabels[1].name
 const LABEL_DONE = workflowLabels[2].name
 const LABEL_VERIFIED = workflowLabels[3].name
+const LABEL_MERGED = workflowLabels[4].name
 
 function reject(message: string): never {
   throw new Error(message)
@@ -47,6 +55,12 @@ function firstNonemptyLineIndex(lines: readonly string[]): number {
     }
   }
   return -1
+}
+
+function isOutOfScopeOnly(payload: string): boolean {
+  const normalized = normalizeNewlines(payload)
+  const nonEmpty = normalized.split("\n").filter((line) => line.trim().length > 0)
+  return nonEmpty.length === 1 && nonEmpty[0] === OUT_OF_SCOPE_LINE
 }
 
 async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
@@ -76,6 +90,59 @@ export function selectImplementationIssue(
   })
   const sorted = [...filtered].sort((a, b) => a.number - b.number)
   return sorted[0] ?? null
+}
+
+export function issueHasFixLabels(issue: Issue): boolean {
+  const labels = issue.labels
+  if (!labels.includes(LABEL_DONE)) {
+    return false
+  }
+  if (labels.includes(LABEL_IN_PROGRESS)) {
+    return false
+  }
+  if (labels.includes(LABEL_VERIFIED)) {
+    return false
+  }
+  if (labels.includes(LABEL_MERGED)) {
+    return false
+  }
+  return true
+}
+
+export function selectFixIssues(
+  issues: readonly Issue[],
+  login: string,
+): Issue[] {
+  const filtered = issues.filter((issue) => {
+    if (!issueHasFixLabels(issue)) {
+      return false
+    }
+    if (!issue.assignees.includes(login)) {
+      return false
+    }
+    return true
+  })
+  return [...filtered].sort((a, b) => a.number - b.number)
+}
+
+export function classifyFixPullRequests(
+  pullRequests: readonly PullRequest[],
+):
+  | { kind: "none" }
+  | { kind: "ambiguous" }
+  | { kind: "not-open" }
+  | { kind: "open"; pullRequest: PullRequest } {
+  if (pullRequests.length === 0) {
+    return { kind: "none" }
+  }
+  if (pullRequests.length >= 2) {
+    return { kind: "ambiguous" }
+  }
+  const pr = pullRequests[0]
+  if (pr.state === "open") {
+    return { kind: "open", pullRequest: pr }
+  }
+  return { kind: "not-open" }
 }
 
 export function implementationBranch(issueNumber: number): string {
@@ -125,6 +192,8 @@ type RunnerDeps = {
     createPullRequest: GitHubClient["createPullRequest"]
     addComment: GitHubClient["addComment"]
     listPullRequests: GitHubClient["listPullRequests"]
+    listPullRequestComments: GitHubClient["listPullRequestComments"]
+    addPullRequestComment: GitHubClient["addPullRequestComment"]
     squashMerge: GitHubClient["squashMerge"]
   }
   git: GitClient
@@ -133,11 +202,51 @@ type RunnerDeps = {
       issueNumber: number
       procedurePath: string
     }): Promise<void>
+    fix(input: {
+      issueNumber: number
+      resultPath: string
+      bugs: readonly { id: string; payload: string }[]
+    }): Promise<void>
   }
   createProcedureFile: () => Promise<{
     path: string
     remove(): Promise<void>
   }>
+}
+
+async function findFixWorkItem(
+  deps: RunnerDeps,
+  login: string,
+): Promise<WorkItem | null> {
+  const fixIssues = await withRetry(() =>
+    deps.github.listIssues({
+      labels: [LABEL_DONE],
+      assignee: login,
+      limit: 100,
+    }),
+  )
+  const candidates = selectFixIssues(fixIssues, login)
+  for (const candidate of candidates) {
+    const head = implementationBranch(candidate.number)
+    const pullRequests = await withRetry(() =>
+      deps.github.listPullRequests({ head, limit: 100 }),
+    )
+    const classified = classifyFixPullRequests(pullRequests)
+    if (classified.kind === "none" || classified.kind === "not-open") {
+      continue
+    }
+    if (classified.kind === "ambiguous") {
+      reject(AMBIGUOUS_PR)
+    }
+    const comments = await withRetry(() =>
+      deps.github.listPullRequestComments(classified.pullRequest.number),
+    )
+    const unprocessed = selectUnprocessedBugs(comments)
+    if (unprocessed.length > 0) {
+      return { id: String(candidate.number) }
+    }
+  }
+  return null
 }
 
 export function createRunner(deps: RunnerDeps): Runner {
@@ -155,6 +264,12 @@ export function createRunner(deps: RunnerDeps): Runner {
       if (selected !== null) {
         return { id: String(selected.number) }
       }
+
+      const fixItem = await findFixWorkItem(deps, login)
+      if (fixItem !== null) {
+        return fixItem
+      }
+
       if (deps.completionCaller !== "runner") {
         return null
       }
@@ -183,6 +298,11 @@ export function createRunner(deps: RunnerDeps): Runner {
         return
       }
 
+      if (issueHasFixLabels(issue)) {
+        await runFixProcess(deps, issueNumber)
+        return
+      }
+
       if (
         deps.completionCaller === "runner" &&
         issue.labels.includes(LABEL_VERIFIED)
@@ -198,80 +318,217 @@ async function runImplementation(
   issueNumber: number,
   issue: Issue,
 ): Promise<void> {
+  await withRetry(() =>
+    deps.github.editLabels(issueNumber, {
+      remove: [LABEL_REQUEST],
+      add: [LABEL_IN_PROGRESS],
+    }),
+  )
+
+  const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
+  const branch = implementationBranch(issueNumber)
+
+  const remote = await withRetry(() => deps.git.remoteName())
+  await withRetry(() => deps.git.fetch(remote, branch))
+  await withRetry(() => deps.git.checkoutFetched(branch))
+
+  const procedure = await deps.createProcedureFile()
+  try {
+    try {
       await withRetry(() =>
-        deps.github.editLabels(issueNumber, {
-          remove: [LABEL_REQUEST],
-          add: [LABEL_IN_PROGRESS],
+        deps.agent.implement({
+          issueNumber,
+          procedurePath: procedure.path,
         }),
       )
+    } catch (error) {
+      await procedure.remove()
+      throw error
+    }
 
-      const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
-      const branch = implementationBranch(issueNumber)
+    let commentBody: string
+    try {
+      const payload = await readFile(procedure.path, "utf8")
+      commentBody = acceptanceComment(payload)
+    } catch (error) {
+      await procedure.remove()
+      throw error
+    }
+    await procedure.remove()
 
-      const remote = await withRetry(() => deps.git.remoteName())
-      await withRetry(() => deps.git.fetch(remote, branch))
-      await withRetry(() => deps.git.checkoutFetched(branch))
+    const changed = await withRetry(() => deps.git.hasChanges())
+    if (!changed) {
+      reject(NO_CHANGES)
+    }
 
-      const procedure = await deps.createProcedureFile()
-      try {
-        try {
-          await withRetry(() =>
-            deps.agent.implement({
-              issueNumber,
-              procedurePath: procedure.path,
-            }),
-          )
-        } catch (error) {
-          await procedure.remove()
-          throw error
-        }
+    const commitMessage = `feat: 課題 ${issueNumber} を実装する`
+    await withRetry(() => deps.git.commitAll(commitMessage))
+    await withRetry(() => deps.git.push(remote, branch))
 
-        let commentBody: string
-        try {
-          const payload = await readFile(procedure.path, "utf8")
-          commentBody = acceptanceComment(payload)
-        } catch (error) {
-          await procedure.remove()
-          throw error
-        }
-        await procedure.remove()
+    await withRetry(() =>
+      deps.github.createPullRequest({
+        base: defaultBranch,
+        head: branch,
+        title: issue.title,
+        body: issue.url,
+      }),
+    )
 
-        const changed = await withRetry(() => deps.git.hasChanges())
-        if (!changed) {
-          reject(NO_CHANGES)
-        }
+    await withRetry(() =>
+      deps.github.addComment(issueNumber, commentBody),
+    )
 
-        const commitMessage = `feat: 課題 ${issueNumber} を実装する`
-        await withRetry(() => deps.git.commitAll(commitMessage))
-        await withRetry(() => deps.git.push(remote, branch))
+    await withRetry(() =>
+      deps.github.editLabels(issueNumber, {
+        remove: [LABEL_IN_PROGRESS],
+        add: [LABEL_DONE],
+      }),
+    )
+  } catch (error) {
+    try {
+      await procedure.remove()
+    } catch {
+      // ignore cleanup errors
+    }
+    throw error
+  }
+}
 
+async function resolveFixContext(
+  deps: RunnerDeps,
+  issueNumber: number,
+): Promise<
+  | { kind: "skip" }
+  | { kind: "work"; pullRequest: PullRequest; bugs: IssueComment[] }
+> {
+  const head = implementationBranch(issueNumber)
+  const pullRequests = await withRetry(() =>
+    deps.github.listPullRequests({ head, limit: 100 }),
+  )
+  const classified = classifyFixPullRequests(pullRequests)
+  if (classified.kind === "none" || classified.kind === "not-open") {
+    return { kind: "skip" }
+  }
+  if (classified.kind === "ambiguous") {
+    reject(AMBIGUOUS_PR)
+  }
+  const comments = await withRetry(() =>
+    deps.github.listPullRequestComments(classified.pullRequest.number),
+  )
+  const bugs = selectUnprocessedBugs(comments)
+  if (bugs.length === 0) {
+    return { kind: "skip" }
+  }
+  return { kind: "work", pullRequest: classified.pullRequest, bugs }
+}
+
+async function runFixProcess(
+  deps: RunnerDeps,
+  issueNumber: number,
+): Promise<void> {
+  const ctx = await resolveFixContext(deps, issueNumber)
+  if (ctx.kind === "skip") {
+    return
+  }
+  await runFix(deps, issueNumber, ctx.pullRequest, ctx.bugs)
+}
+
+async function runFix(
+  deps: RunnerDeps,
+  issueNumber: number,
+  pullRequest: PullRequest,
+  bugs: IssueComment[],
+): Promise<void> {
+  const bugIds = bugs.map((b) => b.id)
+  fixComment(".", bugIds)
+
+  const bugInputs = bugs.map((bug) => ({
+    id: bug.id,
+    payload: parsePullRequestComment(bug.body).payload,
+  }))
+
+  let commentBody: string
+  const branch = implementationBranch(issueNumber)
+
+  try {
+    await withRetry(() =>
+      deps.github.editLabels(issueNumber, {
+        remove: [LABEL_DONE],
+        add: [LABEL_IN_PROGRESS],
+      }),
+    )
+
+    const remote = await withRetry(() => deps.git.remoteName())
+    await withRetry(() => deps.git.fetch(remote, branch))
+    await withRetry(() => deps.git.checkoutFetched(branch))
+
+    const procedure = await deps.createProcedureFile()
+
+    try {
+      await withRetry(() =>
+        deps.agent.fix({
+          issueNumber,
+          resultPath: procedure.path,
+          bugs: bugInputs,
+        }),
+      )
+    } catch (error) {
+      await procedure.remove()
+      throw error
+    }
+
+    let resultPayload: string
+    try {
+      resultPayload = await readFile(procedure.path, "utf8")
+      commentBody = fixComment(
+        resultPayload,
+        bugs.map((b) => b.id),
+      )
+    } catch (error) {
+      await procedure.remove()
+      throw error
+    }
+    await procedure.remove()
+
+    const changed = await withRetry(() => deps.git.hasChanges())
+    if (!changed) {
+      if (isOutOfScopeOnly(resultPayload)) {
         await withRetry(() =>
-          deps.github.createPullRequest({
-            base: defaultBranch,
-            head: branch,
-            title: issue.title,
-            body: issue.url,
-          }),
+          deps.github.addPullRequestComment(pullRequest.number, commentBody),
         )
-
-        await withRetry(() =>
-          deps.github.addComment(issueNumber, commentBody),
-        )
-
         await withRetry(() =>
           deps.github.editLabels(issueNumber, {
             remove: [LABEL_IN_PROGRESS],
             add: [LABEL_DONE],
           }),
         )
-      } catch (error) {
-        try {
-          await procedure.remove()
-        } catch {
-          // ignore cleanup errors
-        }
-        throw error
+        return
       }
+      reject(NO_CHANGES)
+    }
+
+    const commitMessage = `fix: 課題 ${issueNumber} の不具合を修正する`
+    await withRetry(() => deps.git.commitAll(commitMessage))
+    await withRetry(() => deps.git.push(remote, branch))
+
+    await withRetry(() =>
+      deps.github.addPullRequestComment(pullRequest.number, commentBody),
+    )
+
+    await withRetry(() =>
+      deps.github.editLabels(issueNumber, {
+        remove: [LABEL_IN_PROGRESS],
+        add: [LABEL_DONE],
+      }),
+    )
+  } catch (error) {
+    try {
+      await procedure.remove()
+    } catch {
+      // ignore cleanup errors
+    }
+    throw error
+  }
 }
 
 export const defaultRunner: Runner = {
