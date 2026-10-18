@@ -8,6 +8,7 @@ import { workflowLabels } from "./labels.ts"
 import {
   acceptanceComment,
   createRunner,
+  implementationBranch,
   selectImplementationIssue,
 } from "./runner.ts"
 
@@ -48,6 +49,13 @@ describe("selectImplementationIssue", () => {
     const selected = selectImplementationIssue(issues)
     expect(issues).toEqual(before)
     expect(selected?.number).toBe(2)
+  })
+})
+
+describe("implementationBranch", () => {
+  test("十進の課題番号を task- と連結する", () => {
+    expect(implementationBranch(1)).toBe("task-1")
+    expect(implementationBranch(17)).toBe("task-17")
   })
 })
 
@@ -240,7 +248,7 @@ describe("createRunner", () => {
         async createPullRequest(input) {
           log.push(`createPullRequest:${input.body}`)
           expect(input.base).toBe("main")
-          expect(input.head).toBe("sdd-cur/1")
+          expect(input.head).toBe("task-1")
           expect(input.body).toBe("https://issue/1")
           expect(input.body).not.toContain("Fixes")
           expect(input.body).not.toContain("Closes")
@@ -286,12 +294,13 @@ describe("createRunner", () => {
 
     await runner.process({ id: "1" })
     expect(log).not.toContain("createBranch")
+    expect(log.join("\n")).not.toContain("sdd-cur/1")
     expect(log).toEqual([
       "editLabels:start",
       "getDefaultBranch",
       "remoteName",
-      "fetch:origin:sdd-cur/1",
-      "checkoutFetched:sdd-cur/1",
+      "fetch:origin:task-1",
+      "checkoutFetched:task-1",
       "implement",
       "hasChanges",
       "commitAll",

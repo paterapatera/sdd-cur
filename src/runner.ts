@@ -78,7 +78,7 @@ export function implementationBranch(issueNumber: number): string {
   if (!Number.isSafeInteger(issueNumber) || issueNumber < 1) {
     reject("番号が不正です")
   }
-  return `sdd-cur/${issueNumber}`
+  return `task-${issueNumber}`
 }
 
 export function acceptanceComment(payload: string): string {
