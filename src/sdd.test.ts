@@ -443,9 +443,9 @@ describe("skills/sdd-cur/SKILL.md", () => {
     expect(text.startsWith(`---
 name: sdd-cur
 description: このプロジェクトの課題について、着手候補の提示、要件、設計、確認コメントの投稿、未反映の回答の取り込みを行う。着手、要件、設計、確認、回答の取り込みを依頼されたときに使う。課題の作成とクローズ、ラベルの変更、実装、受け入れ手順、完了処理はしない。
+disable-model-invocation: true
 ---
 `)).toBe(true)
-    expect(text).not.toContain("disable-model-invocation")
     const required = [
       "## 着手",
       "## 要件",

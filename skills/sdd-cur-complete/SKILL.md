@@ -1,6 +1,7 @@
 ---
 name: sdd-cur-complete
-description: Project A の Cursor で、人が指定した課題の完了処理を行う。
+description: Project A の Cursor で、人が指定した課題の完了処理を行う。作業ツリーの呼び出し元が skill のときに使う。
+disable-model-invocation: true
 ---
 
 # sdd-cur-complete
