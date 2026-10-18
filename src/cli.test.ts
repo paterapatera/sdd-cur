@@ -15,6 +15,7 @@ const usageText =
   "sdd-cur labels\n" +
   "sdd-cur candidates\n" +
   "sdd-cur show <番号>\n" +
+  "sdd-cur branch <番号>\n" +
   "sdd-cur confirm <番号>\n" +
   "sdd-cur reflect <番号> <requirements|design>\n" +
   "sdd-cur complete <番号>\n"
@@ -86,7 +87,7 @@ describe("cli subprocess", () => {
     expect(stderr).toBe(usageText)
   })
 
-  test("candidates extra は使い方の八行で終了コード 1", async () => {
+  test("candidates extra は使い方の九行で終了コード 1", async () => {
     const proc = Bun.spawn([bunExe, cliPath, "candidates", "extra"], {
       stdout: "pipe",
       stderr: "pipe",
@@ -95,6 +96,39 @@ describe("cli subprocess", () => {
     expect(await proc.exited).toBe(1)
     const stderr = await new Response(proc.stderr).text()
     expect(stderr).toBe(usageText)
+  })
+
+  test("branch 17 の標準出力は task-17 と末尾改行だけ", async () => {
+    const proc = Bun.spawn([bunExe, cliPath, "branch", "17"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: isolatedPath },
+    })
+    expect(await proc.exited).toBe(0)
+    expect(await new Response(proc.stdout).text()).toBe("task-17\n")
+    expect(await new Response(proc.stderr).text()).toBe("")
+  })
+
+  test("branch の引数が無いときは終了コード 1", async () => {
+    const proc = Bun.spawn([bunExe, cliPath, "branch"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: isolatedPath },
+    })
+    expect(await proc.exited).toBe(1)
+    expect(await new Response(proc.stderr).text()).toBe(usageText)
+  })
+
+  test("branch foo は番号が不正です", async () => {
+    const proc = Bun.spawn([bunExe, cliPath, "branch", "foo"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: isolatedPath },
+    })
+    expect(await proc.exited).toBe(1)
+    expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+      "番号が不正です",
+    )
   })
 
   test("show 01 は番号が不正です", async () => {

@@ -22,6 +22,7 @@ import { parseRunArgs, runLoop } from "./run.ts"
 import {
   createRunner,
   defaultCreateProcedureFile,
+  implementationBranch,
 } from "./runner.ts"
 import {
   applyIncorporatedAnswer,
@@ -45,6 +46,7 @@ export function printUsage(): void {
   console.error("sdd-cur labels")
   console.error("sdd-cur candidates")
   console.error("sdd-cur show <番号>")
+  console.error("sdd-cur branch <番号>")
   console.error("sdd-cur confirm <番号>")
   console.error("sdd-cur reflect <番号> <requirements|design>")
   console.error("sdd-cur complete <番号>")
@@ -190,6 +192,22 @@ async function cmdCandidates(args: string[]): Promise<number> {
     const github = await githubFromCwd()
     const candidates = await listStartCandidates(github)
     console.log(JSON.stringify(candidates))
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
+async function cmdBranch(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  try {
+    const issueNumber = parseIssueNumberString(args[0])
+    console.log(implementationBranch(issueNumber))
     return 0
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
@@ -369,6 +387,8 @@ async function main(): Promise<number> {
       return await cmdCandidates(rest)
     case "show":
       return await cmdShow(rest)
+    case "branch":
+      return await cmdBranch(rest)
     case "confirm":
       return await cmdConfirm(rest)
     case "reflect":
