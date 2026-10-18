@@ -287,6 +287,7 @@ describe("createGitHub", () => {
       "--repo",
       "o/r",
       "--squash",
+      "--delete-branch",
     ])
     expect(calls[1]?.args[0]).toBe("pr")
     expect(calls[1]?.args[1]).toBe("view")
@@ -316,6 +317,23 @@ describe("createGitHub", () => {
     const github = createGitHub({ gh: runner, repo: "o/r" })
     await expect(github.squashMerge(1)).rejects.toThrow("merge failed")
     expect(calls.length).toBe(1)
+  })
+
+  test("squashMerge は delete-branch だけで api で ref を消さない", async () => {
+    const { runner, calls } = recordingRunner((call) => {
+      if (call.args[0] === "pr" && call.args[1] === "merge") {
+        return okJson({})
+      }
+      return okJson({
+        number: 7,
+        url: "https://github.com/o/r/pull/7",
+        state: "MERGED",
+        mergedAt: "2026-01-01",
+      })
+    })
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await github.squashMerge(7)
+    expect(calls.some((c) => c.args[0] === "api")).toBe(false)
   })
 
   test("gh 失敗時は stderr の先頭行を返す", async () => {

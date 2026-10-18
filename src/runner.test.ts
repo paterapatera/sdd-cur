@@ -918,7 +918,6 @@ describe("createRunner completion", () => {
           return { url: "https://c" }
         },
         async listPullRequests() {
-          squashCalled = true
           return []
         },
         async squashMerge() {
@@ -948,6 +947,64 @@ describe("createRunner completion", () => {
       "実装の変更がありません",
     )
     expect(squashCalled).toBe(false)
+    await rm(procDir, { recursive: true, force: true })
+  })
+
+  test("実装依頼の process は completeIssue の外で squashMerge を呼ばない", async () => {
+    let squashCalls = 0
+    const procDir = await mkdtemp(
+      path.join(os.tmpdir(), "sdd-runner-impl-squash-"),
+    )
+    const procedurePath = path.join(procDir, "procedure.txt")
+    await writeFile(procedurePath, "手順", "utf8")
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async listIssues() {
+          return [issue({ number: 1 })]
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async squashMerge() {
+          squashCalls += 1
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    await runner.process(item!)
+    expect(squashCalls).toBe(0)
     await rm(procDir, { recursive: true, force: true })
   })
 
@@ -1095,6 +1152,112 @@ describe("createRunner completion", () => {
     expect(item?.id).toBe("6")
     await runner.process(item!)
     expect(await runner.poll()).toBe(null)
+  })
+
+  test("createRunner の github 依存に deleteBranch は無い", () => {
+    type GithubDeps = Parameters<typeof createRunner>[0]["github"]
+    const keys: (keyof GithubDeps)[] = [
+      "addComment",
+      "createBranch",
+      "createPullRequest",
+      "editLabels",
+      "getDefaultBranch",
+      "getIssue",
+      "listIssues",
+      "listPullRequests",
+      "squashMerge",
+    ]
+    expect(keys.sort()).toEqual([
+      "addComment",
+      "createBranch",
+      "createPullRequest",
+      "editLabels",
+      "getDefaultBranch",
+      "getIssue",
+      "listIssues",
+      "listPullRequests",
+      "squashMerge",
+    ])
+    expect(keys).not.toContain("deleteBranch" as keyof GithubDeps)
+  })
+
+  test("動作確認OK の process は completeIssue 経由で squashMerge し deleteBranch と issue close は呼ばない", async () => {
+    const calls: string[] = []
+    const github = {
+      async listIssues(query: { labels?: string[] }) {
+        if (query.labels?.includes(LABEL_REQUEST)) {
+          return []
+        }
+        return [issue({ number: 8, labels: [LABEL_VERIFIED] })]
+      },
+      async getIssue() {
+        return issue({ number: 8, labels: [LABEL_VERIFIED] })
+      },
+      async editLabels(n: number, change: { add?: string[]; remove?: string[] }) {
+        calls.push(
+          `edit:${n}:${change.remove?.join(",")}:${change.add?.join(",")}`,
+        )
+      },
+      async getDefaultBranch() {
+        return "main"
+      },
+      async createBranch() {
+        calls.push("createBranch")
+      },
+      async createPullRequest() {
+        calls.push("createPullRequest")
+        return { number: 1, url: "https://pr" }
+      },
+      async addComment() {
+        calls.push("addComment")
+        return { url: "https://c" }
+      },
+      async listPullRequests() {
+        return [
+          {
+            number: 4,
+            url: "https://pr/4",
+            state: "open",
+            merged: false,
+          },
+        ]
+      },
+      async squashMerge(n: number) {
+        calls.push(`squash:${n}`)
+      },
+    }
+    expect("deleteBranch" in github).toBe(false)
+    const runner = createRunner({
+      completionCaller: "runner",
+      github,
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {
+          calls.push("commitAll")
+        },
+        async push() {
+          calls.push("push")
+        },
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    await runner.process(item!)
+    expect(calls).toEqual([
+      "squash:4",
+      `edit:8:${LABEL_VERIFIED}:${LABEL_MERGED}`,
+    ])
   })
 })
 
