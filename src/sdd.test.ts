@@ -489,7 +489,7 @@ disable-model-invocation: true
       "判定が合格なら設計に進むことができる",
       "人が答えるまで",
       "3回目",
-      "grok-4.7-high",
+      "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
       "全文は書かない",
       "sdd-cur-design-author",
       "sdd-cur-design-reviewer",
