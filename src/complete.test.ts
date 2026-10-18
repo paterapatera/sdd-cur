@@ -175,7 +175,7 @@ describe("completeIssue", () => {
   })
 
   test("マージリクエスト件数", async () => {
-    const head = "sdd-cur/1"
+    const head = "task-1"
     let squashCalled = false
     await expect(
       completeIssue(
