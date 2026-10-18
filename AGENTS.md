@@ -4,9 +4,8 @@
 
 ## 着手前に読むもの
 
-1. [docs/plan.md](docs/plan.md)
-2. [docs/conventions.md](docs/conventions.md)
-3. 対象課題の `docs/specs/<番号>/design.md`
+1. [docs/conventions.md](docs/conventions.md)
+2. 対象課題の `docs/specs/<番号>/design.md`
 
 設計の受け入れ条件、決定、範囲の中で実装する。設計に書いた「範囲外」は作らない。設計が無い挙動は足さない。
 

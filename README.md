@@ -2,7 +2,7 @@
 
 `@paterapatera/sdd-cur` は、このプロジェクト専用の SDD スキルと課題ランナーである。課題の作成、要件、設計、お客さまへの確認は人が Cursor で行う。実装と、選んだ場合の完了処理は、課題ランナーが別のクローンで行う。
 
-計画の全文は [docs/plan.md](docs/plan.md) にある。要件と設計の置き場所と課題コメントの約束は [docs/conventions.md](docs/conventions.md) にある。
+要件と設計の置き場所と課題コメントの約束は [docs/conventions.md](docs/conventions.md) にある。
 
 ## 前提
 
@@ -31,7 +31,7 @@ bun test
 |---|---|
 | `install` | `skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の九つをコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents` |
 | `run` | SIGINT または SIGTERM まで、「実装依頼」を探して「実装完了」まで行う。作業ツリー直下の `sdd-cur.completion` が `runner` のときは、「動作確認OK」の完了処理も行う。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
-| `labels` | 作業ツリーのリポジトリに、計画の五つの業務ラベルを作る。無いものだけ作る |
+| `labels` | 作業ツリーのリポジトリに、五つの業務ラベルを作る。無いものだけ作る |
 | `candidates` | 着手候補の課題を JSON で一行出力する |
 | `show` | 課題と仕様の状態を JSON で一行出力する |
 | `confirm` | 承認した確認本文を標準入力から受け取り、課題にコメントする |
@@ -82,7 +82,6 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 ## ディレクトリ
 
 ```
-docs/plan.md          計画
 docs/conventions.md   要件・設計の置き場所と課題コメントの約束
 docs/specs/<番号>/    課題ごとの要件と設計
 package.json
