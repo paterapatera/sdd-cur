@@ -12,6 +12,19 @@ import {
   subagentFileNames,
 } from "./install.ts"
 
+describe("subagentFileNames", () => {
+  test("廃止した修正案作成役はリストに無い", () => {
+    for (const name of [
+      "sdd-cur-req-fix-proposer.md",
+      "sdd-cur-design-fix-proposer.md",
+      "sdd-cur-implement-fix-proposer.md",
+    ]) {
+      expect(subagentFileNames).not.toContain(name)
+    }
+    expect(subagentFileNames).toHaveLength(9)
+  })
+})
+
 describe("resolveSkillsDestination", () => {
   test("引数なしの宛先は homedir に .cursor/skills を足す", () => {
     const dest = resolveSkillsDestination("/home/test", undefined)
@@ -232,7 +245,7 @@ describe("installAll", () => {
     expect(content).toBe(`# ${subagentFileNames[0]}\n`)
   })
 
-  test("十二のいずれかが無いときは失敗し、スキルの宛先もサブエージェントの宛先も作られない", async () => {
+  test("九つのいずれかが無いときは失敗し、スキルの宛先もサブエージェントの宛先も作られない", async () => {
     const incomplete = path.join(tempRoot, "agents-incomplete")
     await mkdir(incomplete, { recursive: true })
     await writeFile(path.join(incomplete, subagentFileNames[0]), "x")

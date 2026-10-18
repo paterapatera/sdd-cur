@@ -7,15 +7,12 @@ export const defaultAgentsSourceDir = path.join(import.meta.dir, "../agents")
 export const subagentFileNames = [
   "sdd-cur-req-author.md",
   "sdd-cur-req-reviewer.md",
-  "sdd-cur-req-fix-proposer.md",
   "sdd-cur-req-fixer.md",
   "sdd-cur-design-author.md",
   "sdd-cur-design-reviewer.md",
-  "sdd-cur-design-fix-proposer.md",
   "sdd-cur-design-fixer.md",
   "sdd-cur-implement-author.md",
   "sdd-cur-implement-reviewer.md",
-  "sdd-cur-implement-fix-proposer.md",
   "sdd-cur-implement-fixer.md",
 ] as const
 

@@ -467,7 +467,6 @@ description: このプロジェクトの課題について、着手候補の提�
       "本文には id を書かない",
       "sdd-cur-req-author",
       "sdd-cur-req-reviewer",
-      "sdd-cur-req-fix-proposer",
       "sdd-cur-req-fixer",
       "model は渡さない",
       "判定: 合格",
@@ -477,9 +476,11 @@ description: このプロジェクトの課題について、着手候補の提�
       "指摘はどこにも置かない",
       "判定が合格なら設計に進むことができる",
       "人が答えるまで",
+      "3回目",
+      "grok-4.7[reasoning_effort=high,fast=false]",
+      "全文は書かない",
       "sdd-cur-design-author",
       "sdd-cur-design-reviewer",
-      "sdd-cur-design-fix-proposer",
       "sdd-cur-design-fixer",
       "判定が合格なら実装依頼に進むことができる",
       "作業ブランチを用意する",
@@ -512,6 +513,12 @@ description: このプロジェクトの課題について、着手候補の提�
     ]
     for (const phrase of required) {
       expect(text).toContain(phrase)
+    }
+    for (const name of [
+      "sdd-cur-req-fix-proposer",
+      "sdd-cur-design-fix-proposer",
+    ]) {
+      expect(text).not.toContain(name)
     }
     expect(text).not.toContain("createGitHub")
     expect(text).not.toContain("src/sdd.ts")

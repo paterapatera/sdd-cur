@@ -1,8 +1,14 @@
 import { describe, expect, test } from "bun:test"
-import { readFile } from "node:fs/promises"
+import { access, readFile } from "node:fs/promises"
 import path from "node:path"
 
 const agentsDir = path.join(import.meta.dir, "../agents")
+
+const abolished = [
+  "sdd-cur-req-fix-proposer.md",
+  "sdd-cur-design-fix-proposer.md",
+  "sdd-cur-implement-fix-proposer.md",
+] as const
 
 const expected = [
   {
@@ -15,19 +21,22 @@ const expected = [
     file: "sdd-cur-req-reviewer.md",
     name: "sdd-cur-req-reviewer",
     model: "grok-4.7[reasoning_effort=medium,fast=false]",
-    bodyIncludes: ["判定: 合格", "判定: 不合格", "E1", "E2", "E3"],
-  },
-  {
-    file: "sdd-cur-req-fix-proposer.md",
-    name: "sdd-cur-req-fix-proposer",
-    model: "grok-4.7[reasoning_effort=high,fast=false]",
-    bodyIncludes: ["確認: あり", "確認: なし", "質問のスコアは書かない"],
+    bodyIncludes: [
+      "判定: 合格",
+      "判定: 不合格",
+      "確認: あり",
+      "確認: なし",
+      "全文は書かない",
+      "E1",
+      "E2",
+      "E3",
+    ],
   },
   {
     file: "sdd-cur-req-fixer.md",
     name: "sdd-cur-req-fixer",
     model: "composer-2.5[fast=false]",
-    bodyIncludes: ["人が決めた条件", "決定", "質問のスコアは書かない"],
+    bodyIncludes: ["人が決めた条件", "決定", "質問のスコアは書かない", "差分"],
   },
   {
     file: "sdd-cur-design-author.md",
@@ -39,19 +48,19 @@ const expected = [
     file: "sdd-cur-design-reviewer.md",
     name: "sdd-cur-design-reviewer",
     model: "grok-4.7[reasoning_effort=medium,fast=false]",
-    bodyIncludes: ["判定: 合格", "判定: 不合格"],
-  },
-  {
-    file: "sdd-cur-design-fix-proposer.md",
-    name: "sdd-cur-design-fix-proposer",
-    model: "grok-4.7[reasoning_effort=high,fast=false]",
-    bodyIncludes: ["確認: あり", "確認: なし"],
+    bodyIncludes: [
+      "判定: 合格",
+      "判定: 不合格",
+      "確認: あり",
+      "確認: なし",
+      "全文は書かない",
+    ],
   },
   {
     file: "sdd-cur-design-fixer.md",
     name: "sdd-cur-design-fixer",
     model: "composer-2.5[fast=false]",
-    bodyIncludes: [] as string[],
+    bodyIncludes: ["差分"],
   },
   {
     file: "sdd-cur-implement-author.md",
@@ -63,19 +72,18 @@ const expected = [
     file: "sdd-cur-implement-reviewer.md",
     name: "sdd-cur-implement-reviewer",
     model: "grok-4.7[reasoning_effort=medium,fast=false]",
-    bodyIncludes: ["判定: 合格", "判定: 不合格"],
-  },
-  {
-    file: "sdd-cur-implement-fix-proposer.md",
-    name: "sdd-cur-implement-fix-proposer",
-    model: "grok-4.7[reasoning_effort=high,fast=false]",
-    bodyIncludes: ["確認: なし", "人に確認しない"],
+    bodyIncludes: [
+      "判定: 合格",
+      "判定: 不合格",
+      "全文は書かない",
+      "人に確認しない",
+    ],
   },
   {
     file: "sdd-cur-implement-fixer.md",
     name: "sdd-cur-implement-fixer",
     model: "composer-2.5[fast=false]",
-    bodyIncludes: [] as string[],
+    bodyIncludes: ["差分", "人に確認しない"],
   },
 ] as const
 
@@ -88,6 +96,12 @@ describe("agents/*.md", () => {
       for (const phrase of item.bodyIncludes) {
         expect(text).toContain(phrase)
       }
+    })
+  }
+
+  for (const file of abolished) {
+    test(`${file} は存在しない`, async () => {
+      await expect(access(path.join(agentsDir, file))).rejects.toThrow()
     })
   }
 })

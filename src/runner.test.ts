@@ -1529,15 +1529,17 @@ disable-model-invocation: true
       "docs/specs",
       "sdd-cur-implement-author",
       "sdd-cur-implement-reviewer",
-      "sdd-cur-implement-fix-proposer",
       "sdd-cur-implement-fixer",
       "model は渡さない",
       "判定: 合格",
       "判定: 不合格",
-      "確認: なし",
       "指摘はどこにも置かない",
       "人に確認しない",
+      "全文は書かない",
+      "3回目",
+      "grok-4.7[reasoning_effort=high,fast=false]",
       "実装レビューが不合格のまま10回に達した",
+      "レビューの判定がありません",
       "別の agent を起動しない",
       "課題を作らない",
       "課題を閉じない",
@@ -1551,6 +1553,8 @@ disable-model-invocation: true
     ]) {
       expect(text).toContain(phrase)
     }
+    expect(text).not.toContain("sdd-cur-implement-fix-proposer")
+    expect(text).not.toContain("確認: なし")
   })
 
   test("install が sdd-cur-implement をコピーする", async () => {
