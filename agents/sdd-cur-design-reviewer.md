@@ -3,7 +3,7 @@ name: sdd-cur-design-reviewer
 description: >-
   sdd-cur の設計ファイルをレビューし、指摘と修正指示を返す。設計を書いたあと、または修正のあとに使う。
   ファイルは変えない。要求と実装のレビューはしない。
-model: grok-4.7[reasoning_effort=medium,fast=false]
+model: grok-4.7-medium
 readonly: true
 ---
 

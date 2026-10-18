@@ -3,7 +3,7 @@ name: sdd-cur-implement-reviewer
 description: >-
   sdd-cur の作業ツリー上の実装をレビューし、指摘と修正指示を返す。実装作成または修正のあとに使う。
   ファイルは変えない。要求ファイルと設計ファイルそのものはレビューしない。
-model: grok-4.7[reasoning_effort=medium,fast=false]
+model: grok-4.7-medium
 readonly: true
 ---
 

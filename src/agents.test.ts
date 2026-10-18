@@ -14,13 +14,13 @@ const expected = [
   {
     file: "sdd-cur-req-author.md",
     name: "sdd-cur-req-author",
-    model: "grok-4.7[reasoning_effort=high,fast=false]",
+    model: "grok-4.7-high",
     bodyIncludes: ["決定", "質問のスコアは書かない", "課題のコメントで確認する"],
   },
   {
     file: "sdd-cur-req-reviewer.md",
     name: "sdd-cur-req-reviewer",
-    model: "grok-4.7[reasoning_effort=medium,fast=false]",
+    model: "grok-4.7-medium",
     bodyIncludes: [
       "判定: 合格",
       "判定: 不合格",
@@ -47,13 +47,13 @@ const expected = [
   {
     file: "sdd-cur-design-author.md",
     name: "sdd-cur-design-author",
-    model: "grok-4.7[reasoning_effort=high,fast=false]",
+    model: "grok-4.7-high",
     bodyIncludes: [] as string[],
   },
   {
     file: "sdd-cur-design-reviewer.md",
     name: "sdd-cur-design-reviewer",
-    model: "grok-4.7[reasoning_effort=medium,fast=false]",
+    model: "grok-4.7-medium",
     bodyIncludes: [
       "判定: 合格",
       "判定: 不合格",
@@ -71,13 +71,13 @@ const expected = [
   {
     file: "sdd-cur-implement-author.md",
     name: "sdd-cur-implement-author",
-    model: "grok-4.7[reasoning_effort=high,fast=false]",
+    model: "composer-2.5[fast=false]",
     bodyIncludes: [] as string[],
   },
   {
     file: "sdd-cur-implement-reviewer.md",
     name: "sdd-cur-implement-reviewer",
-    model: "grok-4.7[reasoning_effort=medium,fast=false]",
+    model: "grok-4.7-medium",
     bodyIncludes: [
       "判定: 合格",
       "判定: 不合格",
