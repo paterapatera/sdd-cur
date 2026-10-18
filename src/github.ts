@@ -48,6 +48,8 @@ export type GitHubClient = {
   getIssue(number: number): Promise<Issue>
   listComments(number: number): Promise<IssueComment[]>
   addComment(number: number, body: string): Promise<{ url: string }>
+  listPullRequestComments(number: number): Promise<IssueComment[]>
+  addPullRequestComment(number: number, body: string): Promise<{ url: string }>
   editLabels(
     number: number,
     change: { add?: string[]; remove?: string[] },
@@ -491,6 +493,47 @@ export function createGitHub(options: {
       }
       const result = await runGh(
         ["issue", "comment", String(number), "--repo", repo, "--body-file", "-"],
+        body,
+      )
+      const line = firstNonemptyLine(result.stdout)
+      if (line === null || !line.startsWith("https://")) {
+        reject(PARSE_ERROR)
+      }
+      return { url: line }
+    },
+
+    async listPullRequestComments(number) {
+      assertPositiveInteger(number)
+      const result = await runGh([
+        "pr",
+        "view",
+        String(number),
+        "--repo",
+        repo,
+        "--json",
+        "comments",
+      ])
+      const parsed = parseJson(result.stdout) as { comments?: unknown }
+      if (typeof parsed !== "object" || parsed === null) {
+        reject(PARSE_ERROR)
+      }
+      const comments = parsed.comments
+      if (comments === undefined) {
+        return []
+      }
+      if (!Array.isArray(comments)) {
+        reject(PARSE_ERROR)
+      }
+      return comments.map((c) => normalizeComment(c))
+    },
+
+    async addPullRequestComment(number, body) {
+      assertPositiveInteger(number)
+      if (body.trim().length === 0) {
+        reject("コメント本文が空です")
+      }
+      const result = await runGh(
+        ["pr", "comment", String(number), "--repo", repo, "--body-file", "-"],
         body,
       )
       const line = firstNonemptyLine(result.stdout)

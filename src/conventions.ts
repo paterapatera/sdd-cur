@@ -269,3 +269,170 @@ export function unincorporatedAnswers(
   }
   return result
 }
+
+export const pullRequestCommentMarkers = {
+  bug: "sdd-cur: 不具合",
+  fix: "sdd-cur: 修正",
+} as const
+
+export const fixedMarker = "sdd-cur:fixed"
+export const fixedOpenLine = `<!-- ${fixedMarker}`
+export const fixedCloseLine = "-->"
+
+export type PullRequestCommentKind = "bug" | "fix" | "other"
+
+export type ParsedPullRequestComment = {
+  kind: PullRequestCommentKind
+  payload: string
+}
+
+const MULTIPLE_FIXED = "修正の記録が複数あります"
+const BAD_FIXED = "修正の記録を解釈できません"
+const EMPTY_FIX_COMMENT = "修正コメントが空です"
+const MARKER_IN_FIX = "修正コメントに印を含めない"
+const NO_BUGS_TO_FIX = "修正する不具合がありません"
+const INVALID_FIX_ID = "修正するコメントが不正です"
+
+const allIssueMarkers = new Set<string>([
+  ...Object.values(commentMarkers),
+  ...Object.values(pullRequestCommentMarkers),
+])
+
+function formatFixedBlock(ids: readonly string[]): string {
+  const lines = [fixedOpenLine, ...ids, fixedCloseLine, ""]
+  return lines.join("\n")
+}
+
+export function parsePullRequestComment(body: string): ParsedPullRequestComment {
+  const normalized = normalizeNewlines(body)
+  const lines = normalized.split("\n")
+  const index = firstNonemptyLineIndex(lines)
+  if (index < 0) {
+    return { kind: "other", payload: normalized }
+  }
+  const firstLine = lines[index]
+  let kind: PullRequestCommentKind = "other"
+  if (firstLine === pullRequestCommentMarkers.bug) {
+    kind = "bug"
+  } else if (firstLine === pullRequestCommentMarkers.fix) {
+    kind = "fix"
+  }
+  if (kind === "other") {
+    return { kind, payload: normalized }
+  }
+  const payload = lines.slice(index + 1).join("\n")
+  return { kind, payload }
+}
+
+export function readFixedIds(body: string): string[] {
+  const normalized = normalizeNewlines(body)
+  const lines = normalized.split("\n")
+  const openIndices: number[] = []
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i] === fixedOpenLine) {
+      openIndices.push(i)
+    }
+  }
+  if (openIndices.length === 0) {
+    return []
+  }
+  if (openIndices.length > 1) {
+    reject(MULTIPLE_FIXED)
+  }
+  const openIndex = openIndices[0]
+  let closeIndex = -1
+  for (let i = openIndex + 1; i < lines.length; i += 1) {
+    if (lines[i] === fixedCloseLine) {
+      closeIndex = i
+      break
+    }
+  }
+  if (closeIndex < 0) {
+    reject(BAD_FIXED)
+  }
+  const ids: string[] = []
+  const seen = new Set<string>()
+  for (let i = openIndex + 1; i < closeIndex; i += 1) {
+    const line = lines[i]
+    if (line.trim().length === 0) {
+      continue
+    }
+    if (!isValidReflectedId(line)) {
+      reject(BAD_FIXED)
+    }
+    if (seen.has(line)) {
+      reject(BAD_FIXED)
+    }
+    seen.add(line)
+    ids.push(line)
+  }
+  for (let i = closeIndex + 1; i < lines.length; i += 1) {
+    if (lines[i].trim().length > 0) {
+      reject(BAD_FIXED)
+    }
+  }
+  return ids
+}
+
+export function selectUnprocessedBugs(
+  comments: readonly IssueComment[],
+): IssueComment[] {
+  const sorted = [...comments].sort(compareComments)
+  const fixedIds = new Set<string>()
+  for (const comment of sorted) {
+    const { kind } = parsePullRequestComment(comment.body)
+    if (kind !== "fix") {
+      continue
+    }
+    const ids = readFixedIds(comment.body)
+    for (const id of ids) {
+      fixedIds.add(id)
+    }
+  }
+  const result: IssueComment[] = []
+  for (const comment of sorted) {
+    const { kind } = parsePullRequestComment(comment.body)
+    if (kind !== "bug") {
+      continue
+    }
+    if (!fixedIds.has(comment.id)) {
+      result.push(comment)
+    }
+  }
+  return result
+}
+
+export function fixComment(payload: string, ids: readonly string[]): string {
+  if (payload.trim().length === 0) {
+    reject(EMPTY_FIX_COMMENT)
+  }
+  const normalized = normalizeNewlines(payload)
+  const lines = normalized.split("\n")
+  const index = firstNonemptyLineIndex(lines)
+  if (index >= 0 && allIssueMarkers.has(lines[index])) {
+    reject(MARKER_IN_FIX)
+  }
+  for (const line of lines) {
+    if (line === fixedOpenLine) {
+      reject(MARKER_IN_FIX)
+    }
+  }
+  if (ids.length === 0) {
+    reject(NO_BUGS_TO_FIX)
+  }
+  const seen = new Set<string>()
+  for (const id of ids) {
+    if (!isValidReflectedId(id)) {
+      reject(INVALID_FIX_ID)
+    }
+    if (seen.has(id)) {
+      reject(BAD_FIXED)
+    }
+    seen.add(id)
+  }
+  let body = `${pullRequestCommentMarkers.fix}\n${payload}`
+  if (!body.endsWith("\n")) {
+    body = `${body}\n`
+  }
+  return `${body}${formatFixedBlock(ids)}`
+}

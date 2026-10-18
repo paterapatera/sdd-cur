@@ -272,6 +272,76 @@ describe("createGitHub", () => {
     expect(calls.length).toBe(0)
   })
 
+  test("listPullRequestComments", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okJson({
+        comments: [
+          {
+            id: "c1",
+            body: "b",
+            author: { login: "u" },
+            createdAt: "2026-01-01",
+          },
+        ],
+      }),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    const comments = await github.listPullRequestComments(5)
+    expect(comments[0]).toEqual({
+      id: "c1",
+      body: "b",
+      author: "u",
+      createdAt: "2026-01-01",
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.args).toEqual([
+      "pr",
+      "view",
+      "5",
+      "--repo",
+      "o/r",
+      "--json",
+      "comments",
+    ])
+    const empty = createGitHub({
+      gh: recordingRunner(() => okJson({})).runner,
+      repo: "o/r",
+    })
+    expect(await empty.listPullRequestComments(1)).toEqual([])
+    const bad = createGitHub({
+      gh: recordingRunner(() => okJson({ comments: {} })).runner,
+      repo: "o/r",
+    })
+    await expect(bad.listPullRequestComments(1)).rejects.toThrow(
+      "gh の応答を解釈できません",
+    )
+  })
+
+  test("addPullRequestComment", async () => {
+    const { runner, calls } = recordingRunner(() =>
+      okText("https://github.com/o/r/pull/1#issuecomment-1\n"),
+    )
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    const result = await github.addPullRequestComment(1, "body")
+    expect(result.url).toBe("https://github.com/o/r/pull/1#issuecomment-1")
+    expect(calls[0]?.args).toEqual([
+      "pr",
+      "comment",
+      "1",
+      "--repo",
+      "o/r",
+      "--body-file",
+      "-",
+    ])
+    expect(calls[0]?.options.stdin).toBe("body")
+    const { runner: r2, calls: c2 } = recordingRunner(() => okText(""))
+    const g2 = createGitHub({ gh: r2, repo: "o/r" })
+    await expect(g2.addPullRequestComment(1, "  ")).rejects.toThrow(
+      "コメント本文が空です",
+    )
+    expect(c2.length).toBe(0)
+  })
+
   test("editLabels は一回の issue edit にまとめる", async () => {
     const { runner, calls } = recordingRunner(() => okJson({}))
     const github = createGitHub({ gh: runner, repo: "o/r" })

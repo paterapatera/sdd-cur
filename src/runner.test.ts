@@ -2,13 +2,18 @@ import { describe, expect, test } from "bun:test"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import { commentMarkers } from "./conventions.ts"
+import {
+  commentMarkers,
+  pullRequestCommentMarkers,
+} from "./conventions.ts"
 import type { Issue } from "./github.ts"
 import { workflowLabels } from "./labels.ts"
 import {
   acceptanceComment,
+  classifyFixPullRequests,
   createRunner,
   implementationBranch,
+  selectFixIssues,
   selectImplementationIssue,
 } from "./runner.ts"
 
@@ -16,6 +21,7 @@ const implementSkillPath = path.join(
   import.meta.dir,
   "../skills/sdd-cur-implement/SKILL.md",
 )
+const fixSkillPath = path.join(import.meta.dir, "../skills/sdd-cur-fix/SKILL.md")
 const cliPath = path.join(import.meta.dir, "cli.ts")
 const bunExe = process.execPath
 
@@ -76,6 +82,53 @@ describe("implementationBranch", () => {
   })
 })
 
+describe("selectFixIssues", () => {
+  test("ラベルと assignee で絞り number 昇順", () => {
+    const issues = [
+      issue({ number: 10, labels: [LABEL_DONE] }),
+      issue({ number: 2, labels: [LABEL_DONE] }),
+      issue({ number: 3, labels: [LABEL_IN_PROGRESS, LABEL_DONE] }),
+      issue({ number: 4, labels: [LABEL_DONE, LABEL_VERIFIED] }),
+      issue({ number: 5, labels: [LABEL_DONE, LABEL_MERGED] }),
+      issue({ number: 6, labels: [] }),
+      issue({ number: 7, labels: [LABEL_DONE], assignees: ["other"] }),
+    ]
+    const before = issues.map((i) => ({ ...i, labels: [...i.labels] }))
+    const selected = selectFixIssues(issues, VIEWER_LOGIN)
+    expect(issues).toEqual(before)
+    expect(selected.map((i) => i.number)).toEqual([2, 10])
+  })
+})
+
+describe("classifyFixPullRequests", () => {
+  test("件数と open", () => {
+    expect(classifyFixPullRequests([]).kind).toBe("none")
+    expect(
+      classifyFixPullRequests([
+        { number: 1, url: "", state: "open", merged: false },
+        { number: 2, url: "", state: "open", merged: false },
+      ]).kind,
+    ).toBe("ambiguous")
+    const open = classifyFixPullRequests([
+      { number: 1, url: "", state: "open", merged: false },
+    ])
+    expect(open.kind).toBe("open")
+    if (open.kind === "open") {
+      expect(open.pullRequest.number).toBe(1)
+    }
+    expect(
+      classifyFixPullRequests([
+        { number: 1, url: "", state: "merged", merged: true },
+      ]).kind,
+    ).toBe("not-open")
+    expect(
+      classifyFixPullRequests([
+        { number: 1, url: "", state: "closed", merged: false },
+      ]).kind,
+    ).toBe("not-open")
+  })
+})
+
 describe("acceptanceComment", () => {
   test("空と印を拒否し成功時は印と payload", () => {
     expect(() => acceptanceComment("   ")).toThrow("受け入れ手順が空です")
@@ -99,8 +152,16 @@ describe("createRunner", () => {
         },
         async listIssues(query) {
           calls += 1
+          if (calls === 1) {
+            expect(query).toEqual({
+              labels: [LABEL_REQUEST],
+              assignee: VIEWER_LOGIN,
+              limit: 100,
+            })
+            return []
+          }
           expect(query).toEqual({
-            labels: [LABEL_REQUEST],
+            labels: [LABEL_DONE],
             assignee: VIEWER_LOGIN,
             limit: 100,
           })
@@ -120,6 +181,16 @@ describe("createRunner", () => {
         async addComment() {
           return { url: "https://c" }
         },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
       },
       git: {
         async remoteName() {
@@ -135,6 +206,7 @@ describe("createRunner", () => {
       },
       agent: {
         async implement() {},
+        async fix() {},
       },
       createProcedureFile: async () => ({
         path: "/tmp/p",
@@ -142,7 +214,7 @@ describe("createRunner", () => {
       }),
     })
     await expect(runner.poll()).resolves.toBeNull()
-    expect(calls).toBe(1)
+    expect(calls).toBe(2)
   })
 
   test("poll は listIssues が一度拒否し二度目に返す", async () => {
@@ -228,6 +300,16 @@ describe("createRunner", () => {
         async addComment() {
           return { url: "https://c" }
         },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
       },
       git: {
         async remoteName() {
@@ -241,7 +323,7 @@ describe("createRunner", () => {
         async commitAll() {},
         async push() {},
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async fix() {} },
       createProcedureFile: async () => ({
         path: "/tmp/p",
         async remove() {},
@@ -249,7 +331,7 @@ describe("createRunner", () => {
     })
     await expect(runner.poll()).resolves.toBeNull()
     expect(viewerCalls).toBe(2)
-    expect(listCalls).toBe(1)
+    expect(listCalls).toBe(2)
   })
 
   test("viewerLogin が二度とも拒否すると listIssues は呼ばない", async () => {
@@ -354,7 +436,7 @@ describe("createRunner", () => {
       }),
     })
     expect(await runner.poll()).toBeNull()
-    expect(listCalls).toBe(2)
+    expect(listCalls).toBe(3)
   })
 
   test("process はラベルが違うとき editLabels を呼ばない", async () => {
@@ -983,6 +1065,12 @@ describe("createRunner completion", () => {
           async listPullRequests() {
             return []
           },
+          async listPullRequestComments() {
+            return []
+          },
+          async addPullRequestComment() {
+            return { url: "https://c" }
+          },
           async squashMerge() {},
         },
         git: {
@@ -997,14 +1085,14 @@ describe("createRunner completion", () => {
           async commitAll() {},
           async push() {},
         },
-        agent: { async implement() {} },
+        agent: { async implement() {}, async fix() {} },
         createProcedureFile: async () => ({
           path: "/tmp/x",
           async remove() {},
         }),
       })
       expect(await runner.poll()).toBe(null)
-      expect(listCalls).toBe(1)
+      expect(listCalls).toBe(2)
     }
   })
 
@@ -1498,7 +1586,7 @@ describe("createRunner completion", () => {
           calls.push("push")
         },
       },
-      agent: { async implement() {} },
+      agent: { async implement() {}, async fix() {} },
       createProcedureFile: async () => ({
         path: "/tmp/x",
         async remove() {},
@@ -1510,6 +1598,745 @@ describe("createRunner completion", () => {
       "squash:4",
       `edit:8:${LABEL_VERIFIED}:${LABEL_MERGED}`,
     ])
+  })
+})
+
+describe("createRunner fix", () => {
+  test("poll は実装依頼を優先し実装完了の listIssues を呼ばない", async () => {
+    let doneList = false
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_DONE)) {
+            doneList = true
+          }
+          return [issue({ number: 1 })]
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    expect(await runner.poll()).toEqual({ id: "1" })
+    expect(doneList).toBe(false)
+  })
+
+  test("未処理の不具合がある課題を返す", async () => {
+    let prCalls = 0
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [issue({ number: 5, labels: [LABEL_DONE] })]
+        },
+        async getIssue() {
+          return issue({ number: 5, labels: [LABEL_DONE] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests(query) {
+          prCalls += 1
+          expect(query.head).toBe("task-5")
+          return [{ number: 9, url: "https://pr/9", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_bug",
+              body: `${pullRequestCommentMarkers.bug}\n内容`,
+              author: "u",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    expect(await runner.poll()).toEqual({ id: "5" })
+    expect(prCalls).toBe(1)
+  })
+
+  test("2 件以上のマージリクエストで拒否", async () => {
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [issue({ number: 1, labels: [LABEL_DONE] })]
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [
+            { number: 1, url: "", state: "open", merged: false },
+            { number: 2, url: "", state: "open", merged: false },
+          ]
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    await expect(runner.poll()).rejects.toThrow("マージリクエストを特定できません")
+  })
+
+  test("通過した不具合 process の呼び出し順", async () => {
+    const log: string[] = []
+    const procedurePath = "/tmp/fix-proc.txt"
+    await writeFile(procedurePath, "再確認手順", "utf8")
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 3, labels: [LABEL_DONE] })
+        },
+        async editLabels(_n, change) {
+          if (change.add?.includes(LABEL_IN_PROGRESS)) {
+            log.push("editLabels:start")
+          } else {
+            log.push("editLabels:done")
+          }
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          log.push("addComment")
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [{ number: 7, url: "https://pr/7", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_bug1",
+              body: `${pullRequestCommentMarkers.bug}\n不具合`,
+              author: "u",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment(_n, body) {
+          log.push(`addPullRequestComment:${body.split("\n")[0]}`)
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          log.push("remoteName")
+          return "origin"
+        },
+        async fetch(remote, branch) {
+          log.push(`fetch:${remote}:${branch}`)
+        },
+        async checkoutFetched(branch) {
+          log.push(`checkoutFetched:${branch}`)
+        },
+        async hasChanges() {
+          log.push("hasChanges")
+          return true
+        },
+        async commitAll(msg) {
+          log.push(`commitAll:${msg}`)
+        },
+        async push() {
+          log.push("push")
+        },
+      },
+      agent: {
+        async implement() {},
+        async fix() {
+          log.push("fix")
+        },
+      },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "3" })
+    expect(log).toEqual([
+      "editLabels:start",
+      "remoteName",
+      "fetch:origin:task-3",
+      "checkoutFetched:task-3",
+      "fix",
+      "hasChanges",
+      "commitAll:fix: 課題 3 の不具合を修正する",
+      "push",
+      `addPullRequestComment:${pullRequestCommentMarkers.fix}`,
+      "editLabels:done",
+    ])
+    expect(log).not.toContain("addComment")
+    await rm(procedurePath, { force: true })
+  })
+
+  test("小さい番号をスキップし未処理がある番号だけ返す", async () => {
+    let prFor10 = 0
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [
+            issue({ number: 10, labels: [LABEL_DONE] }),
+            issue({ number: 20, labels: [LABEL_DONE] }),
+          ]
+        },
+        async getIssue() {
+          return issue({ number: 20, labels: [LABEL_DONE] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests(query) {
+          if (query.head === "task-10") {
+            return []
+          }
+          if (query.head === "task-20") {
+            prFor10 += 1
+            return [{ number: 2, url: "", state: "open", merged: false }]
+          }
+          return []
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_b",
+              body: `${pullRequestCommentMarkers.bug}\nb`,
+              author: "",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    expect(await runner.poll()).toEqual({ id: "20" })
+    expect(prFor10).toBe(1)
+  })
+
+  test("completionCaller が skill でも不具合を探す", async () => {
+    let verifiedList = false
+    const runner = createRunner({
+      completionCaller: "skill",
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            verifiedList = true
+          }
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [issue({ number: 2, labels: [LABEL_DONE] })]
+        },
+        async getIssue() {
+          return issue({ number: 2, labels: [LABEL_DONE] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [{ number: 1, url: "", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_b",
+              body: `${pullRequestCommentMarkers.bug}\nx`,
+              author: "",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    expect(await runner.poll()).toEqual({ id: "2" })
+    expect(verifiedList).toBe(false)
+  })
+
+  test("範囲外のみで変更なしは commit せず PR コメントと完了ラベル", async () => {
+    const log: string[] = []
+    const procedurePath = "/tmp/fix-oos.txt"
+    await writeFile(procedurePath, "設計の範囲外のため直していない", "utf8")
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 4, labels: [LABEL_DONE] })
+        },
+        async editLabels(_n, c) {
+          log.push(c.add?.includes(LABEL_IN_PROGRESS) ? "start" : "done")
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [{ number: 3, url: "", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_b",
+              body: `${pullRequestCommentMarkers.bug}\n外`,
+              author: "",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          log.push("prComment")
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          log.push("hasChanges")
+          return false
+        },
+        async commitAll() {
+          log.push("commitAll")
+        },
+        async push() {
+          log.push("push")
+        },
+      },
+      agent: { async implement() {}, async fix() {} },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "4" })
+    expect(log).toEqual(["start", "hasChanges", "prComment", "done"])
+    await rm(procedurePath, { force: true })
+  })
+
+  test("範囲内で変更なしは失敗し PR コメントと完了ラベルは呼ばない", async () => {
+    const log: string[] = []
+    const procedurePath = "/tmp/fix-nochg.txt"
+    await writeFile(procedurePath, "直した", "utf8")
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 4, labels: [LABEL_DONE] })
+        },
+        async editLabels(_n, c) {
+          if (c.add?.includes(LABEL_IN_PROGRESS)) {
+            log.push("editLabels:start")
+          }
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [{ number: 3, url: "", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_b",
+              body: `${pullRequestCommentMarkers.bug}\n内`,
+              author: "",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          log.push("prComment")
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return false
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {} },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    await expect(runner.process({ id: "4" })).rejects.toThrow(
+      "実装の変更がありません",
+    )
+    expect(log).toEqual(["editLabels:start"])
+    expect(log).not.toContain("prComment")
+    await rm(procedurePath, { force: true })
+  })
+
+  test("fix が一度拒否し二度目に成功", async () => {
+    let fixCalls = 0
+    const procedurePath = "/tmp/fix-retry.txt"
+    await writeFile(procedurePath, "手順", "utf8")
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 2, labels: [LABEL_DONE] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [{ number: 1, url: "", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_b",
+              body: `${pullRequestCommentMarkers.bug}\nx`,
+              author: "",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async implement() {},
+        async fix() {
+          fixCalls += 1
+          if (fixCalls === 1) {
+            throw new Error("agent fail")
+          }
+        },
+      },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "2" })
+    expect(fixCalls).toBe(2)
+    await rm(procedurePath, { force: true })
+  })
+
+  test("実装中の課題は poll の不具合探索で返さない", async () => {
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [
+            issue({
+              number: 5,
+              labels: [LABEL_DONE, LABEL_IN_PROGRESS],
+            }),
+          ]
+        },
+        async getIssue() {
+          throw new Error("unexpected")
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    expect(await runner.poll()).toBeNull()
   })
 })
 
@@ -1570,6 +2397,58 @@ disable-model-invocation: true
         "utf8",
       )
       const source = await readFile(implementSkillPath, "utf8")
+      expect(installed).toBe(source)
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+})
+
+describe("skills/sdd-cur-fix/SKILL.md", () => {
+  test("フロントマターと本文", async () => {
+    const text = await readFile(fixSkillPath, "utf8")
+    expect(text.startsWith(`---
+name: sdd-cur-fix
+description: クローンの作業ツリーで、指定された課題の不具合を要件と設計の範囲内で直し、修正コメントの本文を指定パスへ書く。課題ランナーが agent から起動する。
+disable-model-invocation: true
+---
+`)).toBe(true)
+    for (const phrase of [
+      "# sdd-cur-fix",
+      "## 修正",
+      "## 禁止",
+      "docs/specs",
+      "sdd-cur-implement-author",
+      "model は渡さない",
+      "設計の範囲外のため直していない",
+      "課題を作らない",
+      "課題を閉じない",
+      "ラベルを変えない",
+      "コミットしない",
+      "push しない",
+      "マージリクエストを作らない",
+      "スカッシュマージしない",
+      "コメントを投稿しない",
+      "受け入れ手順を書き直さない",
+      "`gh` を直接起動しない",
+    ]) {
+      expect(text).toContain(phrase)
+    }
+  })
+
+  test("install が sdd-cur-fix をコピーする", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-runner-fix-install-"))
+    try {
+      const proc = Bun.spawn(["bun", cliPath, "install", temp], {
+        stdout: "pipe",
+        stderr: "pipe",
+      })
+      expect(await proc.exited).toBe(0)
+      const installed = await readFile(
+        path.join(temp, ".cursor", "skills", "sdd-cur-fix", "SKILL.md"),
+        "utf8",
+      )
+      const source = await readFile(fixSkillPath, "utf8")
       expect(installed).toBe(source)
     } finally {
       await rm(temp, { recursive: true, force: true })

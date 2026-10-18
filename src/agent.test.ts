@@ -59,4 +59,58 @@ describe("createAgent", () => {
     ])
     expect(calls[0]?.args).not.toContain("--api-key")
   })
+
+  test("fix は不正入力で run を呼ばない", async () => {
+    const { runner, calls } = recordingRunner(() => ({
+      stdout: "",
+      stderr: "",
+      exitCode: 0,
+    }))
+    const agent = createAgent({ agent: runner, cwd: "/proj" })
+    await expect(
+      agent.fix({ issueNumber: 0, resultPath: "/tmp/r", bugs: [] }),
+    ).rejects.toThrow("番号が不正です")
+    await expect(
+      agent.fix({
+        issueNumber: 1,
+        resultPath: "/tmp/a b",
+        bugs: [{ id: "IC_x", payload: "" }],
+      }),
+    ).rejects.toThrow("修正結果のパスが不正です")
+    await expect(
+      agent.fix({
+        issueNumber: 1,
+        resultPath: "/tmp/r",
+        bugs: [],
+      }),
+    ).rejects.toThrow("修正する不具合がありません")
+    expect(calls).toHaveLength(0)
+  })
+
+  test("fix 成功時の引数", async () => {
+    const { runner, calls } = recordingRunner(() => ({
+      stdout: "",
+      stderr: "",
+      exitCode: 0,
+    }))
+    const agent = createAgent({ agent: runner, cwd: "/proj" })
+    await agent.fix({
+      issueNumber: 6,
+      resultPath: "/tmp/result.txt",
+      bugs: [{ id: "IC_a", payload: "不具合" }],
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.cwd).toBe("/proj")
+    expect(calls[0]?.args).toEqual([
+      "-p",
+      "--force",
+      "--trust",
+      "--workspace",
+      "/proj",
+      "--output-format",
+      "text",
+      '/sdd-cur-fix 6 /tmp/result.txt\n[{"id":"IC_a","payload":"不具合"}]',
+    ])
+    expect(calls[0]?.args).not.toContain("--api-key")
+  })
 })
