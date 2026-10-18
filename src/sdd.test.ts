@@ -543,9 +543,26 @@ disable-model-invocation: true
       "あと 1 回",
       "合計最大 2 回",
       "印が壊れている",
+      "番号付き指摘",
+      "2 回連続",
+      "直前の不合格レビュー",
     ]
     for (const phrase of required) {
       expect(text).toContain(phrase)
+    }
+    const requirementsStart = text.indexOf("## 要件")
+    const designStart = text.indexOf("## 設計")
+    const confirmStart = text.indexOf("## 確認")
+    const requirementsSlice = text.slice(requirementsStart, designStart)
+    const designSlice = text.slice(designStart, confirmStart)
+    const sectionRequired = [
+      "番号付き指摘",
+      "2 回連続",
+      "修正を起動しない",
+    ]
+    for (const phrase of sectionRequired) {
+      expect(requirementsSlice).toContain(phrase)
+      expect(designSlice).toContain(phrase)
     }
     expect(text).not.toContain("最後の非空行")
     for (const name of [
