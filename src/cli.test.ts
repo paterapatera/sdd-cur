@@ -228,7 +228,7 @@ describe("cli subprocess", () => {
     )
   })
 
-  test("complete 7 は未設定の呼び出し元", async () => {
+  test("complete 7 はファイル無しで gh 無し", async () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-complete-"))
     try {
       const proc = Bun.spawn([bunExe, cliPath, "complete", "7"], {
@@ -239,7 +239,7 @@ describe("cli subprocess", () => {
       })
       expect(await proc.exited).toBe(1)
       expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
-        "完了の呼び出し元が未設定です",
+        "gh を実行できません",
       )
     } finally {
       await rm(temp, { recursive: true, force: true })

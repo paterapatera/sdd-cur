@@ -36,7 +36,7 @@ bun test
 | `show` | 課題と仕様の状態を JSON で一行出力する |
 | `confirm` | 承認した確認本文を標準入力から受け取り、課題にコメントする |
 | `reflect` | 取り込み先の全文を標準入力から受け取り、未反映の回答を一件記録する |
-| `complete` | 作業ツリー直下の `sdd-cur.completion` が `skill` のとき、指定課題の完了処理を行う |
+| `complete` | 指定課題の完了処理を行う。作業ツリー直下の `sdd-cur.completion` が無いとき、および中身が `skill` のときは行う。中身が `runner` のときは拒否する。 |
 | `bun test` | テスト。`gh` は起動しない |
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-implement`、`skills/sdd-cur-complete` である。

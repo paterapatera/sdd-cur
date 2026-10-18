@@ -340,10 +340,6 @@ async function cmdComplete(args: string[]): Promise<number> {
     return 1
   }
 
-  if (caller === null) {
-    console.error("完了の呼び出し元が未設定です")
-    return 1
-  }
   if (caller === "runner") {
     console.error("完了は課題ランナーが行います")
     return 1
