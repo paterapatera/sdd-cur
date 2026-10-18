@@ -47,6 +47,7 @@ const bunExe = process.execPath
 
 const LABEL_VERIFIED = workflowLabels[3].name
 const LABEL_MERGED = workflowLabels[4].name
+const VIEWER_LOGIN = "octocat"
 
 function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
   return {
@@ -54,6 +55,7 @@ function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
     body: "",
     state: "open",
     labels: [],
+    assignees: [VIEWER_LOGIN],
     url: "https://example.com/i",
     ...partial,
   }
@@ -126,15 +128,24 @@ describe("selectCompletionIssue", () => {
       issue({ number: 3, labels: ["実装依頼"] }),
     ]
     const copy = [...issues]
-    expect(selectCompletionIssue(copy)?.number).toBe(2)
+    expect(selectCompletionIssue(copy, VIEWER_LOGIN)?.number).toBe(2)
     expect(copy).toEqual(issues)
   })
 
   test("マージ済みがあっても除かない", () => {
-    const selected = selectCompletionIssue([
-      issue({ number: 1, labels: [LABEL_VERIFIED, LABEL_MERGED] }),
-    ])
+    const selected = selectCompletionIssue(
+      [issue({ number: 1, labels: [LABEL_VERIFIED, LABEL_MERGED] })],
+      VIEWER_LOGIN,
+    )
     expect(selected?.number).toBe(1)
+  })
+
+  test("assignees に login が無い課題を除く", () => {
+    const issues = [
+      issue({ number: 10, labels: [LABEL_VERIFIED], assignees: ["other"] }),
+      issue({ number: 2, labels: [LABEL_VERIFIED] }),
+    ]
+    expect(selectCompletionIssue(issues, VIEWER_LOGIN)?.number).toBe(2)
   })
 })
 
@@ -411,6 +422,7 @@ describe("completeIssue", () => {
           body: "",
           state: "OPEN",
           labels: [{ name: LABEL_VERIFIED }],
+          assignees: [],
           url: "https://github.com/o/r/issues/7",
         })
       }

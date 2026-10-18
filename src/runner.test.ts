@@ -24,6 +24,7 @@ const LABEL_IN_PROGRESS = workflowLabels[1].name
 const LABEL_DONE = workflowLabels[2].name
 const LABEL_VERIFIED = workflowLabels[3].name
 const LABEL_MERGED = workflowLabels[4].name
+const VIEWER_LOGIN = "octocat"
 
 function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
   return {
@@ -31,6 +32,7 @@ function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
     body: "",
     state: "open",
     labels: [LABEL_REQUEST],
+    assignees: [VIEWER_LOGIN],
     url: "https://github.com/o/r/issues/1",
     ...partial,
   }
@@ -46,9 +48,24 @@ describe("selectImplementationIssue", () => {
       issue({ number: 5, labels: [LABEL_REQUEST, LABEL_IN_PROGRESS] }),
     ]
     const before = issues.map((i) => ({ ...i, labels: [...i.labels] }))
-    const selected = selectImplementationIssue(issues)
+    const selected = selectImplementationIssue(issues, VIEWER_LOGIN)
     expect(issues).toEqual(before)
     expect(selected?.number).toBe(2)
+  })
+
+  test("assignees に login が無い課題を除く", () => {
+    const issues = [
+      issue({ number: 1, assignees: ["other"] }),
+      issue({ number: 2 }),
+    ]
+    expect(selectImplementationIssue(issues, VIEWER_LOGIN)?.number).toBe(2)
+  })
+
+  test("login が複数 assignees の一つなら残す", () => {
+    const issues = [
+      issue({ number: 3, assignees: ["other", VIEWER_LOGIN] }),
+    ]
+    expect(selectImplementationIssue(issues, VIEWER_LOGIN)?.number).toBe(3)
   })
 })
 
@@ -77,9 +94,16 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues(query) {
           calls += 1
-          expect(query).toEqual({ labels: [LABEL_REQUEST], limit: 100 })
+          expect(query).toEqual({
+            labels: [LABEL_REQUEST],
+            assignee: VIEWER_LOGIN,
+            limit: 100,
+          })
           return []
         },
         async getIssue() {
@@ -126,6 +150,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           calls += 1
           if (calls === 1) {
@@ -170,11 +197,174 @@ describe("createRunner", () => {
     expect(calls).toBe(2)
   })
 
+  test("viewerLogin が一度拒否し二度目に login を返すとき listIssues は一回", async () => {
+    let viewerCalls = 0
+    let listCalls = 0
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          viewerCalls += 1
+          if (viewerCalls === 1) {
+            throw new Error("auth")
+          }
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          listCalls += 1
+          return []
+        },
+        async getIssue() {
+          throw new Error("unexpected")
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await expect(runner.poll()).resolves.toBeNull()
+    expect(viewerCalls).toBe(2)
+    expect(listCalls).toBe(1)
+  })
+
+  test("viewerLogin が二度とも拒否すると listIssues は呼ばない", async () => {
+    let listCalls = 0
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          throw new Error("auth failed")
+        },
+        async listIssues() {
+          listCalls += 1
+          return []
+        },
+        async getIssue() {
+          throw new Error("unexpected")
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await expect(runner.poll()).rejects.toThrow("auth failed")
+    expect(listCalls).toBe(0)
+  })
+
+  test("ラベルは合うが assignees に login が無いとき poll は null", async () => {
+    let listCalls = 0
+    const runner = createRunner({
+      completionCaller: "runner",
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          listCalls += 1
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return [issue({ number: 9, labels: [LABEL_VERIFIED], assignees: ["other"] })]
+          }
+          return [issue({ number: 5, assignees: ["other"] })]
+        },
+        async getIssue() {
+          return issue({ number: 5 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    expect(await runner.poll()).toBeNull()
+    expect(listCalls).toBe(2)
+  })
+
   test("process はラベルが違うとき editLabels を呼ばない", async () => {
     let editCalled = false
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return []
         },
@@ -225,6 +415,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return []
         },
@@ -320,6 +513,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return []
         },
@@ -374,6 +570,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return []
         },
@@ -429,6 +628,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return []
         },
@@ -484,6 +686,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return []
         },
@@ -551,6 +756,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return []
         },
@@ -615,6 +823,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return []
         },
@@ -678,6 +889,9 @@ describe("createRunner", () => {
     const runner = createRunner({
       completionCaller: null,
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return [
             issue({ number: 1, labels: store.get(1) ?? [] }),
@@ -745,6 +959,9 @@ describe("createRunner completion", () => {
       const runner = createRunner({
         completionCaller: caller,
         github: {
+          async viewerLogin() {
+            return VIEWER_LOGIN
+          },
           async listIssues() {
             listCalls += 1
             return []
@@ -796,6 +1013,9 @@ describe("createRunner completion", () => {
     const runner = createRunner({
       completionCaller: "runner",
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues(query) {
           if (query.labels?.includes(LABEL_VERIFIED)) {
             secondList = true
@@ -845,13 +1065,18 @@ describe("createRunner completion", () => {
   })
 
   test("runner で動作確認OK のみを返す", async () => {
+    let secondAssignee: string | undefined
     const runner = createRunner({
       completionCaller: "runner",
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues(query) {
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
           }
+          secondAssignee = query.assignee
           return [issue({ number: 8, labels: [LABEL_VERIFIED] })]
         },
         async getIssue() {
@@ -899,6 +1124,7 @@ describe("createRunner completion", () => {
       }),
     })
     expect(await runner.poll()).toEqual({ id: "8" })
+    expect(secondAssignee).toBe(VIEWER_LOGIN)
   })
 
   test("実装依頼課題では complete の依存を呼ばない", async () => {
@@ -909,6 +1135,9 @@ describe("createRunner completion", () => {
     const runner = createRunner({
       completionCaller: "runner",
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return [issue({ number: 1 })]
         },
@@ -969,6 +1198,9 @@ describe("createRunner completion", () => {
     const runner = createRunner({
       completionCaller: "runner",
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues() {
           return [issue({ number: 1 })]
         },
@@ -1022,6 +1254,9 @@ describe("createRunner completion", () => {
     const runner = createRunner({
       completionCaller: "runner",
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues(query) {
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
@@ -1097,6 +1332,9 @@ describe("createRunner completion", () => {
     const runner = createRunner({
       completionCaller: "runner",
       github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
         async listIssues(query) {
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
@@ -1175,6 +1413,7 @@ describe("createRunner completion", () => {
       "listIssues",
       "listPullRequests",
       "squashMerge",
+      "viewerLogin",
     ]
     expect(keys.sort()).toEqual([
       "addComment",
@@ -1186,6 +1425,7 @@ describe("createRunner completion", () => {
       "listIssues",
       "listPullRequests",
       "squashMerge",
+      "viewerLogin",
     ])
     expect(keys).not.toContain("deleteBranch" as keyof GithubDeps)
   })
@@ -1193,6 +1433,9 @@ describe("createRunner completion", () => {
   test("動作確認OK の process は completeIssue 経由で squashMerge し deleteBranch と issue close は呼ばない", async () => {
     const calls: string[] = []
     const github = {
+      async viewerLogin() {
+        return VIEWER_LOGIN
+      },
       async listIssues(query: { labels?: string[] }) {
         if (query.labels?.includes(LABEL_REQUEST)) {
           return []

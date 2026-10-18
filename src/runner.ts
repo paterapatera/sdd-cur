@@ -59,6 +59,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 
 export function selectImplementationIssue(
   issues: readonly Issue[],
+  login: string,
 ): Issue | null {
   const filtered = issues.filter((issue) => {
     const labels = issue.labels
@@ -66,6 +67,9 @@ export function selectImplementationIssue(
       return false
     }
     if (labels.includes(LABEL_IN_PROGRESS)) {
+      return false
+    }
+    if (!issue.assignees.includes(login)) {
       return false
     }
     return true
@@ -112,6 +116,7 @@ export async function defaultCreateProcedureFile(): Promise<{
 type RunnerDeps = {
   completionCaller: CompletionCaller | null
   github: {
+    viewerLogin: GitHubClient["viewerLogin"]
     listIssues: GitHubClient["listIssues"]
     getIssue: GitHubClient["getIssue"]
     editLabels: GitHubClient["editLabels"]
@@ -138,10 +143,15 @@ type RunnerDeps = {
 export function createRunner(deps: RunnerDeps): Runner {
   return {
     async poll() {
+      const login = await withRetry(() => deps.github.viewerLogin())
       const issues = await withRetry(() =>
-        deps.github.listIssues({ labels: [LABEL_REQUEST], limit: 100 }),
+        deps.github.listIssues({
+          labels: [LABEL_REQUEST],
+          assignee: login,
+          limit: 100,
+        }),
       )
-      const selected = selectImplementationIssue(issues)
+      const selected = selectImplementationIssue(issues, login)
       if (selected !== null) {
         return { id: String(selected.number) }
       }
@@ -149,9 +159,13 @@ export function createRunner(deps: RunnerDeps): Runner {
         return null
       }
       const completionIssues = await withRetry(() =>
-        deps.github.listIssues({ labels: [LABEL_VERIFIED], limit: 100 }),
+        deps.github.listIssues({
+          labels: [LABEL_VERIFIED],
+          assignee: login,
+          limit: 100,
+        }),
       )
-      const completion = selectCompletionIssue(completionIssues)
+      const completion = selectCompletionIssue(completionIssues, login)
       if (completion === null) {
         return null
       }
