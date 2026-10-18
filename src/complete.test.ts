@@ -473,10 +473,10 @@ describe("skills/sdd-cur-complete/SKILL.md", () => {
     const text = await readFile(completeSkillPath, "utf8")
     expect(text.startsWith(`---
 name: sdd-cur-complete
-description: Project A の Cursor で、人が指定した課題の完了処理を行う。
+description: Project A の Cursor で、人が指定した課題の完了処理を行う。作業ツリーの呼び出し元が skill のときに使う。
+disable-model-invocation: true
 ---
 `)).toBe(true)
-    expect(text).not.toContain("disable-model-invocation")
     for (const phrase of [
       "# sdd-cur-complete",
       "## 完了",
