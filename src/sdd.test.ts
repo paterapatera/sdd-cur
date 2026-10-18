@@ -477,7 +477,7 @@ description: このプロジェクトの課題について、着手候補の提�
       "判定が合格なら設計に進むことができる",
       "人が答えるまで",
       "3回目",
-      "grok-4.7[reasoning_effort=high,fast=false]",
+      "grok-4.7-high",
       "全文は書かない",
       "sdd-cur-design-author",
       "sdd-cur-design-reviewer",

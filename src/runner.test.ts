@@ -2364,7 +2364,7 @@ disable-model-invocation: true
       "人に確認しない",
       "全文は書かない",
       "3回目",
-      "grok-4.7[reasoning_effort=high,fast=false]",
+      "grok-4.7-high",
       "実装レビューが不合格のまま10回に達した",
       "レビューの判定がありません",
       "別の agent を起動しない",
