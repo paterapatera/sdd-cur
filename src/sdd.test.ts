@@ -510,6 +510,11 @@ description: このプロジェクトの課題について、着手候補の提�
       "nextAnswer",
       "設計には進まない",
       "質問もしない",
+      "決められない点は、一つである",
+      "決定を二つ以上書かない",
+      "スコアを書かない",
+      "まとめた確認は、投稿しない",
+      "一点ずつ",
     ]
     for (const phrase of required) {
       expect(text).toContain(phrase)
