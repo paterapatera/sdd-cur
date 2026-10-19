@@ -288,6 +288,16 @@ bun src/cli.ts review-next <requirements|reflect-design|quick|implement> <番号
 - 第1引数が `implement` であり、標準入力のほかは決定の形であり、`consecutiveFailures` が 10 と 11 のとき、終了コード 1、標準エラーが `連続不合格の回数が不正です` の一行、標準出力が空であり、成功の JSON が無いことを確かめる。応答が合格でも、実行省略だけでも、同じ失敗であることを確かめる。`consecutiveFailures` が 9 のとき、および第1引数が `implement` でないときは、この文言にしない。[19]
 - 既存の `src/sdd-skill-sdd-cur.test.ts`、`src/runner-skill-sdd-cur-implement.test.ts`、`src/runner-skill-sdd-cur-quick.test.ts` は、既存の文言テストの節で除くと書いた文言だけを配列から除き、新しい `test` は足さない。[13][17]
 
+## 作業の一覧
+
+- 1. `extractFindings` と `reviewNext` を `src/conventions.ts` に足す。`parseReview` の結果は変えない。[3][4][5][6][7][8][9][12][19]
+- 2. `src/91.test.ts` を、この設計のテスト節の期待で書く。[1][2][3][10][17][19]
+- 3. `src/cli.ts` に `review-next` を足す。`printUsage` は変えない。`gh` は呼ばない。[1][2]
+- 4. `docs/policy.md`、`AGENTS.md`、`README.md` の列挙に `review-next` を足す。[16]
+- 5. `skills/sdd-cur/SKILL.md`、`skills/sdd-cur-quick/SKILL.md`、`skills/sdd-cur-implement/SKILL.md` を、この設計のスキルの節に合わせる。作成役、レビュー役、修正役と、この三つ以外のスキルは変えない。既存の三つの文言テストは、配列から除く文言だけを変える。[11][13][14][15][17]
+- 6. この設計の `## 正本への差分` を、同じ作業ツリーの `docs/spec/` へ反映する。要求ファイルと設計ファイルは変えない。
+- 7. `bun test` を実行する。[17]
+
 ## 実装の順序
 
 1. `extractFindings` と `reviewNext` を `src/conventions.ts` に足す。`parseReview` の結果は変えない。
