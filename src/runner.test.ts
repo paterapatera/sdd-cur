@@ -5457,7 +5457,7 @@ disable-model-invocation: true
       "軽微でない",
       "続行",
       "質問する未記載",
-      "grok-4.7-high",
+      "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
       "`confirm` は実行しない",
       "「実装依頼」は付けない",
       "ブランチの先頭を動かす",
