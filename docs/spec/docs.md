@@ -89,3 +89,33 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 もとになった課題は #90 である。
 
 README の SDD スキルの役割に、調べるだけの段を書く。README に、サブエージェント `sdd-cur-explore` を書く。`install` がコピーするサブエージェントの数は、十個である。
+
+## REQ-779
+
+もとになった課題は #94 である。
+
+README は、人が `bun src/cli.ts request <番号>` で作業ブランチを push してから「実装依頼」を付ける、と書く。
+
+## REQ-780
+
+もとになった課題は #94 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、サブコマンド `request` を含む。
+
+## REQ-781
+
+もとになった課題は #94 である。
+
+`AGENTS.md` の「コマンド」の例の行は `bun src/cli.ts request <番号>` である。
+
+## REQ-782
+
+もとになった課題は #94 である。
+
+README の「開発中の起動」の例の行は `bun src/cli.ts request <番号>` である。
+
+## REQ-783
+
+もとになった課題は #94 である。
+
+README のコマンドの表は `request` を含む。

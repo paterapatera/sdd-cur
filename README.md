@@ -27,6 +27,7 @@ bun src/cli.ts reflect <番号> <requirements|design>
 bun src/cli.ts validate <番号>
 bun src/cli.ts complete <番号>
 bun src/cli.ts restore <番号>
+bun src/cli.ts request <番号>
 bun test
 ```
 
@@ -44,6 +45,7 @@ bun test
 | `validate` | 指定課題の要件と設計の形式を検査する |
 | `complete` | 指定課題の完了処理を行う。作業ツリーの `sdd-cur.completion` は読まない。 |
 | `restore` | 指定課題のラベルと状態を着手前に戻す |
+| `request` | 作業ブランチを push し、成功したあと課題に「実装依頼」を付ける |
 | `bun test` | テスト。`gh` は起動しない |
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-quick` である。
@@ -70,7 +72,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 課題を作るのは人である。SDD スキルも課題ランナーも、課題は作らない。課題ランナーは Project A の作業ディレクトリでは動かさない。クローンは複数でよく、別の課題を同時に実装できる。
 
-人が Project A で書いた `docs/specs` をリモートへ push してから、課題に「実装依頼」を付ける。クローンはその push を含むリモートから作業する。
+人は Project A で、`bun src/cli.ts request <番号>` で作業ブランチを push してから「実装依頼」を付ける。クローンはその push を含むリモートから作業する。
 
 ## ラベル
 

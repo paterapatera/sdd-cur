@@ -55,7 +55,9 @@ function assertGitOk(result: GitResult): void {
   }
 }
 
-export function createGit(options: { git: GitRunner; cwd: string }): GitClient {
+export function createGit(
+  options: { git: GitRunner; cwd: string },
+): GitClient & { currentBranch(): Promise<string> } {
   const git = options.git
   const cwd = options.cwd
 
@@ -117,6 +119,16 @@ export function createGit(options: { git: GitRunner; cwd: string }): GitClient {
 
     async headCommit() {
       const result = await run(["rev-parse", "HEAD"])
+      assertGitOk(result)
+      const line = firstNonemptyLine(result.stdout)
+      if (line === null) {
+        reject("git が失敗しました")
+      }
+      return line.trim()
+    },
+
+    async currentBranch() {
+      const result = await run(["rev-parse", "--abbrev-ref", "HEAD"])
       assertGitOk(result)
       const line = firstNonemptyLine(result.stdout)
       if (line === null) {
