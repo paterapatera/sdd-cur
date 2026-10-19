@@ -247,6 +247,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -302,6 +305,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -365,6 +371,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -414,6 +423,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -469,6 +481,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -518,6 +533,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -593,6 +611,10 @@ describe("createRunner", () => {
         async checkoutFetched(branch) {
           log.push(`checkoutFetched:${branch}`)
         },
+        async headCommit() {
+          log.push("headCommit")
+          return "deadbeef"
+        },
         async hasChanges() {
           log.push("hasChanges")
           return true
@@ -624,7 +646,9 @@ describe("createRunner", () => {
       "remoteName",
       "fetch:origin:task-1",
       "checkoutFetched:task-1",
+      "headCommit",
       "implement",
+      "headCommit",
       "hasChanges",
       "commitAll",
       "push",
@@ -673,6 +697,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -728,6 +755,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -785,6 +815,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -806,6 +839,141 @@ describe("createRunner", () => {
 
     await expect(runner.process({ id: "1" })).rejects.toThrow("agent fail")
     expect(commitCalled).toBe(false)
+  })
+
+  test("implement の直後に HEAD が違うとき agent がブランチの先頭を変えました", async () => {
+    let headCalls = 0
+    let commitCalled = false
+    const procedurePath = "/tmp/procedure-head.txt"
+    await writeFile(procedurePath, "手順", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          headCalls += 1
+          return headCalls === 1 ? "before" : "after"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {
+          commitCalled = true
+        },
+        async push() {},
+      },
+      agent: {
+        async implement() {},
+      },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+
+    await expect(runner.process({ id: "1" })).rejects.toThrow(
+      "agent がブランチの先頭を変えました",
+    )
+    expect(commitCalled).toBe(false)
+    await rm(procedurePath, { force: true })
+  })
+
+  test("implement が一度失敗し HEAD が違うとき二度目は呼ばない", async () => {
+    let implementCalls = 0
+    let headCalls = 0
+    const procedurePath = "/tmp/procedure-head-fail.txt"
+    await writeFile(procedurePath, "手順", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          headCalls += 1
+          if (headCalls === 1) {
+            return "before"
+          }
+          if (headCalls === 2) {
+            return "after"
+          }
+          return "before"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async implement() {
+          implementCalls += 1
+          throw new Error("agent fail")
+        },
+      },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+
+    await expect(runner.process({ id: "1" })).rejects.toThrow(
+      "agent がブランチの先頭を変えました",
+    )
+    expect(implementCalls).toBe(1)
+    await rm(procedurePath, { force: true })
   })
 
   test("変更が無いとき 実装の変更がありません", async () => {
@@ -843,6 +1011,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return false
         },
@@ -907,6 +1078,9 @@ describe("createRunner", () => {
         },
         async checkoutFetched() {
           checkoutCalls += 1
+        },
+        async headCommit() {
+          return "deadbeef"
         },
         async hasChanges() {
           return true
@@ -976,6 +1150,9 @@ describe("createRunner", () => {
         async checkoutFetched() {
           checkoutCalls += 1
         },
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1042,6 +1219,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1111,6 +1291,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return false
         },
@@ -1192,6 +1375,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1256,6 +1442,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1325,6 +1514,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1417,6 +1609,10 @@ describe("createRunner", () => {
         async checkoutFetched(branch) {
           log.push(`checkoutFetched:${branch}`)
         },
+        async headCommit() {
+          log.push("headCommit")
+          return "deadbeef"
+        },
         async hasChanges() {
           log.push("hasChanges")
           return true
@@ -1456,8 +1652,12 @@ describe("createRunner", () => {
       "remoteName",
       "fetch:origin:main",
       "checkoutFetched:task-56",
+      "headCommit",
       "quick",
+      "headCommit",
+      "headCommit",
       "implement",
+      "headCommit",
       "hasChanges",
       "commitAll",
       "push",
@@ -1511,6 +1711,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1581,6 +1784,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1643,6 +1849,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1664,6 +1873,160 @@ describe("createRunner", () => {
 
     await runner.process({ id: "1" })
     expect(commentCalled).toBe(false)
+  })
+
+  test("quick 成功後に HEAD が違うとき implement commit push を呼ばず agent がブランチの先頭を変えました", async () => {
+    let implementCalled = false
+    let commitCalled = false
+    let pushCalled = false
+    let headCalls = 0
+    const quickPath = "/tmp/quick-head-success.txt"
+    await writeFile(quickPath, "続行\n", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1, body: "quick 対象", labels: [] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          headCalls += 1
+          return headCalls === 1 ? "before" : "after"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {
+          commitCalled = true
+        },
+        async push() {
+          pushCalled = true
+        },
+      },
+      agent: {
+        async quick() {},
+        async implement() {
+          implementCalled = true
+        },
+        async fix() {},
+      },
+      createProcedureFile: async () => ({
+        path: quickPath,
+        async remove() {},
+      }),
+    })
+
+    await expect(runner.process({ id: "1" })).rejects.toThrow(
+      "agent がブランチの先頭を変えました",
+    )
+    expect(implementCalled).toBe(false)
+    expect(commitCalled).toBe(false)
+    expect(pushCalled).toBe(false)
+    await rm(quickPath, { force: true })
+  })
+
+  test("quick が二度失敗し二度目に HEAD が違うとき quick は2回 implement を呼ばず agent がブランチの先頭を変えました", async () => {
+    let quickCalls = 0
+    let implementCalled = false
+    let headCalls = 0
+    const quickPath = "/tmp/quick-head-fail-twice.txt"
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1, body: "quick 対象", labels: [] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          headCalls += 1
+          if (headCalls === 1 || headCalls === 2) {
+            return "before"
+          }
+          return "after"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async quick() {
+          quickCalls += 1
+          throw new Error("quick fail")
+        },
+        async implement() {
+          implementCalled = true
+        },
+        async fix() {},
+      },
+      createProcedureFile: async () => ({
+        path: quickPath,
+        async remove() {},
+      }),
+    })
+
+    await expect(runner.process({ id: "1" })).rejects.toThrow(
+      "agent がブランチの先頭を変えました",
+    )
+    expect(quickCalls).toBe(2)
+    expect(implementCalled).toBe(false)
   })
 })
 
@@ -1770,6 +2133,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return false
         },
@@ -1833,6 +2199,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -1889,6 +2258,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return false
         },
@@ -1951,6 +2323,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2022,6 +2397,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2101,6 +2479,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2205,6 +2586,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2344,6 +2728,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2413,6 +2800,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2475,6 +2865,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2553,6 +2946,10 @@ describe("createRunner fix", () => {
         async checkoutFetched(branch) {
           log.push(`checkoutFetched:${branch}`)
         },
+        async headCommit() {
+          log.push("headCommit")
+          return "deadbeef"
+        },
         async hasChanges() {
           log.push("hasChanges")
           return true
@@ -2581,7 +2978,9 @@ describe("createRunner fix", () => {
       "remoteName",
       "fetch:origin:task-3",
       "checkoutFetched:task-3",
+      "headCommit",
       "fix",
+      "headCommit",
       "hasChanges",
       "commitAll:fix: 課題 3 の不具合を修正する",
       "push",
@@ -2654,6 +3053,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2724,6 +3126,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2793,6 +3198,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           log.push("hasChanges")
           return false
@@ -2812,6 +3220,91 @@ describe("createRunner fix", () => {
     })
     await runner.process({ id: "4" })
     expect(log).toEqual(["start", "hasChanges", "prComment", "done"])
+    await rm(procedurePath, { force: true })
+  })
+
+  test("fix 成功後に HEAD が違うとき commit push addPullRequestComment を呼ばず範囲外のみの成功にも進まない", async () => {
+    const log: string[] = []
+    let headCalls = 0
+    const procedurePath = "/tmp/fix-head-oos.txt"
+    await writeFile(procedurePath, "設計の範囲外のため直していない", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 4, labels: [LABEL_DONE] })
+        },
+        async editLabels(_n, c) {
+          log.push(c.add?.includes(LABEL_IN_PROGRESS) ? "start" : "done")
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [{ number: 3, url: "", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_b",
+              body: `${pullRequestCommentMarkers.bug}\n外`,
+              author: "",
+              createdAt: "2026-01-01",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          log.push("prComment")
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          headCalls += 1
+          return headCalls === 1 ? "before" : "after"
+        },
+        async hasChanges() {
+          log.push("hasChanges")
+          return false
+        },
+        async commitAll() {
+          log.push("commitAll")
+        },
+        async push() {
+          log.push("push")
+        },
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+
+    await expect(runner.process({ id: "4" })).rejects.toThrow(
+      "agent がブランチの先頭を変えました",
+    )
+    expect(log).toEqual(["start"])
     await rm(procedurePath, { force: true })
   })
 
@@ -2870,6 +3363,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return false
         },
@@ -2940,6 +3436,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -3013,6 +3512,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -3058,6 +3560,7 @@ disable-model-invocation: true
       "grok-4.7-high",
       "`confirm` は実行しない",
       "「実装依頼」は付けない",
+      "ブランチの先頭を動かす",
     ]) {
       expect(text).toContain(phrase)
     }
@@ -3150,6 +3653,7 @@ disable-model-invocation: true
       "書かれた順にすべて実行する",
       "残りの節を飛ばさない",
       "突き合わせる対象が無い",
+      "ブランチの先頭を動かす",
     ]) {
       expect(text).toContain(phrase)
     }
@@ -3204,6 +3708,7 @@ disable-model-invocation: true
       "コメントを投稿しない",
       "受け入れ手順を書き直さない",
       "`gh` を直接起動しない",
+      "ブランチの先頭を動かす",
     ]) {
       expect(text).toContain(phrase)
     }

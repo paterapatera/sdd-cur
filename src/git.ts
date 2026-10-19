@@ -12,6 +12,7 @@ export type GitClient = {
   remoteName(): Promise<string>
   fetch(remote: string, branch: string): Promise<void>
   checkoutFetched(branch: string): Promise<void>
+  headCommit(): Promise<string>
   hasChanges(): Promise<boolean>
   commitAll(message: string): Promise<void>
   push(remote: string, branch: string): Promise<void>
@@ -83,6 +84,16 @@ export function createGit(options: { git: GitRunner; cwd: string }): GitClient {
     async checkoutFetched(branch) {
       const result = await run(["checkout", "-B", branch, "FETCH_HEAD"])
       assertGitOk(result)
+    },
+
+    async headCommit() {
+      const result = await run(["rev-parse", "HEAD"])
+      assertGitOk(result)
+      const line = firstNonemptyLine(result.stdout)
+      if (line === null) {
+        reject("git が失敗しました")
+      }
+      return line.trim()
     },
 
     async hasChanges() {

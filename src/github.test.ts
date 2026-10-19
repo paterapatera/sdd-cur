@@ -272,6 +272,14 @@ describe("createGitHub", () => {
     expect(calls.length).toBe(0)
   })
 
+  test("closeIssue は issue close と番号だけ", async () => {
+    const { runner, calls } = recordingRunner(() => okText(""))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await github.closeIssue(42)
+    expect(calls[0]?.args).toEqual(["issue", "close", "42", "--repo", "o/r"])
+    expect(calls[0]?.args).not.toContain("--state")
+  })
+
   test("listPullRequestComments", async () => {
     const { runner, calls } = recordingRunner(() =>
       okJson({

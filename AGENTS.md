@@ -9,13 +9,13 @@
 
 設計の受け入れ条件、決定、範囲の中で実装する。設計に書いた「範囲外」は作らない。設計が無い挙動は足さない。
 
-課題を作るのは人である。SDD スキルも課題ランナーも、課題を作らない。課題は閉じない。お客さまの確認が取れてから、人が閉じる。
+課題を作るのは人である。SDD スキルも課題ランナーも、課題を作らない。人が閉じるを選んだときに SDD スキルが閉じる場合を除き、課題は閉じない。課題ランナーは課題を閉じない。お客さまの確認が取れてから、人が閉じる。
 
 ## 構成
 
 | 場所 | 役割 |
 |---|---|
-| `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`confirm`、`reflect`、`complete` |
+| `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`confirm`、`close`、`reflect`、`complete` |
 | `src/install.ts` | `skills/<名前>/` を `~/.cursor/skills` または `<project>/.cursor/skills` へ、`agents/<名前>.md` を `~/.cursor/agents` または `<project>/.cursor/agents` へコピーする |
 | `src/run.ts` | 停止まで `poll` と `process` を繰り返す。処理のあいだは次の `poll` を呼ばない |
 | `src/runner.ts` | `poll` と `process`。`run` が「実装依頼」から「実装完了」までと、「動作確認OK」の完了を、このファイルを読まずに行う |
@@ -31,7 +31,7 @@
 
 GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起動し、認証は `gh` のログインに任せる。このモジュールはトークンも環境変数も読まない。
 
-ラベルの変更は `issue edit` の `--add-label` と `--remove-label` だけである。`issue close` と `--state` は付けない。
+ラベルの変更は `issue edit` の `--add-label` と `--remove-label` だけである。`issue close` は、人が閉じるを選んだときに SDD スキルが課題を閉じる場合だけ付ける。課題ランナーは付けない。`--state` は付けない。
 
 ## 文言
 
@@ -57,6 +57,7 @@ bun src/cli.ts labels
 bun src/cli.ts candidates
 bun src/cli.ts show <番号>
 bun src/cli.ts confirm <番号>
+bun src/cli.ts close <番号>
 bun src/cli.ts reflect <番号> <requirements|design>
 bun src/cli.ts complete <番号>
 bun test
