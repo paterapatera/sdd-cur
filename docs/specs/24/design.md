@@ -197,7 +197,7 @@ export function selectCompletionIssue(
 
 `src/sdd.test.ts` が課題を組み立てる箇所は、`assignees` を空の配列にする。探索の期待は変えない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `Issue.assignees`、`viewerLogin`、`listIssues` の `assignee` を `src/github.ts` に足し、引数と応答の試験を通す。
 2. `selectImplementationIssue` と `selectCompletionIssue` に login を足し、アサインで除く試験を通す。

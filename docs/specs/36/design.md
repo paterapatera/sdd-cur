@@ -140,7 +140,7 @@
 
 `src/install.test.ts`、`src/runner.test.ts`、設計用四つと実装用四つの `agents.test.ts` の期待は、本課題で変えない要求以外は残す。
 
-## 実装の順序
+## 作業の一覧
 
 1. `agents/sdd-cur-req-reviewer.md` を、この設計のサブエージェントに合わせる。`src/agents.test.ts` を通す。
 2. `skills/sdd-cur/SKILL.md` の「確認」を合わせる。`src/sdd.test.ts` の必須文言を足す。

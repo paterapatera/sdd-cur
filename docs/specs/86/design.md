@@ -297,7 +297,7 @@ export function validateCanonicalDelta(
 
 `src/runner.test.ts` の `skills/sdd-cur-implement/SKILL.md` の既存の文言は残す。`書いてよいのは、作業ツリーの実装だけである` は残る。足す文言は `docs/spec/` と `## 正本への差分` である。
 
-## 実装の順序
+## 作業の一覧
 
 1. `canonicalIdsFromMarkdown`、`readCanonicalIds`、`validateCanonicalDelta` を `src/conventions.ts` に置き、このファイルのテストを通す。
 2. `docs/conventions.md` に「仕様の正本」の節を、指定の位置へ足す。既存の節の字面は変えない。

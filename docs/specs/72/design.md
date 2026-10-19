@@ -152,7 +152,7 @@ disable-model-invocation: true
 
 `skills/sdd-cur/SKILL.md`、`skills/sdd-cur-implement/SKILL.md`、`skills/sdd-cur-quick/SKILL.md`、`skills/sdd-cur-fix/SKILL.md`、`skills/sdd-cur-complete/SKILL.md` の既存の試験は変えない。`src/cli.test.ts` のサブコマンドの期待は変えない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `skills/sdd-cur-create-issue/SKILL.md` を、上のフロントマターと手順で作る。
 2. `src/create-issue.test.ts` を、上の期待に合わせる。

@@ -203,7 +203,7 @@
 - `docs/spec/` は、`使用するサブエージェントは、下の表の四つである` を含まない。`既定の `poll` は常に `null` を返す` を含まない。
 - `docs/specs/37/design.md` は、`` `docs/specs/` にある既存の `requirements.md` と `design.md` を読む `` を含む。`docs/specs/20/requirements.md` は、`下の表の四つ` を含む。
 
-## 実装の順序
+## 作業の一覧
 
 1. 「移行」と「この課題の要求」のとおりに、`docs/spec/<領域>.md` を書く。`docs/specs/` は変えない。`docs/spec/spec.md` は変えない。無いときは作らない。
 2. 二つのレビュー役の本文を、「レビュー役」のとおりに差し替える。frontmatter は変えない。

@@ -335,7 +335,7 @@ sdd-cur complete <番号>
 - `agents/sdd-cur-req-author.md`、`agents/sdd-cur-design-author.md`、`agents/sdd-cur-req-reviewer.md`、`agents/sdd-cur-design-reviewer.md`、`agents/sdd-cur-req-fixer.md`、`agents/sdd-cur-design-fixer.md` に、`bun src/cli.ts validate` は無い。
 - `skills/sdd-cur-implement/SKILL.md`、`skills/sdd-cur-fix/SKILL.md`、`skills/sdd-cur-complete/SKILL.md`、`skills/sdd-cur-create-issue/SKILL.md` に、`bun src/cli.ts validate` は無い。
 
-## 実装の順序
+## 作業の一覧
 
 1. `formMarker`、`formMarkerLine`、`ambiguousWords`、`hasFormMarker`、`validateSpecForm` を `src/conventions.ts` に置き、関数テストを通す。
 2. `docs/conventions.md` の末尾に、印、項目の形、設計のテストの参照、反映済みは既存の形であること、曖昧な語の一覧を書く。既存の節の字面は変えない。

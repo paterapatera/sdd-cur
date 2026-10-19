@@ -94,7 +94,7 @@
 
 `skills/sdd-cur-implement/SKILL.md` の必須文言は変えない。`src/runner.test.ts` は変えない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `skills/sdd-cur/SKILL.md` の「要件」と「設計」に、上の比べ方と止まりを書く。判定の読み方、印のやり直し、`確認: あり`、確認行が無いときの止まり、モデル、連続不合格は残す。
 2. `src/sdd.test.ts` の必須文言を、上のテストに合わせる。

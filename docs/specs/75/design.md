@@ -128,7 +128,7 @@ sdd-cur-implement-fixer.md
 - インストールしたパッケージの `skills/sdd-cur/` に、リポジトリのそのディレクトリには無いファイルを一つ書く。中身は空でない。インストールしたパッケージの `agents/sdd-cur-req-author.md` を、リポジトリの同名ファイルと違う内容に置き換える。そのあと、同じ bin の `install <dest>` を、別の一時ディレクトリ `<dest>` に対して実行する。終了コードは 0 である。`<dest>/.cursor/skills/sdd-cur/` に、足したファイルが同じ内容である。`<dest>/.cursor/agents/` の九つのファイルは、置き換え後のインストール先パッケージの `agents/` の同名ファイルと一致する。`sdd-cur-req-author.md` は、リポジトリのファイルとは一致しない。
 - リポジトリで `bun src/cli.ts --help` は終了コード 0 であり、標準エラーは使い方の九行である。
 
-## 実装の順序
+## 作業の一覧
 
 1. `package.json` を、上のオブジェクトにする。
 2. `src/package.test.ts` を書き、`bun test` を通す。

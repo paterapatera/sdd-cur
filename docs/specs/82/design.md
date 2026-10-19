@@ -181,7 +181,7 @@ repos/<owner>/<repo>/issues/<番号>/events
 
 `src/package.test.ts` の使い方の期待も、上の十一行と一致する。`--help` と、`run --interval-min 0` の使い方の部分は、この十一行である。
 
-## 実装の順序
+## 作業の一覧
 
 1. `runLoop` に `commentFailure` を足す。`process` の失敗では、標準エラーの一行と同じ文字列で課題コメントを書き、終了コード 1 で止まる。`poll` の失敗ではコメントを書かない。
 2. `listIssueEvents` と `preStartLabel` と `restoreIssue` を置き、注入した呼び出しで戻し先を確かめる。

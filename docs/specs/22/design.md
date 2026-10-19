@@ -198,7 +198,7 @@ flowchart TD
 
 `src/sdd.test.ts` の、`skills/sdd-cur/SKILL.md` の必須文言の確認は残す。同ファイルの install は、`subagentFileNames` の全ファイルをパッケージと見比べる。リストが増えたあとでも成功する。
 
-## 実装の順序
+## 作業の一覧
 
 1. `agents/` に実装用の四つを書き、フロントマターと判定の文言をテストで確かめる。要求用の四つと設計用の四つは変えない。
 2. `src/install.ts` の `subagentFileNames` の末尾に、実装用の四つを足す。十二のコピーと、実装用の一つが無いときの失敗を、関数テストで確かめる。

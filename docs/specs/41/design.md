@@ -253,7 +253,7 @@ description: Project A の Cursor で、人が指定した課題の完了処理�
 
 `completeIssue`、ランナーの完了、`complete` サブコマンドの既存のテストは、期待を変えない。
 
-## 実装の順序
+## 作業の一覧
 
 1. 対象の六つのサブエージェントへ、共通の文言と、それぞれの書き込み先の一文を足す。`src/agents.test.ts` の期待を足す。frontmatter は変えない。
 2. `skills/sdd-cur/SKILL.md` の冒頭と禁止へ、この設計の文を足す。`src/sdd.test.ts` の必須文言を足す。
