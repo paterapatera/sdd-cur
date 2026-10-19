@@ -8,11 +8,13 @@ import {
 } from "./conventions.ts"
 import type { Issue } from "./github.ts"
 import { workflowLabels } from "./labels.ts"
+import { selectCompletionIssue } from "./complete.ts"
 import {
   acceptanceComment,
   classifyFixPullRequests,
   createRunner,
   implementationBranch,
+  issueHasFixLabels,
   pullRequestBody,
   selectFixIssues,
   selectImplementationIssue,
@@ -32,6 +34,7 @@ const LABEL_IN_PROGRESS = workflowLabels[1].name
 const LABEL_DONE = workflowLabels[2].name
 const LABEL_VERIFIED = workflowLabels[3].name
 const LABEL_MERGED = workflowLabels[4].name
+const LABEL_CONFLICT = workflowLabels[5].name
 const VIEWER_LOGIN = "octocat"
 
 function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
@@ -89,12 +92,43 @@ describe("selectImplementationIssue", () => {
     ]
     expect(selectImplementationIssue(issues, VIEWER_LOGIN)?.number).toBe(3)
   })
+
+  test("コンフリクトがある課題を返さない", () => {
+    const issues = [
+      issue({ number: 1, labels: [LABEL_REQUEST, LABEL_CONFLICT] }),
+      issue({ number: 2 }),
+    ]
+    expect(selectImplementationIssue(issues, VIEWER_LOGIN)?.number).toBe(2)
+  })
 })
 
 describe("implementationBranch", () => {
   test("十進の課題番号を task- と連結する", () => {
     expect(implementationBranch(1)).toBe("task-1")
     expect(implementationBranch(17)).toBe("task-17")
+  })
+})
+
+describe("issueHasFixLabels", () => {
+  test("コンフリクトがある課題は対象にしない", () => {
+    expect(
+      issueHasFixLabels(
+        issue({ number: 1, labels: [LABEL_DONE, LABEL_CONFLICT] }),
+      ),
+    ).toBe(false)
+    expect(
+      issueHasFixLabels(issue({ number: 1, labels: [LABEL_DONE] })),
+    ).toBe(true)
+  })
+})
+
+describe("selectCompletionIssue", () => {
+  test("コンフリクトがある課題を返さない", () => {
+    const issues = [
+      issue({ number: 1, labels: [LABEL_VERIFIED, LABEL_CONFLICT] }),
+      issue({ number: 2, labels: [LABEL_VERIFIED] }),
+    ]
+    expect(selectCompletionIssue(issues, VIEWER_LOGIN)?.number).toBe(2)
   })
 })
 
@@ -247,6 +281,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -305,6 +342,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -371,6 +411,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -423,6 +466,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -481,6 +527,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -533,6 +582,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -611,6 +663,10 @@ describe("createRunner", () => {
         async checkoutFetched(branch) {
           log.push(`checkoutFetched:${branch}`)
         },
+        async mergeFetched() {
+          log.push("mergeFetched")
+          return { status: "merged" as const }
+        },
         async headCommit() {
           log.push("headCommit")
           return "deadbeef"
@@ -646,6 +702,8 @@ describe("createRunner", () => {
       "remoteName",
       "fetch:origin:task-1",
       "checkoutFetched:task-1",
+      "fetch:origin:main",
+      "mergeFetched",
       "headCommit",
       "implement",
       "headCommit",
@@ -697,6 +755,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -755,6 +816,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -815,6 +879,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -877,6 +944,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           headCalls += 1
           return headCalls === 1 ? "before" : "after"
@@ -941,6 +1011,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           headCalls += 1
           if (headCalls === 1) {
@@ -1011,6 +1084,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1079,6 +1155,9 @@ describe("createRunner", () => {
         async checkoutFetched() {
           checkoutCalls += 1
         },
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1102,7 +1181,7 @@ describe("createRunner", () => {
 
     await runner.process({ id: "1" })
     expect(checkoutCalls).toBe(1)
-    expect(fetchCalls).toBe(2)
+    expect(fetchCalls).toBe(3)
     expect(implementCalls).toBe(1)
     await rm(procedurePath, { force: true })
   })
@@ -1149,6 +1228,9 @@ describe("createRunner", () => {
         },
         async checkoutFetched() {
           checkoutCalls += 1
+        },
+        async mergeFetched() {
+          return { status: "merged" as const }
         },
         async headCommit() {
           return "deadbeef"
@@ -1219,6 +1301,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1291,6 +1376,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1375,6 +1463,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1442,6 +1533,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1514,6 +1608,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1608,6 +1705,10 @@ describe("createRunner", () => {
         },
         async checkoutFetched(branch) {
           log.push(`checkoutFetched:${branch}`)
+        },
+        async mergeFetched() {
+          log.push("mergeFetched")
+          return { status: "merged" as const }
         },
         async headCommit() {
           log.push("headCommit")
@@ -1711,6 +1812,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1784,6 +1888,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1849,6 +1956,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1917,6 +2027,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           headCalls += 1
           return headCalls === 1 ? "before" : "after"
@@ -1993,6 +2106,9 @@ describe("createRunner", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           headCalls += 1
           if (headCalls === 1 || headCalls === 2) {
@@ -2027,6 +2143,139 @@ describe("createRunner", () => {
     )
     expect(quickCalls).toBe(2)
     expect(implementCalled).toBe(false)
+  })
+
+  test("実装の mergeFetched が conflict のとき implement を呼ばない", async () => {
+    let implementCalled = false
+    let mergeFetchedCalls = 0
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async addPullRequestComment() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async mergeFetched() {
+          mergeFetchedCalls += 1
+          return { status: "conflict", files: ["x.ts"] }
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async implement() {
+          implementCalled = true
+        },
+      },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "1" })
+    expect(mergeFetchedCalls).toBe(1)
+    expect(implementCalled).toBe(false)
+  })
+
+  test("quick の process は mergeFetched を呼ばない", async () => {
+    let mergeFetchedCalls = 0
+    const quickPath = "/tmp/quick-merge.txt"
+    await writeFile(quickPath, "軽微でない\n詳細", "utf8")
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 9, body: "quick 対象", labels: [] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async mergeFetched() {
+          mergeFetchedCalls += 1
+          return { status: "merged" as const }
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async quick() {},
+      },
+      createProcedureFile: async () => ({
+        path: quickPath,
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "9" })
+    expect(mergeFetchedCalls).toBe(0)
+    await rm(quickPath, { force: true })
   })
 })
 
@@ -2078,6 +2327,12 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return true
         },
@@ -2133,6 +2388,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2199,6 +2457,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2258,6 +2519,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2323,6 +2587,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2377,6 +2644,7 @@ describe("createRunner completion", () => {
           calls.push("addComment")
           return { url: "https://c" }
         },
+        async addPullRequestComment() {},
         async listPullRequests() {
           return [
             {
@@ -2397,6 +2665,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2419,6 +2690,7 @@ describe("createRunner completion", () => {
     const item = await runner.poll()
     await runner.process(item!)
     expect(calls).toEqual([
+      "push",
       "squash:2:【課題 5】題",
       `edit:5:${LABEL_VERIFIED}:${LABEL_MERGED}`,
     ])
@@ -2479,6 +2751,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2563,6 +2838,7 @@ describe("createRunner completion", () => {
         calls.push("addComment")
         return { url: "https://c" }
       },
+      async addPullRequestComment() {},
       async listPullRequests() {
         return [
           {
@@ -2586,6 +2862,9 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2608,6 +2887,7 @@ describe("createRunner completion", () => {
     const item = await runner.poll()
     await runner.process(item!)
     expect(calls).toEqual([
+      "push",
       "squash:4:【課題 8】題",
       `edit:8:${LABEL_VERIFIED}:${LABEL_MERGED}`,
     ])
@@ -2665,6 +2945,12 @@ describe("createRunner completion", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
         async hasChanges() {
           return false
         },
@@ -2728,6 +3014,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2800,6 +3089,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2865,6 +3157,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -2946,6 +3241,10 @@ describe("createRunner fix", () => {
         async checkoutFetched(branch) {
           log.push(`checkoutFetched:${branch}`)
         },
+        async mergeFetched() {
+          log.push("mergeFetched")
+          return { status: "merged" as const }
+        },
         async headCommit() {
           log.push("headCommit")
           return "deadbeef"
@@ -2978,6 +3277,8 @@ describe("createRunner fix", () => {
       "remoteName",
       "fetch:origin:task-3",
       "checkoutFetched:task-3",
+      "fetch:origin:main",
+      "mergeFetched",
       "headCommit",
       "fix",
       "headCommit",
@@ -3053,6 +3354,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -3126,6 +3430,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -3198,6 +3505,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -3279,6 +3589,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           headCalls += 1
           return headCalls === 1 ? "before" : "after"
@@ -3363,6 +3676,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -3436,6 +3752,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -3512,6 +3831,9 @@ describe("createRunner fix", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
         async headCommit() {
           return "deadbeef"
         },

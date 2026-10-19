@@ -383,7 +383,12 @@ async function cmdComplete(args: string[]): Promise<number> {
   try {
     const repo = await resolveRepo(defaultGhRunner, cwd)
     const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
-    await completeIssue(github, issueNumber)
+    const git = createGit({ git: defaultGitRunner, cwd })
+    const result = await completeIssue(github, git, issueNumber)
+    if (result === "conflict") {
+      console.error("取り込みがコンフリクトしました")
+      return 1
+    }
     console.log(`完了しました: ${issueNumber}`)
     return 0
   } catch (error) {

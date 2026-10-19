@@ -63,6 +63,11 @@ describe("workflowLabels", () => {
         description: "スカッシュマージと同時に付ける",
         color: "5319E7",
       },
+      {
+        name: "コンフリクト",
+        description: "取り込みがコンフリクトした",
+        color: "B60205",
+      },
     ])
   })
 })
@@ -78,6 +83,7 @@ describe("ensureWorkflowLabels", () => {
       { name: "実装完了", status: "existing" },
       { name: "動作確認OK", status: "existing" },
       { name: "マージ済み", status: "existing" },
+      { name: "コンフリクト", status: "existing" },
     ])
     const creates = calls.filter((call) => call.args.includes("--method"))
     expect(creates.length).toBe(1)

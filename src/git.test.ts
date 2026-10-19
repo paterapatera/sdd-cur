@@ -92,4 +92,65 @@ describe("createGit", () => {
     await expect(git.commitAll("msg")).rejects.toThrow("add failed")
     expect(calls).toHaveLength(1)
   })
+
+  test("mergeFetched 成功は merge のみ", async () => {
+    const { runner, calls } = recordingRunner(() => ok())
+    const git = createGit({ git: runner, cwd: "/proj" })
+    await expect(git.mergeFetched()).resolves.toEqual({ status: "merged" })
+    expect(calls).toEqual([{ args: ["merge", "FETCH_HEAD", "--no-edit"], cwd: "/proj" }])
+  })
+
+  test("mergeFetched コンフリクトは abort して files を返す", async () => {
+    let n = 0
+    const { runner, calls } = recordingRunner((call) => {
+      if (call.args[0] === "merge" && call.args[1] === "FETCH_HEAD") {
+        return fail("conflict")
+      }
+      if (call.args[0] === "diff") {
+        return ok("b\na\n")
+      }
+      return ok()
+    })
+    const git = createGit({ git: runner, cwd: "/proj" })
+    await expect(git.mergeFetched()).resolves.toEqual({
+      status: "conflict",
+      files: ["a", "b"],
+    })
+    expect(calls.map((c) => c.args)).toEqual([
+      ["merge", "FETCH_HEAD", "--no-edit"],
+      ["diff", "--name-only", "--diff-filter=U"],
+      ["merge", "--abort"],
+    ])
+  })
+
+  test("mergeFetched 未マージパスが空のとき abort しない", async () => {
+    const { runner, calls } = recordingRunner((call) => {
+      if (call.args[0] === "merge" && call.args[1] === "FETCH_HEAD") {
+        return fail("merge err")
+      }
+      return ok("")
+    })
+    const git = createGit({ git: runner, cwd: "/proj" })
+    await expect(git.mergeFetched()).rejects.toThrow("merge err")
+    expect(calls.some((c) => c.args[0] === "merge" && c.args[1] === "--abort")).toBe(
+      false,
+    )
+  })
+
+  test("mergeFetched abort 失敗", async () => {
+    const { runner } = recordingRunner((call) => {
+      if (call.args[0] === "merge" && call.args[1] === "FETCH_HEAD") {
+        return fail("conflict")
+      }
+      if (call.args[0] === "diff") {
+        return ok("f\n")
+      }
+      if (call.args[0] === "merge" && call.args[1] === "--abort") {
+        return fail("abort err")
+      }
+      return ok()
+    })
+    const git = createGit({ git: runner, cwd: "/proj" })
+    await expect(git.mergeFetched()).rejects.toThrow("abort err")
+  })
 })
