@@ -116,6 +116,8 @@ const expected = [
       "既存ファイルで `#` の行と `##` 節が同じ起動で両方変わったときも、その一行を返す。",
       "人が閉じるを選んだときに課題を閉じるのは SDD スキルである",
       "このサブエージェントは課題を閉じない",
+      "## 正本への差分",
+      "正本のファイルは書かない",
     ],
   },
   {
@@ -142,6 +144,8 @@ const expected = [
       "突き合わせ",
       "人が閉じるを選んだときに課題を閉じるのは SDD スキルである",
       "このサブエージェントは課題を閉じない",
+      "## 正本への差分",
+      "マージ後の正本が差分どおりかは見ない",
     ],
   },
   {
@@ -169,6 +173,8 @@ const expected = [
       "reset",
       "checkout",
       "rebase",
+      "docs/spec/",
+      "## 正本への差分",
     ],
   },
   {
@@ -199,6 +205,8 @@ const expected = [
       "reset",
       "checkout",
       "rebase",
+      "docs/spec/",
+      "## 正本への差分",
     ],
   },
   {
@@ -215,6 +223,7 @@ const expected = [
       "reset",
       "checkout",
       "rebase",
+      "docs/spec/",
     ],
   },
 ] as const
@@ -284,4 +293,18 @@ describe("agents/*.md", () => {
       expect(text).not.toContain("書いたファイルの全文")
     })
   }
+
+  test("作成・レビュー・修正役に validate は無い", async () => {
+    for (const file of [
+      "sdd-cur-req-author.md",
+      "sdd-cur-design-author.md",
+      "sdd-cur-req-reviewer.md",
+      "sdd-cur-design-reviewer.md",
+      "sdd-cur-req-fixer.md",
+      "sdd-cur-design-fixer.md",
+    ]) {
+      const text = await readFile(path.join(agentsDir, file), "utf8")
+      expect(text).not.toContain("bun src/cli.ts validate")
+    }
+  })
 })

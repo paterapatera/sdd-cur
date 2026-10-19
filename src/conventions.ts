@@ -1,3 +1,5 @@
+import { readdir, readFile } from "node:fs/promises"
+import { join } from "node:path"
 import type { IssueComment } from "./github.ts"
 
 export const commentMarkers = {
@@ -23,6 +25,16 @@ export type RelatedComments = {
 export const reflectedMarker = "sdd-cur:reflected"
 export const reflectedOpenLine = `<!-- ${reflectedMarker}`
 export const reflectedCloseLine = "-->"
+
+const CANONICAL_READ_FAILED = "正本を読めません"
+const DELTA_SECTION_HEADING = "## 正本への差分"
+const CANONICAL_REQ_HEADING = /^## REQ-([1-9][0-9]*)$/
+const DELTA_ADD_HEADING =
+  /^### 追加 ([a-z][a-z0-9]*(?:-[a-z0-9]+)*) (REQ-[1-9][0-9]*)$/
+const DELTA_CHANGE_HEADING =
+  /^### 変更 ([a-z][a-z0-9]*(?:-[a-z0-9]+)*) (REQ-[1-9][0-9]*)$/
+const DELTA_REMOVE_HEADING =
+  /^### 削除 ([a-z][a-z0-9]*(?:-[a-z0-9]+)*) (REQ-[1-9][0-9]*)$/
 
 const INVALID_NUMBER = "番号が不正です"
 const INVALID_REFLECT_ID = "反映するコメントが不正です"
@@ -470,6 +482,296 @@ export function selectUnprocessedBugs(
   return result
 }
 
+export const formMarker = "sdd-cur:form"
+export const formMarkerLine = `<!-- ${formMarker} -->`
+
+export const ambiguousWords: readonly string[] = [
+  "適切に",
+  "必要に応じて",
+  "適宜",
+  "可能な限り",
+  "十分に",
+  "なるべく",
+  "できるだけ",
+  "高速に",
+  "使いやすく",
+  "柔軟に",
+  "基本的に",
+  "原則として",
+  "一般的に",
+  "望ましくは",
+  "できれば",
+  "TBD",
+  "TODO",
+  "FIXME",
+]
+
+export function hasFormMarker(markdown: string): boolean {
+  const lines = normalizeNewlines(markdown).split("\n")
+  const nonempty: string[] = []
+  for (const line of lines) {
+    if (line.trim().length > 0) {
+      nonempty.push(line)
+    }
+  }
+  if (nonempty.length < 2) {
+    return false
+  }
+  return nonempty[1] === formMarkerLine
+}
+
+const REQUIRED_SECTIONS: Record<
+  "requirements" | "design",
+  readonly string[]
+> = {
+  requirements: ["受け入れ条件"],
+  design: ["受け入れ条件", "範囲外", "決定", "テスト"],
+}
+
+function hasExactSectionHeading(markdown: string, name: string): boolean {
+  const heading = `## ${name}`
+  for (const line of normalizeNewlines(markdown).split("\n")) {
+    if (line === heading) {
+      return true
+    }
+  }
+  return false
+}
+
+function firstSectionBody(markdown: string, name: string): string | null {
+  const heading = `## ${name}`
+  const lines = normalizeNewlines(markdown).split("\n")
+  let start = -1
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i] === heading) {
+      start = i + 1
+      break
+    }
+  }
+  if (start < 0) {
+    return null
+  }
+  const bodyLines: string[] = []
+  for (let i = start; i < lines.length; i += 1) {
+    if (lines[i].startsWith("## ")) {
+      break
+    }
+    bodyLines.push(lines[i])
+  }
+  return bodyLines.join("\n")
+}
+
+type ParsedAcceptanceItem = {
+  number: number
+  line: string
+}
+
+function isNonEmptyTrimmed(value: string): boolean {
+  return value.length > 0 && value === value.trim()
+}
+
+function parseAcceptanceLine(line: string): ParsedAcceptanceItem | null {
+  if (!line.startsWith("- ")) {
+    return null
+  }
+  const condLabel = ". 条件: "
+  const condIdx = line.indexOf(condLabel)
+  if (condIdx < 2) {
+    return null
+  }
+  const numStr = line.slice(2, condIdx)
+  if (!/^[1-9]\d*$/.test(numStr)) {
+    return null
+  }
+  const number = Number(numStr)
+  if (!Number.isSafeInteger(number) || number < 1) {
+    return null
+  }
+  const subjectLabel = " 主体: "
+  const resultLabel = " 結果: "
+  const afterCond = line.slice(condIdx + condLabel.length)
+  const subjectIdx = afterCond.indexOf(subjectLabel)
+  if (subjectIdx < 0) {
+    return null
+  }
+  const condition = afterCond.slice(0, subjectIdx)
+  const afterSubject = afterCond.slice(subjectIdx + subjectLabel.length)
+  const resultIdx = afterSubject.indexOf(resultLabel)
+  if (resultIdx < 0) {
+    return null
+  }
+  const subject = afterSubject.slice(0, resultIdx)
+  const result = afterSubject.slice(resultIdx + resultLabel.length)
+  if (
+    !isNonEmptyTrimmed(condition) ||
+    !isNonEmptyTrimmed(subject) ||
+    !isNonEmptyTrimmed(result)
+  ) {
+    return null
+  }
+  if (condition.includes(subjectLabel) || subject.includes(resultLabel)) {
+    return null
+  }
+  return { number, line }
+}
+
+function collectAcceptanceViolations(body: string | null): {
+  shapeViolations: string[]
+  numbers: number[]
+} {
+  if (body === null) {
+    return { shapeViolations: [], numbers: [] }
+  }
+  const shapeViolations: string[] = []
+  const numbers: number[] = []
+  for (const line of body.split("\n")) {
+    if (line.trim().length === 0) {
+      continue
+    }
+    const parsed = parseAcceptanceLine(line)
+    if (parsed === null) {
+      shapeViolations.push(`受け入れ条件の形が不正です: ${line}`)
+      continue
+    }
+    numbers.push(parsed.number)
+  }
+  return { shapeViolations, numbers }
+}
+
+function duplicateNumberViolations(numbers: readonly number[]): string[] {
+  const counts = new Map<number, number>()
+  for (const n of numbers) {
+    counts.set(n, (counts.get(n) ?? 0) + 1)
+  }
+  const dups = [...counts.entries()]
+    .filter(([, c]) => c > 1)
+    .map(([n]) => n)
+    .sort((a, b) => a - b)
+  return dups.map((n) => `受け入れ条件の番号が重複しています: ${n}`)
+}
+
+function extractTestRefs(line: string): number[] {
+  const refs: number[] = []
+  const re = /\[([1-9]\d*)\]/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(line)) !== null) {
+    const n = Number(m[1])
+    if (Number.isSafeInteger(n) && n >= 1 && String(n) === m[1]) {
+      refs.push(n)
+    }
+  }
+  return refs
+}
+
+function collectTestReferenceViolations(
+  markdown: string,
+  acceptanceNumbers: readonly number[],
+): string[] {
+  const violations: string[] = []
+  const acceptanceBody = firstSectionBody(markdown, "受け入れ条件")
+  const testBody = firstSectionBody(markdown, "テスト")
+  if (acceptanceBody === null || testBody === null) {
+    return violations
+  }
+  const acceptanceSet = new Set(acceptanceNumbers)
+  const referenced = new Set<number>()
+  const seenBadRef = new Set<number>()
+
+  for (const line of testBody.split("\n")) {
+    if (!line.startsWith("- ")) {
+      continue
+    }
+    const refs = extractTestRefs(line)
+    if (refs.length === 0) {
+      violations.push(`テストが受け入れ条件を参照していません: ${line}`)
+      continue
+    }
+    for (const ref of refs) {
+      if (!acceptanceSet.has(ref)) {
+        if (!seenBadRef.has(ref)) {
+          seenBadRef.add(ref)
+          violations.push(
+            `テストが参照する受け入れ条件がありません: ${ref}`,
+          )
+        }
+      } else {
+        referenced.add(ref)
+      }
+    }
+  }
+
+  const unreferenced = [...acceptanceSet]
+    .filter((n) => !referenced.has(n))
+    .sort((a, b) => a - b)
+  for (const n of unreferenced) {
+    violations.push(`受け入れ条件がテストから参照されていません: ${n}`)
+  }
+  return violations
+}
+
+function collectReflectedViolation(markdown: string): string | null {
+  try {
+    readReflectedIds(markdown)
+    return null
+  } catch (error) {
+    if (error instanceof Error) {
+      return error.message
+    }
+    return BAD_REFLECTED
+  }
+}
+
+function collectAmbiguousWordViolations(markdown: string): string[] {
+  const normalized = normalizeNewlines(markdown)
+  const violations: string[] = []
+  for (const word of ambiguousWords) {
+    if (normalized.includes(word)) {
+      violations.push(`曖昧な語があります: ${word}`)
+    }
+  }
+  return violations
+}
+
+export function validateSpecForm(
+  kind: "requirements" | "design",
+  markdown: string,
+): string[] {
+  if (!hasFormMarker(markdown)) {
+    return []
+  }
+
+  const violations: string[] = []
+
+  for (const section of REQUIRED_SECTIONS[kind]) {
+    if (!hasExactSectionHeading(markdown, section)) {
+      violations.push(`必須の節がありません: ${section}`)
+    }
+  }
+
+  const acceptanceBody = firstSectionBody(markdown, "受け入れ条件")
+  const { shapeViolations, numbers } =
+    collectAcceptanceViolations(acceptanceBody)
+  violations.push(...shapeViolations)
+  violations.push(...duplicateNumberViolations(numbers))
+
+  if (
+    kind === "design" &&
+    acceptanceBody !== null &&
+    firstSectionBody(markdown, "テスト") !== null
+  ) {
+    violations.push(...collectTestReferenceViolations(markdown, numbers))
+  }
+
+  const reflected = collectReflectedViolation(markdown)
+  if (reflected !== null) {
+    violations.push(reflected)
+  }
+
+  violations.push(...collectAmbiguousWordViolations(markdown))
+
+  return violations
+}
+
 export function fixComment(payload: string, ids: readonly string[]): string {
   if (payload.trim().length === 0) {
     reject(EMPTY_FIX_COMMENT)
@@ -503,4 +805,117 @@ export function fixComment(payload: string, ids: readonly string[]): string {
     body = `${body}\n`
   }
   return `${body}${formatFixedBlock(ids)}`
+}
+
+export function canonicalIdsFromMarkdown(markdown: string): string[] {
+  const lines = normalizeNewlines(markdown).split("\n")
+  const ids: string[] = []
+  for (const line of lines) {
+    const match = line.match(CANONICAL_REQ_HEADING)
+    if (match) {
+      ids.push(`REQ-${match[1]}`)
+    }
+  }
+  return ids
+}
+
+export async function readCanonicalIds(root: string): Promise<string[]> {
+  const specDir = join(root, "docs/spec")
+  let entries: Awaited<ReturnType<typeof readdir>>
+  try {
+    entries = await readdir(specDir, { withFileTypes: true })
+  } catch (err: unknown) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? (err as { code: string }).code
+        : ""
+    if (code === "ENOENT") {
+      return []
+    }
+    reject(CANONICAL_READ_FAILED)
+  }
+  const mdFiles = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name)
+    .sort()
+  const ids: string[] = []
+  for (const name of mdFiles) {
+    let content: string
+    try {
+      content = await readFile(join(specDir, name), "utf8")
+    } catch {
+      reject(CANONICAL_READ_FAILED)
+    }
+    ids.push(...canonicalIdsFromMarkdown(content))
+  }
+  return ids
+}
+
+type DeltaItemKind = "add" | "change" | "remove"
+
+function parseDeltaItemHeading(
+  line: string,
+): { kind: DeltaItemKind; id: string } | null {
+  let match = line.match(DELTA_ADD_HEADING)
+  if (match) {
+    return { kind: "add", id: match[2] }
+  }
+  match = line.match(DELTA_CHANGE_HEADING)
+  if (match) {
+    return { kind: "change", id: match[2] }
+  }
+  match = line.match(DELTA_REMOVE_HEADING)
+  if (match) {
+    return { kind: "remove", id: match[2] }
+  }
+  return null
+}
+
+function extractDeltaSectionLines(lines: readonly string[]): string[] | null {
+  let startIndex = -1
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i] === DELTA_SECTION_HEADING) {
+      startIndex = i
+      break
+    }
+  }
+  if (startIndex < 0) {
+    return null
+  }
+  const sectionLines: string[] = []
+  for (let i = startIndex + 1; i < lines.length; i += 1) {
+    if (lines[i].startsWith("## ")) {
+      break
+    }
+    sectionLines.push(lines[i])
+  }
+  return sectionLines
+}
+
+export function validateCanonicalDelta(
+  designMarkdown: string,
+  canonicalIds: readonly string[],
+): string[] {
+  const lines = normalizeNewlines(designMarkdown).split("\n")
+  const sectionLines = extractDeltaSectionLines(lines)
+  if (sectionLines === null) {
+    return []
+  }
+  const idSet = new Set(canonicalIds)
+  const violations: string[] = []
+  for (const line of sectionLines) {
+    const item = parseDeltaItemHeading(line)
+    if (!item) {
+      continue
+    }
+    const hasId = idSet.has(item.id)
+    if (item.kind === "add" && hasId) {
+      violations.push(`追加する識別子が正本にあります: ${item.id}`)
+    } else if (item.kind === "change" && !hasId) {
+      violations.push(`変更する識別子が正本にありません: ${item.id}`)
+    } else if (item.kind === "remove" && !hasId) {
+      violations.push(`削除する識別子が正本にありません: ${item.id}`)
+    }
+  }
+  return violations
 }
