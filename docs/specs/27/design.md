@@ -108,7 +108,7 @@
 - `fetch` が一度拒否し、二度目に成功したときは、`checkoutFetched` へ進む。`createBranch` は呼ばない。
 - `fetch` が二度拒否したときは、その理由で止まる。`createBranch`、`checkoutFetched`、`implement` は呼ばない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `skills/sdd-cur/SKILL.md` の「要件」と「設計」を、上の手順に変える。既存の必須文言は残す。文言の試験を足す。
 2. `src/runner.ts` の実装着手から `createBranch` を外す。`src/runner.test.ts` の順序と、`fetch` が拒否したときの試験を、上の期待に変える。

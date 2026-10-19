@@ -167,7 +167,7 @@ export function decideStartClaim(
 
 `src/github.test.ts` は、この課題では足さない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `src/runner.ts` に `startComment`、`issueStartCutoff`、`latestCreatedAt`、`decideStartClaim` を足し、純関数の試験を通す。
 2. `createRunner` の識別子と、`github.listComments` を足す。実装、quick、修正の着手の `editLabels` の前に、上の判定を入れる。

@@ -109,7 +109,7 @@ README のコマンド一覧のうち、`complete` の行だけを次の文に�
 
 `readCompletionCaller` がファイルの無いディレクトリで `null` を返す試験は残す。`parseCompletionCaller` の試験は残す。`src/runner.test.ts` は変えない。`completionCaller` が `null` のとき、完了の探索をしない試験は設計 7 のまま残る。
 
-## 実装の順序
+## 作業の一覧
 
 1. `src/cli.ts` の `cmdComplete` で、`null` を `"skill"` と同じ分岐にする。`完了の呼び出し元が未設定です` は書かない。
 2. `skills/sdd-cur-complete/SKILL.md` の description を、上のフロントマターにする。本文は変えない。

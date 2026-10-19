@@ -184,7 +184,7 @@ SDD スキルのサブエージェントは、`agents/sdd-cur-req-author.md`、`
 
 `src/github.test.ts` で、注入した `GhRunner` の引数を記録する。`gh` は起動しない。閉じる操作の引数は `issue`、`close`、課題番号の十進だけである。`--state` は無い。
 
-## 実装の順序
+## 作業の一覧
 
 1. `AGENTS.md`、`skills/sdd-cur/SKILL.md`、SDD スキルの六つのサブエージェント、実装の三つのサブエージェント、実装・修正・quick の三つのスキルを、この設計の文言に合わせる。文言の試験を足す。
 2. `src/cli.ts` に `close` を足す。`createGitHub` に、`issue close` と課題番号だけを付ける閉じる操作を足す。`--state` は付けない。使い方と引数の試験を足す。

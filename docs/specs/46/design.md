@@ -111,7 +111,7 @@ install の検証は、既存の一時ディレクトリの試験のままであ
 
 この一致が、足した `disable-model-invocation: true` もコピー先に含まれることを確かめる。ホームの `~/.cursor/skills` へコピーしたことの試験は足さない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `skills/sdd-cur/SKILL.md` の frontmatter を、この設計の YAML にする。本文は変えない。`src/sdd.test.ts` の先頭一致を更新し、`disable-model-invocation` が無いという期待を外す。
 2. `skills/sdd-cur-complete/SKILL.md` の frontmatter を、この設計の YAML にする。本文は変えない。`src/complete.test.ts` の先頭一致を更新し、`disable-model-invocation` が無いという期待を外す。

@@ -106,7 +106,7 @@ export function completeIssue(
 - 「動作確認OK」があり「実装依頼」が無い課題の `process` は、`completeIssue` 経由で `squashMerge` を呼ぶ。`deleteBranch` は呼ばない。`commitAll`、`createPullRequest`、`addComment` は呼ばない。`issue close` は呼ばない。
 - `createRunner` の github 依存に `deleteBranch` は無い。`process` は `squashMerge` を `completeIssue` の外で呼ばない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `squashMerge` の `pr merge` に `--delete-branch` を足し、引数と成否の試験を通す。
 2. `completeIssue` の依存は設計 7 のままにし、`deleteBranch` を足さない。スカッシュマージするとき `squashMerge` だけが削除を含む試験を通す。

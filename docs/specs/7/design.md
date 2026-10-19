@@ -245,7 +245,7 @@ description: Project A の Cursor で、人が指定した課題の完了処理�
 - 中身が `runner` のときの `complete 7` は、`完了は課題ランナーが行います` であり、`gh を実行できません` ではない。
 - 中身が `skill` のときの `complete 7` は、`gh を実行できません` であり、終了コード 1 である。
 
-## 実装の順序
+## 作業の一覧
 
 1. `listPullRequests` を `src/github.ts` に足し、引数と応答の試験を通す。
 2. `src/complete.ts` を置き、呼び出し元、探索、`completeIssue` の試験を通す。

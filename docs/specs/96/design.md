@@ -301,7 +301,7 @@ export function completeIssue(
 
 `デフォルトブランチから作業ブランチを作り直さない` は、残ったままである。
 
-## 実装の順序
+## 作業の一覧
 
 1. `workflowLabels` の末尾に「コンフリクト」を足し、`src/labels.test.ts` を上の期待に合わせる。
 2. `src/git.ts` に `mergeFetched` を足し、`src/git.test.ts` を通す。
