@@ -33,6 +33,7 @@ import {
   loadIssueView,
   parseIssueNumberString,
   parseSpecKind,
+  plainIssueCommentBody,
   postConfirmation,
   readSpecPair,
   readStdinAll,
@@ -48,6 +49,7 @@ export function printUsage(): void {
   console.error("sdd-cur show <番号>")
   console.error("sdd-cur branch <番号>")
   console.error("sdd-cur confirm <番号>")
+  console.error("sdd-cur close <番号>")
   console.error("sdd-cur reflect <番号> <requirements|design>")
   console.error("sdd-cur complete <番号>")
 }
@@ -263,6 +265,26 @@ async function cmdConfirm(args: string[]): Promise<number> {
   }
 }
 
+async function cmdClose(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  try {
+    const issueNumber = parseIssueNumberString(args[0])
+    const payload = await readStdinAll()
+    const body = plainIssueCommentBody(payload)
+    const github = await githubFromCwd()
+    await github.addComment(issueNumber, body)
+    await github.closeIssue(issueNumber)
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
 async function cmdReflect(args: string[]): Promise<number> {
   if (args.length !== 2) {
     printUsage()
@@ -367,6 +389,8 @@ async function main(): Promise<number> {
       return await cmdBranch(rest)
     case "confirm":
       return await cmdConfirm(rest)
+    case "close":
+      return await cmdClose(rest)
     case "reflect":
       return await cmdReflect(rest)
     case "complete":

@@ -557,5 +557,12 @@ describe("文書", () => {
     expect(readme).toContain("docs/conventions.md")
     expect(agents).toContain("docs/conventions.md")
     expect(agents).toContain("src/conventions.ts")
+    expect(agents).toContain(
+      "人が閉じるを選んだときに SDD スキルが閉じる場合を除き、課題は閉じない",
+    )
+    expect(agents).toContain("課題ランナーは課題を閉じない")
+    expect(agents).toContain(
+      "`issue close` は、人が閉じるを選んだときに SDD スキルが課題を閉じる場合だけ付ける",
+    )
   })
 })

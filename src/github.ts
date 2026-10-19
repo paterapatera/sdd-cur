@@ -48,6 +48,7 @@ export type GitHubClient = {
   getIssue(number: number): Promise<Issue>
   listComments(number: number): Promise<IssueComment[]>
   addComment(number: number, body: string): Promise<{ url: string }>
+  closeIssue(number: number): Promise<void>
   listPullRequestComments(number: number): Promise<IssueComment[]>
   addPullRequestComment(number: number, body: string): Promise<{ url: string }>
   editLabels(
@@ -500,6 +501,11 @@ export function createGitHub(options: {
         reject(PARSE_ERROR)
       }
       return { url: line }
+    },
+
+    async closeIssue(number) {
+      assertPositiveInteger(number)
+      await runGh(["issue", "close", String(number), "--repo", repo])
     },
 
     async listPullRequestComments(number) {

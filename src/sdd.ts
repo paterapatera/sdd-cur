@@ -20,6 +20,8 @@ const INVALID_NUMBER = "番号が不正です"
 const INVALID_KIND = "種別が不正です"
 const EMPTY_CONFIRM = "確認の本文が空です"
 const MARKER_IN_CONFIRM = "確認の本文に印を含めない"
+const EMPTY_CLOSE = "コメント本文が空です"
+const MARKER_IN_CLOSE = "コメント本文に印を含めない"
 const INVALID_TITLE = "題が不正です"
 const CLOSED_ISSUE = "課題は閉じています"
 const WORKFLOW_LABEL = "実装のラベルが付いています"
@@ -326,6 +328,19 @@ export function confirmationBody(payload: string): string {
     reject(MARKER_IN_CONFIRM)
   }
   return `${commentMarkers.confirm}\n${payload}`
+}
+
+export function plainIssueCommentBody(payload: string): string {
+  if (payload.trim().length === 0) {
+    reject(EMPTY_CLOSE)
+  }
+  const normalized = normalizeNewlines(payload)
+  const lines = normalized.split("\n")
+  const index = firstNonemptyLineIndex(lines)
+  if (index >= 0 && allMarkers.has(lines[index])) {
+    reject(MARKER_IN_CLOSE)
+  }
+  return payload
 }
 
 export function assertSpecWorkAllowed(issue: Issue): void {

@@ -30,6 +30,7 @@ export type Runner = {
 const EMPTY_ACCEPTANCE = "受け入れ手順が空です"
 const MARKER_IN_ACCEPTANCE = "受け入れ手順に印を含めない"
 const NO_CHANGES = "実装の変更がありません"
+const HEAD_CHANGED = "agent がブランチの先頭を変えました"
 const AMBIGUOUS_PR = "マージリクエストを特定できません"
 const OUT_OF_SCOPE_LINE = "設計の範囲外のため直していない"
 const NO_REQUIREMENTS = "要件がありません"
@@ -78,6 +79,35 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   } catch {
     return await fn()
   }
+}
+
+async function assertHeadUnchanged(
+  deps: RunnerDeps,
+  before: string,
+): Promise<void> {
+  const after = await withRetry(() => deps.git.headCommit())
+  if (after !== before) {
+    reject(HEAD_CHANGED)
+  }
+}
+
+async function runAgentWithHeadCheck(
+  deps: RunnerDeps,
+  run: () => Promise<void>,
+): Promise<void> {
+  const before = await withRetry(() => deps.git.headCommit())
+  try {
+    await run()
+  } catch (firstError) {
+    await assertHeadUnchanged(deps, before)
+    try {
+      await run()
+    } catch (secondError) {
+      await assertHeadUnchanged(deps, before)
+      throw secondError
+    }
+  }
+  await assertHeadUnchanged(deps, before)
 }
 
 export function selectImplementationIssue(
@@ -456,21 +486,29 @@ async function runQuick(
   const quickResult = await deps.createProcedureFile()
   try {
     try {
-      await withRetry(() =>
+      await runAgentWithHeadCheck(deps, () =>
         deps.agent.quick({
           issueNumber,
           resultPath: quickResult.path,
         }),
       )
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === HEAD_CHANGED) {
+        await quickResult.remove()
+        throw error
+      }
       try {
-        await withRetry(() =>
+        await runAgentWithHeadCheck(deps, () =>
           deps.agent.quick({
             issueNumber,
             resultPath: quickResult.path,
           }),
         )
-      } catch {
+      } catch (error2) {
+        if (error2 instanceof Error && error2.message === HEAD_CHANGED) {
+          await quickResult.remove()
+          throw error2
+        }
         await quickResult.remove()
         return
       }
@@ -513,7 +551,7 @@ async function runQuick(
     const procedure = await deps.createProcedureFile()
     try {
       try {
-        await withRetry(() =>
+        await runAgentWithHeadCheck(deps, () =>
           deps.agent.implement({
             issueNumber,
             procedurePath: procedure.path,
@@ -602,7 +640,7 @@ async function runImplementation(
   const procedure = await deps.createProcedureFile()
   try {
     try {
-      await withRetry(() =>
+      await runAgentWithHeadCheck(deps, () =>
         deps.agent.implement({
           issueNumber,
           procedurePath: procedure.path,
@@ -732,7 +770,7 @@ async function runFix(
     const procedure = await deps.createProcedureFile()
 
     try {
-      await withRetry(() =>
+      await runAgentWithHeadCheck(deps, () =>
         deps.agent.fix({
           issueNumber,
           resultPath: procedure.path,

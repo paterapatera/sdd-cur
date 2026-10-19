@@ -75,6 +75,13 @@ describe("createGit", () => {
     expect(calls[1]?.args).toEqual(["commit", "-m", "msg"])
   })
 
+  test("headCommit は rev-parse HEAD の最初の非空行", async () => {
+    const { runner, calls } = recordingRunner(() => ok("\n  abcdef  \n"))
+    const git = createGit({ git: runner, cwd: "/proj" })
+    await expect(git.headCommit()).resolves.toBe("abcdef")
+    expect(calls[0]?.args).toEqual(["rev-parse", "HEAD"])
+  })
+
   test("commitAll は add が拒否したとき commit を呼ばない", async () => {
     let n = 0
     const { runner, calls } = recordingRunner(() => {
