@@ -576,6 +576,22 @@ disable-model-invocation: true
       expect(requirementsSlice).toContain(phrase)
       expect(designSlice).toContain(phrase)
     }
+    const sectionCanon = [
+      "返信から仕様の全文を読まない",
+      "仕様の内容を確認するときは、作業ツリー上のパスからファイルを読む",
+      "正本は作業ツリー上のファイルである",
+      "変えた節の本文も、仕様の正本にはしない",
+    ]
+    for (const phrase of sectionCanon) {
+      expect(requirementsSlice).toContain(phrase)
+      expect(designSlice).toContain(phrase)
+    }
+    expect(requirementsSlice).toContain(
+      "要求作成役の返信から仕様の全文を読まない",
+    )
+    expect(designSlice).toContain(
+      "設計作成役の返信から仕様の全文を読まない",
+    )
     expect(text).not.toContain("最後の非空行")
     for (const name of [
       "sdd-cur-req-fix-proposer",
