@@ -18,7 +18,7 @@ GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起�
 
 | 場所 | 役割 |
 |---|---|
-| `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore` |
+| `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`request` |
 | `src/install.ts` | `skills/<名前>/` を `~/.cursor/skills` または `<project>/.cursor/skills` へ、`agents/<名前>.md` を `~/.cursor/agents` または `<project>/.cursor/agents` へコピーする |
 | `src/run.ts` | 停止まで `poll` と `process` を繰り返す。処理のあいだは次の `poll` を呼ばない |
 | `src/runner.ts` | `poll` と `process`。`run` が「実装依頼」から「実装完了」までと、「動作確認OK」の完了を、このファイルを読まずに行う |
