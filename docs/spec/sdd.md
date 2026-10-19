@@ -1071,7 +1071,7 @@ sdd-cur の要件と設計の手順は、作業ブランチ名を、このサブ
 
 もとになった課題は #45 である。
 
-読む役は比較は親が行う。`parseReview` は変えないである。
+比較は `src/conventions.ts` の `reviewNext` が行う。親は `bun src/cli.ts review-next` の戻り値に従う。`parseReview` の読み方は変えない。
 
 ## REQ-328
 
@@ -1503,7 +1503,7 @@ frontmatter とスキルが書く機械向けの ID は、括弧付きの `grok-
 
 もとになった課題は #55 である。
 
-`skills/sdd-cur/SKILL.md` の「要件」で、3 回目から渡す `model` の記述は、上の文字列である。1 回目と 2 回目は `model` を渡さない、合格まで渡す、medium には戻さない、など設計 30 の手順は変えない。
+3 回目から渡す `model` の文字列は、`review-next` が返す `model` である。値は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。1 回目と 2 回目の `model` は空文字である。合格まで、空文字には戻さない。`skills/sdd-cur/SKILL.md` は、この文字列をレビューの分岐の散文として書かない。返った `model` に従う。
 
 ## REQ-400
 
@@ -1515,25 +1515,25 @@ frontmatter とスキルが書く機械向けの ID は、括弧付きの `grok-
 
 もとになった課題は #55 である。
 
-`skills/sdd-cur/SKILL.md` の「設計」は、回数とモデルを要件の手順と同じとする文のままである。3 回目から渡す `model` は、要件の手順に書いた文字列である。
+`skills/sdd-cur/SKILL.md` の「設計」のレビューの次の動作は、第1引数 `requirements` の `review-next` に従う。回数とモデルの規則は、要求のレビューと同じである。
 
 ## REQ-402
 
 もとになった課題は #55 である。
 
-`skills/sdd-cur-implement/SKILL.md` の「レビュー」で、3 回目から渡す `model` の記述は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。実装作成は `model` を渡さず、frontmatter の `composer-2.5[fast=false]` を使う。10 回打ち切りや `model` を渡さない回の扱いは設計 30 のとおりである。
+`skills/sdd-cur-implement/SKILL.md` の「レビュー」は、第1引数 `implement` の `review-next` に従う。3 回目からの `model` は、返った `model` が `grok-4.7[context=256k,reasoning_effort=high,fast=false]` であるとき、その文字列である。実装作成は `model` を渡さない。10 回の打ち切りは、`reason` が `実装レビューが不合格のまま10回に達した` のときである。
 
 ## REQ-403
 
 もとになった課題は #55 である。
 
-`src/sdd.test.ts` は、`skills/sdd-cur/SKILL.md` の必須文言のうち、3 回目から渡すモデルと作成説明の括弧内に関する部分を `grok-4.7[context=256k,reasoning_effort=high,fast=false]` に合わせる。設計 26・27 の分と、設計 30 で残すその他の必須文言は維持する。`grok-4.7-high` を、3 回目から渡すモデルまたは作成説明の括弧内の必須文言として要求しない。
+`skills/sdd-cur/SKILL.md` は、3 回目から渡すモデルの文字列を、分岐の散文に書かない。その文字列は `review-next` の `model` である。要求作成役の初回成果物作成を説明する括弧内のモデル表記は残す。`grok-4.7-high` は書かない。
 
 ## REQ-404
 
 もとになった課題は #55 である。
 
-`src/runner.test.ts` は、`skills/sdd-cur-implement/SKILL.md` の必須文言のうち、3 回目から渡すモデルに関する部分を `grok-4.7[context=256k,reasoning_effort=high,fast=false]` に合わせる。設計 6・22 で残すその他の必須文言は維持する。`grok-4.7-high` を、3 回目から渡すモデルの必須文言として要求しない。
+`skills/sdd-cur-implement/SKILL.md` は、3 回目から渡すモデルの文字列を、分岐の散文に書かない。その文字列は `review-next` の `model` である。`grok-4.7-high` は書かない。失敗の理由の文字列は、スキルに書かず、`reason` で返す。
 
 ## REQ-405
 
@@ -2135,31 +2135,31 @@ installは直下のディレクトリをコピーする今の手順のまま、�
 
 `show` の終了コードが 0 のあと、`state` が `open` でないとき、業務ラベルが一つでもあるときは、ファイルを変えず、サブエージェントも起動しない。このときは止まる。着手の、`state` が `open` でないときと、業務ラベルが一つでもあるときの止まりの本文は、変えない。
 
-## REQ-721
+## REQ-784
 
 もとになった課題は #89 である。
 
 要件の「現状」の各項目の根拠は、（`パス` の N 行）の表記だけである。
 
-## REQ-722
+## REQ-785
 
 もとになった課題は #89 である。
 
 根拠のパスは、リポジトリ相対パスである。
 
-## REQ-723
+## REQ-786
 
 もとになった課題は #89 である。
 
 根拠の N は、一つの行番号である。字面を十進整数として解釈する。`007` の値は 7 である。検査は、この値で 1 未満かと、行数を超えるかを判定する。
 
-## REQ-724
+## REQ-787
 
 もとになった課題は #89 である。
 
 行の範囲は、根拠に書かない。
 
-## REQ-725
+## REQ-788
 
 もとになった課題は #89 である。
 

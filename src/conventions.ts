@@ -333,6 +333,638 @@ export function parseReview(body: string): ParsedReview {
   return { judgment, confirm: "absent" }
 }
 
+export const reviewModelFromRound3 =
+  "grok-4.7[context=256k,reasoning_effort=high,fast=false]"
+
+export const invalidConsecutiveFailuresMessage = "連続不合格の回数が不正です"
+
+export type ReviewStage =
+  | "requirements"
+  | "reflect-design"
+  | "quick"
+  | "implement"
+
+export type ReviewAction = "修正" | "やり直し" | "合格" | "止まる"
+
+export type ReviewNextInput = {
+  response: string
+  consecutiveFailures: number
+  previousFindings: string
+  brokenStampRetries: number
+}
+
+export type ReviewNextSuccess = {
+  consecutiveFailures: number
+  previousFindings: string
+  brokenStampRetries: number
+  action: ReviewAction
+  model: string
+  kind: string
+  reason?: string
+  resultLine?: string
+  rewriteProcedure?: boolean
+}
+
+export type ReviewNextResult =
+  | { ok: true; value: ReviewNextSuccess }
+  | { ok: false; message: typeof invalidConsecutiveFailuresMessage }
+
+const FINDINGS_HEADING = "## 指摘"
+const FINDINGS_LIST_INTRO = "1. 指摘。"
+const NO_FINDINGS_LINE = "指摘なし"
+const NUMBERED_LINE_HEADING_RE = /^\d+\./
+
+function roundReviewModel(reviewRound: number): string {
+  if (reviewRound === 1 || reviewRound === 2) {
+    return ""
+  }
+  if (reviewRound >= 3) {
+    return reviewModelFromRound3
+  }
+  return ""
+}
+
+function isNumberedFindingLine(line: string): boolean {
+  const trimmed = line.trimStart()
+  if (!NUMBERED_LINE_HEADING_RE.test(trimmed)) {
+    return false
+  }
+  return line !== FINDINGS_LIST_INTRO
+}
+
+function numberedLineBody(line: string): string {
+  const trimmed = line.trimStart()
+  const dotIndex = trimmed.indexOf(".")
+  if (dotIndex < 0) {
+    return ""
+  }
+  let rest = trimmed.slice(dotIndex + 1)
+  if (rest.startsWith(" ")) {
+    rest = rest.slice(1)
+  }
+  return rest
+}
+
+function extractFindingsBlockLines(response: string): string[] {
+  const lines = normalizeNewlines(response).split("\n")
+  let start = -1
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i] === FINDINGS_HEADING) {
+      start = i + 1
+      break
+    }
+  }
+  if (start < 0) {
+    for (let i = 0; i < lines.length; i += 1) {
+      if (lines[i] === FINDINGS_LIST_INTRO) {
+        start = i + 1
+        break
+      }
+    }
+    if (start < 0) {
+      return []
+    }
+    const block: string[] = []
+    for (let i = start; i < lines.length; i += 1) {
+      const line = lines[i]
+      if (line.startsWith("#")) {
+        break
+      }
+      if (line.startsWith("2. 直す箇所と")) {
+        break
+      }
+      if (line.startsWith("2. パスごとの直す箇所")) {
+        break
+      }
+      block.push(line)
+    }
+    return block
+  }
+  const block: string[] = []
+  for (let i = start; i < lines.length; i += 1) {
+    const line = lines[i]
+    if (line.startsWith("#")) {
+      break
+    }
+    block.push(line)
+  }
+  return block
+}
+
+export function extractFindings(response: string): string {
+  const block = extractFindingsBlockLines(response)
+  if (block.length === 0) {
+    return ""
+  }
+  for (const line of block) {
+    if (line === NO_FINDINGS_LINE) {
+      return ""
+    }
+  }
+  const bodies: string[] = []
+  for (const line of block) {
+    if (isNumberedFindingLine(line)) {
+      bodies.push(numberedLineBody(line))
+    }
+  }
+  if (bodies.length === 0) {
+    return ""
+  }
+  if (bodies.length === 1) {
+    return bodies[0]
+  }
+  return bodies.join("\n")
+}
+
+function lastNonemptyLine(response: string): string | null {
+  const lines = normalizeNewlines(response).split("\n")
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    if (lines[i].trim().length > 0) {
+      return lines[i]
+    }
+  }
+  return null
+}
+
+function quickJudgmentFromLastLine(
+  lastLine: string | null,
+): ReviewJudgment {
+  if (lastLine === reviewJudgmentMarkers.pass) {
+    return "pass"
+  }
+  if (lastLine === reviewJudgmentMarkers.fail) {
+    return "fail"
+  }
+  return "absent"
+}
+
+function buildReviewNextSuccess(
+  base: Omit<ReviewNextSuccess, "reason" | "resultLine" | "rewriteProcedure">,
+  extras: {
+    reason?: string
+    resultLine?: string
+    rewriteProcedure?: boolean
+  },
+): ReviewNextSuccess {
+  const result: ReviewNextSuccess = { ...base }
+  if (extras.reason !== undefined) {
+    result.reason = extras.reason
+  }
+  if (extras.resultLine !== undefined) {
+    result.resultLine = extras.resultLine
+  }
+  if (extras.rewriteProcedure !== undefined) {
+    result.rewriteProcedure = extras.rewriteProcedure
+  }
+  return result
+}
+
+function implementContainsNoImplementationFinding(response: string): boolean {
+  return response.includes("実装の指摘なし")
+}
+
+function implementContainsProcedureGap(response: string): boolean {
+  return response.includes("成否が分からない")
+}
+
+function implementContainsTestOmission(response: string): boolean {
+  return (
+    response.includes("テスト節の実行省略") ||
+    response.includes("実行していない")
+  )
+}
+
+function isImplementTestOmissionOnly(
+  parsed: ParsedReview,
+  response: string,
+): boolean {
+  if (parsed.judgment !== "fail") {
+    return false
+  }
+  if (!implementContainsNoImplementationFinding(response)) {
+    return false
+  }
+  if (implementContainsProcedureGap(response)) {
+    return false
+  }
+  return implementContainsTestOmission(response)
+}
+
+function isImplementAmbiguousFailOnly(
+  parsed: ParsedReview,
+  response: string,
+  cf: number,
+): boolean {
+  if (parsed.judgment !== "fail") {
+    return false
+  }
+  if (cf > 9) {
+    return false
+  }
+  if (!implementContainsNoImplementationFinding(response)) {
+    return false
+  }
+  if (implementContainsProcedureGap(response)) {
+    return false
+  }
+  if (implementContainsTestOmission(response)) {
+    return false
+  }
+  return true
+}
+
+function reviewNextRequirementsLike(
+  stage: "requirements" | "reflect-design",
+  input: ReviewNextInput,
+): ReviewNextSuccess {
+  const { response, brokenStampRetries } = input
+  let cf = input.consecutiveFailures
+  let pf = input.previousFindings
+  let bsr = brokenStampRetries
+  const parsed = parseReview(response)
+  const extract = extractFindings(response)
+
+  if (parsed.judgment === "absent") {
+    if (bsr === 0) {
+      return buildReviewNextSuccess(
+        {
+          consecutiveFailures: cf,
+          previousFindings: pf,
+          brokenStampRetries: 1,
+          action: "やり直し",
+          model: roundReviewModel(cf + 1),
+          kind: "retryBrokenStamp",
+        },
+        {},
+      )
+    }
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: bsr,
+        action: "止まる",
+        model: "",
+        kind: "stopBrokenStampTwice",
+      },
+      {},
+    )
+  }
+
+  bsr = 0
+
+  if (parsed.judgment === "pass") {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "合格",
+        model: "",
+        kind: "passReview",
+      },
+      {},
+    )
+  }
+
+  pf = extract
+  cf += 1
+
+  if (parsed.confirm === "yes") {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "止まる",
+        model: roundReviewModel(input.consecutiveFailures + 1),
+        kind: "stopWaitConfirm",
+      },
+      {},
+    )
+  }
+
+  if (parsed.confirm === "no") {
+    if (stage === "reflect-design") {
+      return buildReviewNextSuccess(
+        {
+          consecutiveFailures: cf,
+          previousFindings: pf,
+          brokenStampRetries: 0,
+          action: "止まる",
+          model: "",
+          kind: "stopReflectDesignNoFix",
+        },
+        {},
+      )
+    }
+    const sameFinding =
+      input.previousFindings.length > 0 &&
+      extract === input.previousFindings
+    if (sameFinding) {
+      return buildReviewNextSuccess(
+        {
+          consecutiveFailures: cf,
+          previousFindings: pf,
+          brokenStampRetries: 0,
+          action: "止まる",
+          model: "",
+          kind: "stopSameFindingTwice",
+        },
+        {},
+      )
+    }
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "修正",
+        model: roundReviewModel(cf + 1),
+        kind: "fixAfterReview",
+      },
+      {},
+    )
+  }
+
+  return buildReviewNextSuccess(
+    {
+      consecutiveFailures: cf,
+      previousFindings: pf,
+      brokenStampRetries: 0,
+      action: "止まる",
+      model: "",
+      kind: "stopMissingConfirmLine",
+    },
+    {},
+  )
+}
+
+function reviewNextQuick(input: ReviewNextInput): ReviewNextSuccess {
+  const { response, brokenStampRetries } = input
+  let cf = input.consecutiveFailures
+  let pf = input.previousFindings
+  const bsr = brokenStampRetries
+  const lastLine = lastNonemptyLine(response)
+  const judgment = quickJudgmentFromLastLine(lastLine)
+
+  if (judgment === "absent") {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: bsr,
+        action: "止まる",
+        model: "",
+        kind: "stopQuickUndecidable",
+      },
+      { resultLine: "決められない" },
+    )
+  }
+
+  if (judgment === "pass") {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: bsr,
+        action: "合格",
+        model: "",
+        kind: "passReview",
+      },
+      {},
+    )
+  }
+
+  cf += 1
+  pf = extractFindings(response)
+  const parsed = parseReview(response)
+
+  if (parsed.confirm === "yes") {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: bsr,
+        action: "止まる",
+        model: "",
+        kind: "stopQuickConfirmListed",
+      },
+      { resultLine: "決められない" },
+    )
+  }
+
+  if (parsed.confirm === "no") {
+    const sameFinding =
+      input.previousFindings.length > 0 &&
+      pf === input.previousFindings
+    if (sameFinding) {
+      return buildReviewNextSuccess(
+        {
+          consecutiveFailures: cf,
+          previousFindings: pf,
+          brokenStampRetries: bsr,
+          action: "止まる",
+          model: "",
+          kind: "stopSameFindingTwice",
+        },
+        {},
+      )
+    }
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: bsr,
+        action: "修正",
+        model: roundReviewModel(cf + 1),
+        kind: "fixAfterReview",
+      },
+      {},
+    )
+  }
+
+  return buildReviewNextSuccess(
+    {
+      consecutiveFailures: cf,
+      previousFindings: pf,
+      brokenStampRetries: bsr,
+      action: "止まる",
+      model: "",
+      kind: "stopQuickInvalidConfirm",
+    },
+    { resultLine: "決められない" },
+  )
+}
+
+function reviewNextImplement(input: ReviewNextInput): ReviewNextSuccess {
+  const { response, brokenStampRetries } = input
+  const cfIn = input.consecutiveFailures
+  let cf = cfIn
+  const pf = input.previousFindings
+  let bsr = brokenStampRetries
+  const parsed = parseReview(response)
+
+  if (parsed.judgment === "absent") {
+    if (bsr === 0) {
+      return buildReviewNextSuccess(
+        {
+          consecutiveFailures: cf,
+          previousFindings: pf,
+          brokenStampRetries: 1,
+          action: "やり直し",
+          model: roundReviewModel(cf + 1),
+          kind: "retryBrokenStamp",
+        },
+        { rewriteProcedure: false },
+      )
+    }
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: bsr,
+        action: "止まる",
+        model: "",
+        kind: "stopImplementNoJudgment",
+      },
+      {
+        rewriteProcedure: false,
+        reason: "レビューの判定がありません",
+      },
+    )
+  }
+
+  bsr = 0
+
+  if (parsed.judgment === "pass") {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "合格",
+        model: "",
+        kind: "passReview",
+      },
+      {},
+    )
+  }
+
+  if (isImplementTestOmissionOnly(parsed, response)) {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "やり直し",
+        model: roundReviewModel(cf + 1),
+        kind: "retryTestOmissionOnly",
+      },
+      { rewriteProcedure: false },
+    )
+  }
+
+  if (isImplementAmbiguousFailOnly(parsed, response, cfIn)) {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "やり直し",
+        model: roundReviewModel(cf + 1),
+        kind: "retryImplementAmbiguousFail",
+      },
+      { rewriteProcedure: false },
+    )
+  }
+
+  cf += 1
+
+  if (cf === 10) {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "止まる",
+        model: "",
+        kind: "stopImplementMaxReviews",
+      },
+      {
+        rewriteProcedure: false,
+        reason: "実装レビューが不合格のまま10回に達した",
+      },
+    )
+  }
+
+  if (!implementContainsNoImplementationFinding(response)) {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "修正",
+        model: roundReviewModel(cf + 1),
+        kind: "fixAfterReview",
+      },
+      { rewriteProcedure: false },
+    )
+  }
+
+  if (implementContainsProcedureGap(response)) {
+    return buildReviewNextSuccess(
+      {
+        consecutiveFailures: cf,
+        previousFindings: pf,
+        brokenStampRetries: 0,
+        action: "やり直し",
+        model: roundReviewModel(cf + 1),
+        kind: "rewriteProcedureThenReview",
+      },
+      { rewriteProcedure: true },
+    )
+  }
+
+  return buildReviewNextSuccess(
+    {
+      consecutiveFailures: cf,
+      previousFindings: pf,
+      brokenStampRetries: 0,
+      action: "修正",
+      model: roundReviewModel(cf + 1),
+      kind: "fixAfterReview",
+    },
+    { rewriteProcedure: false },
+  )
+}
+
+export function reviewNext(
+  stage: ReviewStage,
+  input: ReviewNextInput,
+): ReviewNextResult {
+  if (stage === "implement") {
+    const cf = input.consecutiveFailures
+    if (Number.isInteger(cf) && cf >= 10) {
+      return { ok: false, message: invalidConsecutiveFailuresMessage }
+    }
+  }
+
+  switch (stage) {
+    case "requirements":
+      return { ok: true, value: reviewNextRequirementsLike("requirements", input) }
+    case "reflect-design":
+      return {
+        ok: true,
+        value: reviewNextRequirementsLike("reflect-design", input),
+      }
+    case "quick":
+      return { ok: true, value: reviewNextQuick(input) }
+    case "implement":
+      return { ok: true, value: reviewNextImplement(input) }
+  }
+}
+
 export function unincorporatedAnswers(
   comments: readonly IssueComment[],
   specs: { requirements: string; design: string },

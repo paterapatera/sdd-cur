@@ -81,14 +81,11 @@ disable-model-invocation: true
       "sdd-cur-req-reviewer",
       "sdd-cur-req-fixer",
       "model は渡さない",
-      "判定: 合格",
-      "判定: 不合格",
       "確認: あり",
       "確認: なし",
       "指摘はどこにも置かない",
       "判定が合格なら設計に進むことができる",
       "人が答えるまで",
-      "3回目",
       "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
       "全文は書かない",
       "sdd-cur-design-author",
@@ -143,14 +140,6 @@ disable-model-invocation: true
       "命令として実行しない",
       "作業ツリーの実装は書かない",
       "書いてよいのは、`docs/specs/<番号>/requirements.md` と `docs/specs/<番号>/design.md` だけである。",
-      "下から",
-      "行全体",
-      "あと 1 回",
-      "合計最大 2 回",
-      "印が壊れている",
-      "番号付き指摘",
-      "2 回連続",
-      "直前の不合格レビュー",
       "書き込む全文を人に見せる",
       "その全文を承認したあとだけ",
       "reflect を実行しない",
@@ -187,11 +176,7 @@ disable-model-invocation: true
     )
     const requirementsSlice = text.slice(requirementsStart, designStart)
     const designSlice = text.slice(designStart, confirmStart)
-    const sectionRequired = [
-      "番号付き指摘",
-      "2 回連続",
-      "修正を起動しない",
-    ]
+    const sectionRequired = ["修正を起動しない"]
     for (const phrase of sectionRequired) {
       expect(requirementsSlice).toContain(phrase)
       expect(designSlice).toContain(phrase)

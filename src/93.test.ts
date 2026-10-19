@@ -60,13 +60,14 @@ describe("課題 93", () => {
       expect(skill).not.toContain(phrase)
     }
 
+    expect(skill).toContain("印が壊れている")
+    expect(skill).toContain("bun src/cli.ts review-next")
     for (const phrase of [
       "実装レビューが不合格のまま10回に達した",
       "レビューの判定がありません",
       "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
-      "印が壊れている",
     ]) {
-      expect(skill).toContain(phrase)
+      expect(skill).not.toContain(phrase)
     }
 
     const reviewer = await readFile(reviewerPath, "utf8")

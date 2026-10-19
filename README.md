@@ -28,6 +28,7 @@ bun src/cli.ts validate <番号>
 bun src/cli.ts complete <番号>
 bun src/cli.ts restore <番号>
 bun src/cli.ts request <番号>
+bun src/cli.ts review-next <requirements|reflect-design|quick|implement> <番号>
 bun test
 ```
 
@@ -46,6 +47,7 @@ bun test
 | `complete` | 指定課題の完了処理を行う。作業ツリーの `sdd-cur.completion` は読まない。 |
 | `restore` | 指定課題のラベルと状態を着手前に戻す |
 | `request` | 作業ブランチを push し、成功したあと課題に「実装依頼」を付ける |
+| `review-next` | レビュー応答と連続不合格と直前の指摘から、次の動作を JSON 一行で返す |
 | `bun test` | テスト。`gh` は起動しない |
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-quick` である。
