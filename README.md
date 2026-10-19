@@ -1,15 +1,14 @@
 # sdd-cur
 
-`@paterapatera/sdd-cur` は、このプロジェクト専用の SDD スキルと課題ランナーである。課題の作成、要件、設計、お客さまへの確認は人が Cursor で行う。実装と、選んだ場合の完了処理は、課題ランナーが別のクローンで行う。
+誰のための道具か、技術の前提、構成、破ってはいけない原則の正本は [docs/policy.md](docs/policy.md) である。
+
+課題の作成、要件、設計、お客さまへの確認は人が Cursor で行う。実装と、選んだ場合の完了処理は、課題ランナーが別のクローンで行う。
 
 要件と設計の置き場所と課題コメントの約束は [docs/conventions.md](docs/conventions.md) にある。
 
 ## 前提
 
-- [Bun](https://bun.sh)
-- GitHub を操作するときは、ログイン済みの [`gh`](https://cli.github.com/)
-
-依存パッケージは置かない。TypeScript は Bun が直接実行する。
+技術の前提は [docs/policy.md](docs/policy.md) の「技術の前提」にある。
 
 ## 開発中の起動
 
@@ -75,7 +74,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 ## ラベル
 
-ラベルは次の順に進む。課題は閉じない。お客さまの確認が取れてから、人が閉じる。
+ラベルは次の順に進む。課題を閉じる原則は [docs/policy.md](docs/policy.md) の「破ってはいけない原則」にある。
 
 | ラベル | 付ける主体 | 意味 |
 |---|---|---|
@@ -90,22 +89,12 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 ## ディレクトリ
 
+構成の正本は [docs/policy.md](docs/policy.md) の「構成」にある。正本の表にあるパスは、ここには繰り返さない。
+
 ```
-docs/conventions.md   要件・設計の置き場所と課題コメントの約束
 docs/specs/<番号>/    課題ごとの要件と設計
 package.json
-src/cli.ts            install、run、labels、SDD サブコマンドの入口
-src/install.ts        スキルとサブエージェントのコピー
 agents/               install がコピーする要求・設計・実装レビュー用サブエージェント
-src/run.ts            ポーリングのループ
-src/runner.ts         poll と process（実装依頼から実装完了と、「動作確認OK」の完了）
-src/git.ts            クローン上の git 操作
-src/agent.ts          Cursor agent の起動
-src/github.ts         GitHub Issue と GitHub
-src/labels.ts         業務フロー用ラベル
-src/conventions.ts    specs パスと課題コメントの判定
-src/sdd.ts            SDD スキル用の判定と投稿
-src/complete.ts       完了処理
 src/*.test.ts
 skills/sdd-cur/               install がコピーする SDD スキル
 skills/sdd-cur-complete/      install がコピーする完了スキル
