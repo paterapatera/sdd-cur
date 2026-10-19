@@ -436,7 +436,7 @@ describe("createGitHub", () => {
       })
     })
     const github = createGitHub({ gh: runner, repo: "o/r" })
-    await github.squashMerge(7)
+    await github.squashMerge(7, "t")
     expect(calls[0]?.args).toEqual([
       "pr",
       "merge",
@@ -445,6 +445,8 @@ describe("createGitHub", () => {
       "o/r",
       "--squash",
       "--delete-branch",
+      "--subject",
+      "t",
     ])
     expect(calls[1]?.args[0]).toBe("pr")
     expect(calls[1]?.args[1]).toBe("view")
@@ -463,7 +465,7 @@ describe("createGitHub", () => {
       })
     })
     const github = createGitHub({ gh: runner, repo: "o/r" })
-    await expect(github.squashMerge(7)).rejects.toThrow(
+    await expect(github.squashMerge(7, "t")).rejects.toThrow(
       "マージリクエストはマージされていません",
     )
     expect(calls.length).toBe(2)
@@ -472,7 +474,7 @@ describe("createGitHub", () => {
   test("squashMerge は pr merge 失敗時に取得しない", async () => {
     const { runner, calls } = recordingRunner(() => fail("merge failed"))
     const github = createGitHub({ gh: runner, repo: "o/r" })
-    await expect(github.squashMerge(1)).rejects.toThrow("merge failed")
+    await expect(github.squashMerge(1, "t")).rejects.toThrow("merge failed")
     expect(calls.length).toBe(1)
   })
 
@@ -489,7 +491,7 @@ describe("createGitHub", () => {
       })
     })
     const github = createGitHub({ gh: runner, repo: "o/r" })
-    await github.squashMerge(7)
+    await github.squashMerge(7, "t")
     expect(calls.some((c) => c.args[0] === "api")).toBe(false)
   })
 

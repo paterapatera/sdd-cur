@@ -66,7 +66,7 @@ export type GitHubClient = {
     head: string
     limit?: number
   }): Promise<PullRequest[]>
-  squashMerge(number: number): Promise<void>
+  squashMerge(number: number, subject: string): Promise<void>
   getLabel(name: string): Promise<{ name: string } | null>
   createLabel(input: {
     name: string
@@ -669,7 +669,7 @@ export function createGitHub(options: {
       return parsed.map((item) => normalizePullRequest(item))
     },
 
-    async squashMerge(number) {
+    async squashMerge(number, subject) {
       assertPositiveInteger(number)
       await runGh([
         "pr",
@@ -679,6 +679,8 @@ export function createGitHub(options: {
         repo,
         "--squash",
         "--delete-branch",
+        "--subject",
+        subject,
       ])
       const pr = await this.getPullRequest(number)
       if (!pr.merged) {

@@ -69,7 +69,8 @@ export async function completeIssue(
   }
   const pr = pullRequests[0]!
   if (!pr.merged) {
-    await retryOnce(() => github.squashMerge(pr.number))
+    const subject = `【課題 ${issueNumber}】${issue.title}`
+    await retryOnce(() => github.squashMerge(pr.number, subject))
   }
 
   await retryOnce(() =>
