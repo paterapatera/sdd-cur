@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import { completeIssue, selectCompletionIssue } from "./complete.ts"
+import {
+  completeIssue,
+  conflictFileComment,
+  selectCompletionIssue,
+} from "./complete.ts"
 import {
   commentMarkers,
   fixComment,
@@ -52,6 +56,7 @@ const LABEL_IN_PROGRESS = workflowLabels[1].name
 const LABEL_DONE = workflowLabels[2].name
 const LABEL_VERIFIED = workflowLabels[3].name
 const LABEL_MERGED = workflowLabels[4].name
+const LABEL_CONFLICT = workflowLabels[5].name
 
 function reject(message: string): never {
   throw new Error(message)
@@ -125,6 +130,9 @@ export function selectImplementationIssue(
     if (labels.includes(LABEL_IN_PROGRESS)) {
       return false
     }
+    if (labels.includes(LABEL_CONFLICT)) {
+      return false
+    }
     if (!issue.assignees.includes(login)) {
       return false
     }
@@ -140,6 +148,9 @@ export function issueHasFixLabels(issue: Issue): boolean {
     return false
   }
   if (labels.includes(LABEL_IN_PROGRESS)) {
+    return false
+  }
+  if (labels.includes(LABEL_CONFLICT)) {
     return false
   }
   if (labels.includes(LABEL_VERIFIED)) {
@@ -617,7 +628,7 @@ export function createRunner(deps: RunnerDeps): Runner {
       }
 
       if (issue.labels.includes(LABEL_VERIFIED)) {
-        await completeIssue(deps.github, issueNumber)
+        await completeIssue(deps.github, deps.git, issueNumber)
       }
     },
   }
@@ -783,6 +794,62 @@ async function runQuick(
   }
 }
 
+async function reportImplementationConflict(
+  deps: RunnerDeps,
+  issueNumber: number,
+  files: readonly string[],
+): Promise<void> {
+  const head = implementationBranch(issueNumber)
+  const pullRequests = await withRetry(() =>
+    deps.github.listPullRequests({ head, limit: 100 }),
+  )
+  const open = pullRequests.filter((pr) => pr.state === "open")
+  const body = conflictFileComment(files)
+  if (open.length === 1) {
+    await withRetry(() =>
+      deps.github.addPullRequestComment(open[0]!.number, body),
+    )
+  } else {
+    await withRetry(() => deps.github.addComment(issueNumber, body))
+  }
+  await withRetry(() =>
+    deps.github.editLabels(issueNumber, {
+      remove: [LABEL_IN_PROGRESS],
+      add: [LABEL_CONFLICT],
+    }),
+  )
+}
+
+async function reportFixConflict(
+  deps: RunnerDeps,
+  issueNumber: number,
+  pullRequest: PullRequest,
+  files: readonly string[],
+): Promise<void> {
+  const body = conflictFileComment(files)
+  await withRetry(() =>
+    deps.github.addPullRequestComment(pullRequest.number, body),
+  )
+  await withRetry(() =>
+    deps.github.editLabels(issueNumber, {
+      remove: [LABEL_IN_PROGRESS],
+      add: [LABEL_CONFLICT],
+    }),
+  )
+}
+
+async function mergeDefaultBranchIntoWorkBranch(
+  deps: RunnerDeps,
+  remote: string,
+  defaultBranch: string,
+): Promise<
+  | { status: "merged" }
+  | { status: "conflict"; files: readonly string[] }
+> {
+  await withRetry(() => deps.git.fetch(remote, defaultBranch))
+  return deps.git.mergeFetched()
+}
+
 async function runImplementation(
   deps: RunnerDeps,
   issueNumber: number,
@@ -808,6 +875,16 @@ async function runImplementation(
   const remote = await withRetry(() => deps.git.remoteName())
   await withRetry(() => deps.git.fetch(remote, branch))
   await withRetry(() => deps.git.checkoutFetched(branch))
+
+  const mergeResult = await mergeDefaultBranchIntoWorkBranch(
+    deps,
+    remote,
+    defaultBranch,
+  )
+  if (mergeResult.status === "conflict") {
+    await reportImplementationConflict(deps, issueNumber, mergeResult.files)
+    return
+  }
 
   const procedure = await deps.createProcedureFile()
   try {
@@ -965,6 +1042,22 @@ async function runFix(
     const remote = await withRetry(() => deps.git.remoteName())
     await withRetry(() => deps.git.fetch(remote, branch))
     await withRetry(() => deps.git.checkoutFetched(branch))
+
+    const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
+    const mergeResult = await mergeDefaultBranchIntoWorkBranch(
+      deps,
+      remote,
+      defaultBranch,
+    )
+    if (mergeResult.status === "conflict") {
+      await reportFixConflict(
+        deps,
+        issueNumber,
+        pullRequest,
+        mergeResult.files,
+      )
+      return
+    }
 
     const procedure = await deps.createProcedureFile()
 
