@@ -13,6 +13,7 @@ import {
   classifyFixPullRequests,
   createRunner,
   implementationBranch,
+  pullRequestBody,
   selectFixIssues,
   selectImplementationIssue,
   selectQuickIssue,
@@ -153,6 +154,24 @@ describe("acceptanceComment", () => {
     const body = acceptanceComment(" 手順  ")
     expect(body.startsWith(`${commentMarkers.acceptance}\n`)).toBe(true)
     expect(body.endsWith(" 手順  ")).toBe(true)
+  })
+})
+
+describe("pullRequestBody", () => {
+  test("空と印を拒否し成功時は課題 URL と acceptanceComment の戻り値", () => {
+    expect(() => pullRequestBody("https://issue/1", "   ")).toThrow(
+      "受け入れ手順が空です",
+    )
+    expect(() => pullRequestBody("https://issue/1", "sdd-cur: 確認\nx")).toThrow(
+      "受け入れ手順に印を含めない",
+    )
+    const issueUrl = "https://issue/1"
+    const payload = " 手順  "
+    const body = pullRequestBody(issueUrl, payload)
+    expect(body).toBe(`${issueUrl}\n${acceptanceComment(payload)}`)
+    expect(body.startsWith(`${issueUrl}\n${commentMarkers.acceptance}\n`)).toBe(
+      true,
+    )
   })
 })
 
@@ -549,13 +568,17 @@ describe("createRunner", () => {
           log.push(`createPullRequest:${input.body}`)
           expect(input.base).toBe("main")
           expect(input.head).toBe("task-1")
-          expect(input.body).toBe("https://issue/1")
+          expect(input.body).toBe(
+            pullRequestBody("https://issue/1", "手順本文"),
+          )
           expect(input.body).not.toContain("Fixes")
           expect(input.body).not.toContain("Closes")
           return { number: 1, url: "https://pr" }
         },
         async addComment(_n, body) {
-          log.push(`addComment:${body.split("\n")[0]}`)
+          log.push(`addComment:${body}`)
+          expect(body).toBe("https://pr")
+          expect(body).not.toContain(commentMarkers.acceptance)
           return { url: "https://c" }
         },
       },
@@ -605,10 +628,69 @@ describe("createRunner", () => {
       "hasChanges",
       "commitAll",
       "push",
-      "createPullRequest:https://issue/1",
-      `addComment:${commentMarkers.acceptance}`,
+      `createPullRequest:${pullRequestBody("https://issue/1", "手順本文")}`,
+      "addComment:https://pr",
       "editLabels:done",
     ])
+    await rm(procedurePath, { force: true })
+  })
+
+  test("acceptanceComment が拒否する payload では createPullRequest と addComment を呼ばない", async () => {
+    let prCalled = false
+    let commentCalled = false
+    const procedurePath = "/tmp/procedure-reject.txt"
+    await writeFile(procedurePath, "   ", "utf8")
+
+    const runner = createRunner({
+      completionCaller: null,
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          prCalled = true
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          commentCalled = true
+          return { url: "https://c" }
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+
+    await expect(runner.process({ id: "1" })).rejects.toThrow(
+      "受け入れ手順が空です",
+    )
+    expect(prCalled).toBe(false)
+    expect(commentCalled).toBe(false)
     await rm(procedurePath, { force: true })
   })
 
@@ -1303,10 +1385,15 @@ describe("createRunner", () => {
           log.push("createPullRequest")
           expect(input.head).toBe("task-56")
           expect(input.base).toBe("main")
+          expect(input.body).toBe(pullRequestBody("https://issue/56", "手順"))
+          expect(input.body).not.toContain("Fixes")
+          expect(input.body).not.toContain("Closes")
           return { number: 1, url: "https://pr" }
         },
         async addComment(_n, body) {
-          log.push(`addComment:${body.split("\n")[0]}`)
+          log.push(`addComment:${body}`)
+          expect(body).toBe("https://pr")
+          expect(body).not.toContain(commentMarkers.acceptance)
         },
         async listPullRequests() {
           return []
@@ -1375,7 +1462,7 @@ describe("createRunner", () => {
       "commitAll",
       "push",
       "createPullRequest",
-      `addComment:${commentMarkers.acceptance}`,
+      "addComment:https://pr",
       "editLabels:done",
     ])
     await rm(quickPath, { force: true })
@@ -2433,6 +2520,7 @@ describe("createRunner fix", () => {
       "editLabels:done",
     ])
     expect(log).not.toContain("addComment")
+    expect(log.join("\n")).not.toContain("createPullRequest")
     await rm(procedurePath, { force: true })
   })
 

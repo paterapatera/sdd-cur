@@ -128,6 +128,22 @@ export function parseComment(body: string): ParsedComment {
   return { kind, payload }
 }
 
+export function acceptanceProcedure(body: string): string | null {
+  const normalized = normalizeNewlines(body)
+  const lines = normalized.split("\n")
+  let markerIndex = -1
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i] === commentMarkers.acceptance) {
+      markerIndex = i
+      break
+    }
+  }
+  if (markerIndex < 0) {
+    return null
+  }
+  return lines.slice(markerIndex + 1).join("\n")
+}
+
 function compareComments(a: IssueComment, b: IssueComment): number {
   if (a.createdAt !== b.createdAt) {
     return a.createdAt < b.createdAt ? -1 : 1
