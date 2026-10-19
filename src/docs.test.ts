@@ -85,14 +85,14 @@ function subcommandsFromMarkdownTable(table: string): Set<string> {
   return names
 }
 
-function agentsCliTableRoleCell(agents: string): string {
-  for (const line of agents.split("\n")) {
+function policyCliTableRoleCell(policy: string): string {
+  for (const line of policy.split("\n")) {
     if (line.startsWith("| `src/cli.ts` |")) {
       const parts = line.split("|")
       return parts[2]?.trim() ?? ""
     }
   }
-  throw new Error("AGENTS.md に src/cli.ts の行がありません")
+  throw new Error("docs/policy.md に src/cli.ts の行が無い")
 }
 
 function skillDirNames(): Set<string> {
@@ -142,11 +142,12 @@ function frontmatterModel(agentText: string): string {
 describe("docs と skills の整合", () => {
   test("サブコマンド一覧が cli.ts の switch と一致する", () => {
     const expected = cliSubcommandNames()
+    const policy = readFileSync(join(root, "docs/policy.md"), "utf8")
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8")
     const readme = readFileSync(join(root, "README.md"), "utf8")
 
-    const fromAgentsTable = backtickNamesInText(agentsCliTableRoleCell(agents))
-    expect(sorted(fromAgentsTable)).toEqual(sorted(expected))
+    const fromPolicyTable = backtickNamesInText(policyCliTableRoleCell(policy))
+    expect(sorted(fromPolicyTable)).toEqual(sorted(expected))
 
     const agentsFence = firstCodeFenceAfter(agents, "## コマンド")
     expect(sorted(subcommandsFromCliCodeFence(agentsFence))).toEqual(
@@ -209,12 +210,39 @@ describe("docs と skills の整合", () => {
     }
   })
 
-  test("AGENTS.md の課題作成の記述", () => {
+  test("docs/policy.md の課題作成の記述", () => {
+    const policy = readFileSync(join(root, "docs/policy.md"), "utf8")
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8")
-    expect(agents).toContain(
+    const readme = readFileSync(join(root, "README.md"), "utf8")
+
+    expect(policy).toContain(
       "人が明示して起動したときに、`skills/sdd-cur-create-issue` が課題を作る。",
     )
-    expect(agents).toContain("課題ランナーは課題を作らない。")
-    expect(agents).not.toContain("SDD スキルも課題ランナーも、課題を作らない")
+    expect(policy).toContain("課題ランナーは課題を作らない。")
+    expect(policy).not.toContain("SDD スキルも課題ランナーも、課題は作らない")
+    expect(agents).not.toContain("SDD スキルも課題ランナーも、課題は作らない")
+
+    expect(agents).toContain("docs/policy.md")
+    expect(agents).not.toContain("## 構成")
+    expect(agents).not.toContain("## 文言")
+    expect(agents).not.toContain("依存パッケージは置かない。")
+    expect(agents).not.toContain("設計に書いた「範囲外」は作らない。")
+    expect(agents).not.toContain(
+      "利用者向けのメッセージ、ドキュメント、コミットメッセージの説明は日本語で書く。",
+    )
+    expect(agents).not.toContain(
+      "人が明示して起動したときに、`skills/sdd-cur-create-issue` が課題を作る。",
+    )
+
+    expect(policy).toContain("依存パッケージは置かない。")
+    expect(policy).toContain("設計に書いた「範囲外」は作らない。")
+    expect(policy).toContain(
+      "利用者向けのメッセージ、ドキュメント、コミットメッセージの説明は日本語で書く。",
+    )
+
+    expect(readme).toContain("docs/policy.md")
+    expect(readme).not.toContain("依存パッケージは置かない。")
+    expect(readme).not.toContain("TypeScript は Bun が直接実行する。")
+    expect(readme).not.toContain("お客さまの確認が取れてから、人が閉じる。")
   })
 })

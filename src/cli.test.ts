@@ -19,8 +19,8 @@ const usageText =
   "sdd-cur confirm <番号>\n" +
   "sdd-cur close <番号>\n" +
   "sdd-cur reflect <番号> <requirements|design>\n" +
-  "sdd-cur complete <番号>\n" +
-  "sdd-cur restore <番号>\n"
+  "sdd-cur validate <番号>\n" +
+  "sdd-cur complete <番号>\n"
 
 describe("cli subprocess", () => {
   test("install が <temp>/.cursor/skills を作る", async () => {
@@ -409,6 +409,135 @@ describe("cli subprocess", () => {
       expect(await proc.exited).toBe(1)
       const stderr = await new Response(proc.stderr).text()
       expect(stderr.trim()).toBe("反映済みの記録が複数あります")
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("validate の引数", async () => {
+    for (const args of [[], ["1", "extra"]] as const) {
+      const proc = Bun.spawn([bunExe, cliPath, "validate", ...args], {
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await proc.exited).toBe(1)
+      expect(await new Response(proc.stderr).text()).toBe(usageText)
+    }
+    const bad = Bun.spawn([bunExe, cliPath, "validate", "01"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: isolatedPath },
+    })
+    expect(await bad.exited).toBe(1)
+    expect(await new Response(bad.stderr).text()).toBe("番号が不正です\n")
+  })
+
+  test("validate 1 は specs 無しで 0", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-val-empty-"))
+    try {
+      const proc = Bun.spawn([bunExe, cliPath, "validate", "1"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await proc.exited).toBe(0)
+      expect(await new Response(proc.stdout).text()).toBe("")
+      expect(await new Response(proc.stderr).text()).toBe("")
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("validate の形式検査", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-val-"))
+    const form = "<!-- sdd-cur:form -->"
+    try {
+      const specDir = path.join(temp, "docs", "specs", "9")
+      await mkdir(specDir, { recursive: true })
+      const okReq = `# 9 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n`
+      const okDesign = `# 9 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n## 範囲外\n\n## 決定\n\n## テスト\n- [1]\n`
+      await writeFile(path.join(specDir, "requirements.md"), okReq)
+      await writeFile(path.join(specDir, "design.md"), okDesign)
+      const okProc = Bun.spawn([bunExe, cliPath, "validate", "9"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await okProc.exited).toBe(0)
+
+      const badReq = `# 9 題\n${form}\n## 受け入れ条件\n- bad\n`
+      await writeFile(path.join(specDir, "requirements.md"), badReq)
+      await rm(path.join(specDir, "design.md"))
+      const reqOnly = Bun.spawn([bunExe, cliPath, "validate", "9"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await reqOnly.exited).toBe(1)
+      const reqErr = await new Response(reqOnly.stderr).text()
+      expect(reqErr).toMatch(
+        /^docs\/specs\/9\/requirements\.md: /m,
+      )
+      expect(await new Response(reqOnly.stdout).text()).toBe("")
+
+      await writeFile(path.join(specDir, "requirements.md"), "# 9 題\n")
+      await writeFile(
+        path.join(specDir, "design.md"),
+        `# 9 題\n${form}\n## 受け入れ条件\n- bad\n`,
+      )
+      const designOnly = Bun.spawn([bunExe, cliPath, "validate", "9"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await designOnly.exited).toBe(1)
+      expect(await new Response(designOnly.stderr).text()).toMatch(
+        /^docs\/specs\/9\/design\.md: /m,
+      )
+
+      await writeFile(path.join(specDir, "requirements.md"), badReq)
+      await writeFile(path.join(specDir, "design.md"), badReq)
+      const both = Bun.spawn([bunExe, cliPath, "validate", "9"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await both.exited).toBe(1)
+      const bothErr = await new Response(both.stderr).text()
+      const lines = bothErr.trimEnd().split("\n")
+      expect(lines[0]).toMatch(/^docs\/specs\/9\/requirements\.md: /)
+      expect(lines.some((l) => l.startsWith("docs/specs/9/design.md: "))).toBe(
+        true,
+      )
+
+      await writeFile(path.join(specDir, "requirements.md"), "適切に\n")
+      await writeFile(path.join(specDir, "design.md"), "適切に\n")
+      const noMarker = Bun.spawn([bunExe, cliPath, "validate", "9"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await noMarker.exited).toBe(0)
+
+      await rm(path.join(specDir, "requirements.md"))
+      await mkdir(path.join(specDir, "requirements.md"), { recursive: true })
+      const dirProc = Bun.spawn([bunExe, cliPath, "validate", "9"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await dirProc.exited).toBe(1)
+      expect(await new Response(dirProc.stderr).text().then((s) => s.trim())).toBe(
+        "仕様を読めません",
+      )
     } finally {
       await rm(temp, { recursive: true, force: true })
     }

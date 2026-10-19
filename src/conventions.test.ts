@@ -1,15 +1,22 @@
 import { describe, expect, test } from "bun:test"
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises"
 import { readFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   acceptanceProcedure,
+  ambiguousWords,
+  canonicalIdsFromMarkdown,
   commentMarkers,
   fixComment,
   fixedOpenLine,
+  formMarkerLine,
+  hasFormMarker,
   isSpecHeading,
   parseComment,
   parsePullRequestComment,
   parseReview,
+  readCanonicalIds,
   reviewConfirmMarkers,
   reviewJudgmentMarkers,
   pullRequestCommentMarkers,
@@ -20,6 +27,8 @@ import {
   selectUnprocessedBugs,
   specPaths,
   unincorporatedAnswers,
+  validateCanonicalDelta,
+  validateSpecForm,
   withReflectedId,
 } from "./conventions.ts"
 import type { IssueComment } from "./github.ts"
@@ -504,6 +513,228 @@ describe("parseReview", () => {
   })
 })
 
+describe("canonicalIdsFromMarkdown", () => {
+  test("行全体が ## REQ-1 の識別子だけを返す", () => {
+    const md = [
+      "## REQ-1",
+      "body",
+      "## REQ-01",
+      " ## REQ-1",
+      "### REQ-1",
+      "## REQ-1",
+    ].join("\n")
+    expect(canonicalIdsFromMarkdown(md)).toEqual(["REQ-1", "REQ-1"])
+  })
+})
+
+describe("validateCanonicalDelta", () => {
+  const section = (items: string) =>
+    `## 正本への差分\n${items}\n## 次`
+
+  test("節が無い、または項目が無いとき空", () => {
+    expect(validateCanonicalDelta("# 1 題\n", [])).toEqual([])
+    expect(validateCanonicalDelta(section(""), [])).toEqual([])
+  })
+
+  test("追加", () => {
+    const md = section("### 追加 spec REQ-1\nx")
+    expect(validateCanonicalDelta(md, [])).toEqual([])
+    expect(validateCanonicalDelta(md, ["REQ-1"])).toEqual([
+      "追加する識別子が正本にあります: REQ-1",
+    ])
+  })
+
+  test("変更", () => {
+    const md = section("### 変更 spec REQ-2\nx")
+    expect(validateCanonicalDelta(md, ["REQ-2"])).toEqual([])
+    expect(validateCanonicalDelta(md, [])).toEqual([
+      "変更する識別子が正本にありません: REQ-2",
+    ])
+  })
+
+  test("削除", () => {
+    const md = section("### 削除 spec REQ-3\nx")
+    expect(validateCanonicalDelta(md, ["REQ-3"])).toEqual([])
+    expect(validateCanonicalDelta(md, [])).toEqual([
+      "削除する識別子が正本にありません: REQ-3",
+    ])
+  })
+
+  test("同じ節で追加のあと変更は反映後の集合を見ない", () => {
+    const md = section("### 追加 spec REQ-1\na\n### 変更 spec REQ-1\nb")
+    expect(validateCanonicalDelta(md, [])).toEqual([
+      "変更する識別子が正本にありません: REQ-1",
+    ])
+  })
+
+  test("節の外と二度目の節、形に合わない見出しは見ない", () => {
+    const md = [
+      "### 追加 spec REQ-9",
+      "## 正本への差分",
+      "### 追加 spec REQ-1",
+      "### 追加 spec REQ-1 余分",
+      "## 正本への差分",
+      "### 変更 spec REQ-2",
+    ].join("\n")
+    expect(validateCanonicalDelta(md, [])).toEqual([])
+    expect(validateCanonicalDelta(md, ["REQ-2"])).toEqual([])
+  })
+})
+
+describe("readCanonicalIds", () => {
+  test("docs/spec が無いとき空", async () => {
+    const temp = await mkdtemp(join(tmpdir(), "sdd-canonical-"))
+    try {
+      expect(await readCanonicalIds(temp)).toEqual([])
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("ファイル名昇順で .md だけ読む", async () => {
+    const temp = await mkdtemp(join(tmpdir(), "sdd-canonical-"))
+    try {
+      const specDir = join(temp, "docs/spec")
+      await mkdir(specDir, { recursive: true })
+      await writeFile(join(specDir, "spec.md"), "## REQ-1\nx\n", "utf8")
+      await writeFile(join(specDir, "a.md"), "## REQ-2\ny\n", "utf8")
+      await writeFile(join(specDir, "note.txt"), "## REQ-9\n", "utf8")
+      expect(await readCanonicalIds(temp)).toEqual(["REQ-2", "REQ-1"])
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+})
+
+describe("hasFormMarker", () => {
+  test("2 行目の非空行が印のときだけ true", () => {
+    expect(
+      hasFormMarker(`# 1 題\n${formMarkerLine}\n`),
+    ).toBe(true)
+    expect(
+      hasFormMarker(`\n\n# 1 題\n${formMarkerLine}\n`),
+    ).toBe(true)
+    expect(hasFormMarker(`# 1 題\n${formMarkerLine}\r\n`)).toBe(true)
+    expect(hasFormMarker(`${formMarkerLine}\n# 1 題\n`)).toBe(false)
+    expect(hasFormMarker(`# 1 題\n\n${formMarkerLine}\n`)).toBe(true)
+    expect(hasFormMarker(`# 1 題\n ${formMarkerLine}\n`)).toBe(false)
+    expect(hasFormMarker(`# 1 題\n${formMarkerLine} \n`)).toBe(false)
+    expect(hasFormMarker("# 1 題\n")).toBe(false)
+  })
+})
+
+describe("ambiguousWords", () => {
+  test("十八語と同じ順", () => {
+    expect([...ambiguousWords]).toEqual([
+      "適切に",
+      "必要に応じて",
+      "適宜",
+      "可能な限り",
+      "十分に",
+      "なるべく",
+      "できるだけ",
+      "高速に",
+      "使いやすく",
+      "柔軟に",
+      "基本的に",
+      "原則として",
+      "一般的に",
+      "望ましくは",
+      "できれば",
+      "TBD",
+      "TODO",
+      "FIXME",
+    ])
+  })
+})
+
+describe("validateSpecForm", () => {
+  const marker = `# 1 題\n${formMarkerLine}\n`
+
+  test("印が無いとき空配列", () => {
+    expect(validateSpecForm("requirements", "# 1 題\n")).toEqual([])
+    expect(
+      validateSpecForm(
+        "design",
+        `# 1 題\n## 受け入れ条件\n- x\n## テスト\n- y\n適切に\n${reflectedOpenLine}\n${reflectedOpenLine}\n-->\n`,
+      ),
+    ).toEqual([])
+  })
+
+  test("印がある要件", () => {
+    const ok = `${marker}## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n## 現状\n任意\n`
+    expect(validateSpecForm("requirements", ok)).toEqual([])
+    const missing = `${marker}## 現状\n`
+    expect(validateSpecForm("requirements", missing)).toEqual([
+      "必須の節がありません: 受け入れ条件",
+    ])
+  })
+
+  test("印がある設計の必須の節", () => {
+    const base = `${marker}`
+    expect(validateSpecForm("design", base)).toEqual([
+      "必須の節がありません: 受け入れ条件",
+      "必須の節がありません: 範囲外",
+      "必須の節がありません: 決定",
+      "必須の節がありません: テスト",
+    ])
+  })
+
+  test("受け入れ条件の形", () => {
+    const body = `${marker}## 受け入れ条件\n- 01. 条件: c 主体: s 結果: r\n- 1.条件: c 主体: s 結果: r\n- 1. 条件:  主体: s 結果: r\n- 1. 条件: c 主体： s 結果: r\n`
+    const v = validateSpecForm("requirements", body)
+    expect(v.filter((x) => x.startsWith("受け入れ条件の形が不正"))).toHaveLength(
+      4,
+    )
+  })
+
+  test("番号の重複", () => {
+    const body = `${marker}## 受け入れ条件\n- 1. 条件: a 主体: s 結果: r\n- 1. 条件: b 主体: s 結果: r\n- x\n`
+    expect(validateSpecForm("requirements", body)).toContain(
+      "受け入れ条件の番号が重複しています: 1",
+    )
+  })
+
+  test("設計のテスト参照", () => {
+    const body = `${marker}## 受け入れ条件\n- 1. 条件: a 主体: s 結果: r\n- 2. 条件: b 主体: s 結果: r\n## 範囲外\n\n## 決定\n\n## テスト\n- [1]\n  - [2]\n- [9]\n`
+    const v = validateSpecForm("design", body)
+    expect(v).toContain("受け入れ条件がテストから参照されていません: 2")
+    expect(v).toContain("テストが参照する受け入れ条件がありません: 9")
+    expect(v.some((x) => x.startsWith("テストが受け入れ条件を参照していません"))).toBe(
+      false,
+    )
+  })
+
+  test("要件のテスト節は参照を見ない", () => {
+    const body = `${marker}## 受け入れ条件\n- 1. 条件: a 主体: s 結果: r\n## テスト\n- no ref\n`
+    expect(
+      validateSpecForm("requirements", body).some((x) =>
+        x.includes("テスト"),
+      ),
+    ).toBe(false)
+  })
+
+  test("反映済みと曖昧な語", () => {
+    const noOpen = `${marker}## 受け入れ条件\n- 1. 条件: a 主体: s 結果: r\n`
+    expect(
+      validateSpecForm("requirements", noOpen).some((x) =>
+        x.includes("反映済み"),
+      ),
+    ).toBe(false)
+    const multi = `${marker}## 受け入れ条件\n- 1. 条件: a 主体: s 結果: r\n${reflectedOpenLine}\n${reflectedOpenLine}\n-->\n`
+    expect(validateSpecForm("requirements", multi)).toContain(
+      "反映済みの記録が複数あります",
+    )
+    const amb = `${marker}## 受け入れ条件\n- 1. 条件: a 主体: s 結果: r\n不適切に\n`
+    expect(validateSpecForm("requirements", amb)).toContain(
+      "曖昧な語があります: 適切に",
+    )
+    expect(validateSpecForm("requirements", `${marker}fixme\n`)).not.toContain(
+      "曖昧な語があります: FIXME",
+    )
+  })
+})
+
 describe("文書", () => {
   test("docs/conventions.md", () => {
     const text = readFileSync(join(root, "docs/conventions.md"), "utf8")
@@ -519,6 +750,25 @@ describe("文書", () => {
     expect(text).toContain("sdd-cur:reflected")
     expect(text).toContain("requirements.md")
     expect(text).toContain("design.md")
+    expect(text).toContain("docs/spec/<領域>.md")
+    expect(text).toContain("## レビューが読む範囲")
+    expect(text).toContain(
+      "要求レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、#86 で作る正本と、対象課題の `docs/specs/<番号>/requirements.md` の「関係する課題」に挙げた課題の仕様だけである。",
+    )
+    expect(text).toContain(
+      "設計レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、#86 で作る正本と、対象課題の `docs/specs/<番号>/design.md` の「関係する課題」に挙げた課題の仕様だけである。",
+    )
+    expect(text).toContain("履歴として残す")
+    expect(text).toContain("## 正本への差分")
+    expect(text).toContain("### 追加 <領域> REQ-<番号>")
+    expect(text).toContain("### 変更 <領域> REQ-<番号>")
+    expect(text).toContain("### 削除 <領域> REQ-<番号>")
+    const fileSection = text.indexOf("## 課題ごとのファイル")
+    const canonicalSection = text.indexOf("## 仕様の正本")
+    const commentSection = text.indexOf("## 課題コメントの種別")
+    expect(fileSection).toBeGreaterThanOrEqual(0)
+    expect(canonicalSection).toBeGreaterThan(fileSection)
+    expect(commentSection).toBeGreaterThan(canonicalSection)
     expect(text).toContain("課題のコメントだけに書く")
     expect(text).toContain("未回答の確認があるあいだ、次の確認は投稿しない")
     expect(text).toContain(
@@ -550,6 +800,32 @@ describe("文書", () => {
     }
     expect(inFence).toBe(true)
     expect(openOutside).toBe(false)
+
+    expect(text).toContain(formMarkerLine)
+    let formInFence = false
+    let formOutside = false
+    for (let i = 0; i < fences.length; i += 1) {
+      const part = fences[i]
+      if (i % 2 === 1) {
+        if (part.includes(formMarkerLine)) {
+          formInFence = true
+        }
+      } else if (part.includes(formMarkerLine)) {
+        formOutside = true
+      }
+    }
+    expect(formInFence).toBe(true)
+    expect(formOutside).toBe(false)
+    expect(text).toContain(
+      "- <番号>. 条件: <条件> 主体: <主体> 結果: <結果>",
+    )
+    expect(text).toContain("[<番号>]")
+    expect(text).toContain("「受け入れ条件」")
+    expect(text).toContain("「範囲外」")
+    expect(text).toContain("「決定」")
+    expect(text).toContain("「テスト」")
+    const ambBlock = ambiguousWords.join("\n")
+    expect(text).toContain(ambBlock)
   })
 
   test("README と AGENTS.md", () => {
@@ -557,13 +833,16 @@ describe("文書", () => {
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8")
     expect(readme).toContain("docs/conventions.md")
     expect(agents).toContain("docs/conventions.md")
-    expect(agents).toContain("src/conventions.ts")
-    expect(agents).toContain(
+    const policy = readFileSync(join(root, "docs/policy.md"), "utf8")
+    expect(readme).toContain("docs/policy.md")
+    expect(agents).toContain("docs/policy.md")
+    expect(policy).toContain(
       "人が閉じるを選んだときに SDD スキルが閉じる場合を除き、課題は閉じない",
     )
-    expect(agents).toContain("課題ランナーは課題を閉じない")
-    expect(agents).toContain(
+    expect(policy).toContain("課題ランナーは課題を閉じない")
+    expect(policy).toContain(
       "`issue close` は、人が閉じるを選んだときに SDD スキルが課題を閉じる場合だけ付ける",
     )
+    expect(policy).toContain("src/conventions.ts")
   })
 })

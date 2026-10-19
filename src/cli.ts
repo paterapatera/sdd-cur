@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { homedir } from "node:os"
 import process from "node:process"
-import { specPaths } from "./conventions.ts"
+import { specPaths, validateSpecForm } from "./conventions.ts"
 import {
   assertDirectoryExists,
   defaultAgentsSourceDir,
@@ -36,6 +36,7 @@ import {
   parseSpecKind,
   plainIssueCommentBody,
   postConfirmation,
+  readSpecFile,
   readSpecPair,
   readStdinAll,
   validateReflectLocal,
@@ -52,8 +53,8 @@ export function printUsage(): void {
   console.error("sdd-cur confirm <番号>")
   console.error("sdd-cur close <番号>")
   console.error("sdd-cur reflect <番号> <requirements|design>")
+  console.error("sdd-cur validate <番号>")
   console.error("sdd-cur complete <番号>")
-  console.error("sdd-cur restore <番号>")
 }
 
 function wantsHelp(argv: string[]): boolean {
@@ -337,6 +338,59 @@ async function cmdReflect(args: string[]): Promise<number> {
   }
 }
 
+async function cmdValidate(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const paths = specPaths(issueNumber)
+  let reqFile: Awaited<ReturnType<typeof readSpecFile>>
+  try {
+    reqFile = await readSpecFile(paths.requirements)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const violations: string[] = []
+  if (reqFile.exists) {
+    for (const v of validateSpecForm("requirements", reqFile.markdown)) {
+      violations.push(`${paths.requirements}: ${v}`)
+    }
+  }
+
+  let designFile: Awaited<ReturnType<typeof readSpecFile>>
+  try {
+    designFile = await readSpecFile(paths.design)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  if (designFile.exists) {
+    for (const v of validateSpecForm("design", designFile.markdown)) {
+      violations.push(`${paths.design}: ${v}`)
+    }
+  }
+
+  if (violations.length > 0) {
+    for (const line of violations) {
+      console.error(line)
+    }
+    return 1
+  }
+  return 0
+}
+
 async function cmdRestore(args: string[]): Promise<number> {
   if (args.length !== 1) {
     printUsage()
@@ -431,6 +485,8 @@ async function main(): Promise<number> {
       return await cmdClose(rest)
     case "reflect":
       return await cmdReflect(rest)
+    case "validate":
+      return await cmdValidate(rest)
     case "complete":
       return await cmdComplete(rest)
     case "restore":
