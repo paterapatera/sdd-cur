@@ -298,16 +298,6 @@ bun src/cli.ts review-next <requirements|reflect-design|quick|implement> <番号
 - 6. この設計の `## 正本への差分` を、同じ作業ツリーの `docs/spec/` へ反映する。要求ファイルと設計ファイルは変えない。
 - 7. `bun test` を実行する。[17]
 
-## 実装の順序
-
-1. `extractFindings` と `reviewNext` を `src/conventions.ts` に足す。`parseReview` の結果は変えない。
-2. `src/91.test.ts` に、上の分岐、失敗、スキルの契約、文書の列挙を書く。
-3. `src/cli.ts` に `review-next` を足す。`printUsage` は変えない。`gh` は呼ばない。
-4. `docs/policy.md`、`AGENTS.md`、`README.md` の列挙に `review-next` を足す。
-5. 三つの `SKILL.md` を、スキルの節に合わせる。既存の三つの文言テストは、配列から除く文言だけを変える。
-6. 正本への差分を `docs/spec/` へ反映する。要求ファイルと設計ファイルは変えない。
-7. `bun test` を実行する。
-
 ## 関係する課題
 
 - #43 判定行と確認行の読み方。`parseReview` は変えない
