@@ -32,7 +32,7 @@ bun test
 
 | コマンド | すること |
 |---|---|
-| `install` | `skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の九つをコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents` |
+| `install` | `skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の十個をコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents` |
 | `run` | SIGINT または SIGTERM まで、「実装依頼」を探して「実装完了」まで行う。「動作確認OK」の完了処理も行う。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
 | `labels` | 作業ツリーのリポジトリに、六つの業務ラベルを作る。無いものだけ作る |
 | `candidates` | 着手候補の課題を JSON で一行出力する |
@@ -65,7 +65,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 | もの | 動く場所 | 役割 |
 |---|---|---|
-| SDD スキル | 人が開いている Project A の Cursor | 着手する課題の提案、要件、設計、回答の取り込み、完了処理 |
+| SDD スキル | 人が開いている Project A の Cursor | 着手する課題の提案、調べるだけの段、要件、設計、回答の取り込み、完了処理 |
 | 課題ランナー | Project A をクローンしたディレクトリ | 「実装依頼」の実装、「動作確認OK」の完了処理 |
 
 課題を作るのは人である。SDD スキルも課題ランナーも、課題は作らない。課題ランナーは Project A の作業ディレクトリでは動かさない。クローンは複数でよく、別の課題を同時に実装できる。
@@ -94,7 +94,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 ```
 docs/specs/<番号>/    課題ごとの要件と設計
 package.json
-agents/               install がコピーする要求・設計・実装レビュー用サブエージェント
+agents/               install がコピーするサブエージェント。要求・設計・実装の作成、レビュー、修正と、調べるだけの sdd-cur-explore
 src/*.test.ts
 skills/sdd-cur/               install がコピーする SDD スキル
 skills/sdd-cur-complete/      install がコピーする完了スキル
