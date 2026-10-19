@@ -212,7 +212,7 @@ agents/               install がコピーするサブエージェント。要�
 - `subagentFileNames` の長さは 10 であり、末尾は `sdd-cur-explore.md` である。先頭九つは、上の「コピー」の順と一文字も違わない。
 - README に、`調べるだけの段` と `sdd-cur-explore` と `十個をコピーする` がある。
 
-## 実装の順序
+## 作業の一覧
 
 1. `agents/sdd-cur-explore.md` を、上の中身で作る。既存の九つのサブエージェントは変えない。
 2. `src/install.ts` の `subagentFileNames` の末尾に `sdd-cur-explore.md` を足す。先頭九つの順は変えない。

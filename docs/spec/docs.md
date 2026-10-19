@@ -84,7 +84,7 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 
 3 回目以降に渡す `model` は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。レビューの開始は `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である。修正は `composer-2.5[fast=false]` である。2 回連続の不合格のあと 3 回目から high にし、合格まで high のままにする、という段の数え方は #30 のまま残す
 
-## REQ-729
+## REQ-762
 
 もとになった課題は #90 である。
 
