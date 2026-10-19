@@ -74,6 +74,10 @@ const expected = [
       "突き合わせ",
       "人が閉じるを選んだときに課題を閉じるのは SDD スキルである",
       "このサブエージェントは課題を閉じない",
+      "docs/spec/",
+      "関係する課題",
+      "挙げた課題の仕様",
+      "起動時に読むと定めた課題の要件と設計",
     ],
   },
   {
@@ -146,6 +150,10 @@ const expected = [
       "このサブエージェントは課題を閉じない",
       "## 正本への差分",
       "マージ後の正本が差分どおりかは見ない",
+      "docs/spec/",
+      "関係する課題",
+      "挙げた課題の仕様",
+      "起動時に読むと定めた課題の要件と設計",
     ],
   },
   {
@@ -253,6 +261,18 @@ describe("agents/*.md", () => {
       expect(text).toContain("判定: 合格")
       expect(text).toContain("判定: 不合格")
       expect(text).not.toContain("最後の非空行")
+    })
+  }
+
+  for (const file of [
+    "sdd-cur-req-reviewer.md",
+    "sdd-cur-design-reviewer.md",
+  ] as const) {
+    test(`${file} は docs/specs 全体を読まない`, async () => {
+      const text = await readFile(path.join(agentsDir, file), "utf8")
+      expect(text).not.toContain(
+        "`docs/specs/` にある既存の `requirements.md` と `design.md` を読む。",
+      )
     })
   }
 
