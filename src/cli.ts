@@ -19,6 +19,7 @@ import { ensureWorkflowLabels } from "./labels.ts"
 import { createAgent, defaultAgentRunner } from "./agent.ts"
 import { createGit, defaultGitRunner } from "./git.ts"
 import { parseRunArgs, runLoop } from "./run.ts"
+import { restoreIssue } from "./restore.ts"
 import {
   createRunner,
   defaultCreateProcedureFile,
@@ -52,6 +53,7 @@ export function printUsage(): void {
   console.error("sdd-cur close <番号>")
   console.error("sdd-cur reflect <番号> <requirements|design>")
   console.error("sdd-cur complete <番号>")
+  console.error("sdd-cur restore <番号>")
 }
 
 function wantsHelp(argv: string[]): boolean {
@@ -148,6 +150,10 @@ async function cmdRun(args: string[]): Promise<number> {
       console.log(line)
     },
     logError: (line) => console.error(line),
+    commentFailure: async (issueId, line) => {
+      const issueNumber = parseIssueNumberString(issueId)
+      await github.addComment(issueNumber, line)
+    },
   })
 
   return code
@@ -331,6 +337,33 @@ async function cmdReflect(args: string[]): Promise<number> {
   }
 }
 
+async function cmdRestore(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const cwd = process.cwd()
+
+  try {
+    const repo = await resolveRepo(defaultGhRunner, cwd)
+    const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
+    await restoreIssue(github, issueNumber)
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
 async function cmdComplete(args: string[]): Promise<number> {
   if (args.length !== 1) {
     printUsage()
@@ -395,6 +428,8 @@ async function main(): Promise<number> {
       return await cmdReflect(rest)
     case "complete":
       return await cmdComplete(rest)
+    case "restore":
+      return await cmdRestore(rest)
     default:
       printUsage()
       return 1
