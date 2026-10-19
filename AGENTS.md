@@ -4,7 +4,7 @@
 
 ## 着手前に読むもの
 
-1. [docs/conventions.md](docs/conventions.md)
+1. [docs/conventions.md](docs/conventions.md)。スキル、サブエージェント、テストの書き方は、このファイルを読む。
 2. 対象課題の `docs/specs/<番号>/design.md`
 
 設計の受け入れ条件、決定、範囲の中で実装する。設計に書いた「範囲外」は作らない。設計が無い挙動は足さない。
@@ -24,7 +24,7 @@
 | `src/agent.ts` | Cursor `agent` の起動 |
 | `src/github.ts` | Issue の取得、コメント、ラベル、ブランチ、マージリクエスト、スカッシュマージ |
 | `src/labels.ts` | 業務フロー用ラベル名と `ensureWorkflowLabels` |
-| `docs/conventions.md` | 要件・設計の置き場所と課題コメントの約束 |
+| `docs/conventions.md` | 要件・設計の置き場所と課題コメントの約束。スキル、サブエージェント、テストの書き方は、このファイルを読む。 |
 | `src/conventions.ts` | 上記約束の判定（パス、種別、対応、反映済み、未反映） |
 | `src/sdd.ts` | SDD スキル用の候補、表示、確認投稿、回答の反映 |
 | `skills/<名前>/` | `install` がコピーするスキル。直下のディレクトリだけが対象 |
