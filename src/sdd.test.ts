@@ -447,6 +447,19 @@ disable-model-invocation: true
 ---
 `)).toBe(true)
     const required = [
+      "## 起動",
+      "/sdd-cur",
+      "により明示して起動したときだけである",
+      "そのときだけ、これより後ろの手順に進む",
+      "スキルを @ すること",
+      "スキル呼び出しで明示して起動すること",
+      "手順に入る明示ではない",
+      "issue 7 の要件を作って",
+      "リポジトリによる出し分けはしない",
+      "リポジトリであることを理由にした特別扱いはしない",
+      "どのプロジェクトでも手順に入る",
+      "~/.cursor/skills",
+      "これより後ろを始めない",
       "## 着手",
       "## 要件",
       "## 設計",
@@ -562,6 +575,11 @@ disable-model-invocation: true
     for (const phrase of required) {
       expect(text).toContain(phrase)
     }
+    const titleStart = text.indexOf("# sdd-cur")
+    const kidoStart = text.indexOf("## 起動")
+    const chakushuStart = text.indexOf("## 着手")
+    expect(kidoStart).toBeGreaterThan(titleStart)
+    expect(chakushuStart).toBeGreaterThan(kidoStart)
     const requirementsStart = text.indexOf("## 要件")
     const designStart = text.indexOf("## 設計")
     const confirmStart = text.indexOf("## 確認")
