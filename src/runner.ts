@@ -266,6 +266,11 @@ export function acceptanceComment(payload: string): string {
   return `${commentMarkers.acceptance}\n${payload}`
 }
 
+export function pullRequestBody(issueUrl: string, payload: string): string {
+  const acceptance = acceptanceComment(payload)
+  return `${issueUrl}\n${acceptance}`
+}
+
 export async function defaultCreateProcedureFile(): Promise<{
   path: string
   remove(): Promise<void>
@@ -530,10 +535,10 @@ async function runQuick(
         throw error
       }
 
-      let commentBody: string
+      let prBody: string
       try {
         const payload = await readFile(procedure.path, "utf8")
-        commentBody = acceptanceComment(payload)
+        prBody = pullRequestBody(issue.url, payload)
       } catch (error) {
         await procedure.remove()
         throw error
@@ -549,17 +554,17 @@ async function runQuick(
       await withRetry(() => deps.git.commitAll(commitMessage))
       await withRetry(() => deps.git.push(remote, branch))
 
-      await withRetry(() =>
+      const pullRequest = await withRetry(() =>
         deps.github.createPullRequest({
           base: defaultBranch,
           head: branch,
           title: issue.title,
-          body: issue.url,
+          body: prBody,
         }),
       )
 
       await withRetry(() =>
-        deps.github.addComment(issueNumber, commentBody),
+        deps.github.addComment(issueNumber, pullRequest.url),
       )
 
       await withRetry(() =>
@@ -619,10 +624,10 @@ async function runImplementation(
       throw error
     }
 
-    let commentBody: string
+    let prBody: string
     try {
       const payload = await readFile(procedure.path, "utf8")
-      commentBody = acceptanceComment(payload)
+      prBody = pullRequestBody(issue.url, payload)
     } catch (error) {
       await procedure.remove()
       throw error
@@ -638,17 +643,17 @@ async function runImplementation(
     await withRetry(() => deps.git.commitAll(commitMessage))
     await withRetry(() => deps.git.push(remote, branch))
 
-    await withRetry(() =>
+    const pullRequest = await withRetry(() =>
       deps.github.createPullRequest({
         base: defaultBranch,
         head: branch,
         title: issue.title,
-        body: issue.url,
+        body: prBody,
       }),
     )
 
     await withRetry(() =>
-      deps.github.addComment(issueNumber, commentBody),
+      deps.github.addComment(issueNumber, pullRequest.url),
     )
 
     await withRetry(() =>

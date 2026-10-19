@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import {
+  acceptanceProcedure,
   commentMarkers,
   fixComment,
   fixedOpenLine,
@@ -138,6 +139,50 @@ describe("relateComments", () => {
     expect(related.acceptance).toBe(comments[4])
   })
 
+})
+
+describe("acceptanceProcedure", () => {
+  const issueUrl = "https://github.com/o/r/issues/1"
+
+  test("課題 URL・印・手順の本文から手順だけ返す", () => {
+    const body = `${issueUrl}\n${commentMarkers.acceptance}\n手順`
+    expect(acceptanceProcedure(body)).toBe("手順")
+    expect(acceptanceProcedure(body)).not.toContain(issueUrl)
+    expect(acceptanceProcedure(body)).not.toContain(commentMarkers.acceptance)
+  })
+
+  test("payload の空白と印のうしろの空行を残し改行は \\n だけ", () => {
+    const body = `${issueUrl}\n${commentMarkers.acceptance}\n  手順  \n\n`
+    expect(acceptanceProcedure(body)).toBe("  手順  \n\n")
+    expect(acceptanceProcedure(body)).not.toContain("\r")
+    const cr = `${issueUrl}\r\n${commentMarkers.acceptance}\r\n手順`
+    expect(acceptanceProcedure(cr)).toBe("手順")
+  })
+
+  test("印が無いときと課題 URL だけは null、印の行が末尾なら空文字", () => {
+    expect(acceptanceProcedure("本文だけ")).toBeNull()
+    expect(acceptanceProcedure(issueUrl)).toBeNull()
+    expect(acceptanceProcedure(`${issueUrl}\n${commentMarkers.acceptance}`)).toBe(
+      "",
+    )
+  })
+
+  test("印の行に空白があれば印ではない", () => {
+    expect(
+      acceptanceProcedure(`${issueUrl}\n ${commentMarkers.acceptance}\n手順`),
+    ).toBeNull()
+  })
+
+  test("二つ目の印では切り直さない", () => {
+    const body = `${issueUrl}\n${commentMarkers.acceptance}\n手順1\n${commentMarkers.acceptance}\n手順2`
+    expect(acceptanceProcedure(body)).toBe(
+      `手順1\n${commentMarkers.acceptance}\n手順2`,
+    )
+  })
+
+  test("マージリクエストの URL だけの本文は parseComment で other", () => {
+    expect(parseComment("https://github.com/o/r/pull/1").kind).toBe("other")
+  })
 })
 
 describe("readReflectedIds", () => {
@@ -476,6 +521,15 @@ describe("文書", () => {
     expect(text).toContain("design.md")
     expect(text).toContain("課題のコメントだけに書く")
     expect(text).toContain("未回答の確認があるあいだ、次の確認は投稿しない")
+    expect(text).toContain(
+      "課題コメントにある受け入れ手順は、同じ順の最後の一件である。",
+    )
+    expect(text).toContain(
+      "課題ランナーが書く現在の手順は、マージリクエストの本文から取る。",
+    )
+    expect(text).toContain("## マージリクエストの本文")
+    expect(text).toContain("マージリクエストの URL だけ")
+    expect(text).toContain("確認と回答の課題コメントは、変えない。")
     expect(text).toContain(pullRequestCommentMarkers.bug)
     expect(text).toContain(pullRequestCommentMarkers.fix)
     expect(text).toContain("sdd-cur:fixed")
