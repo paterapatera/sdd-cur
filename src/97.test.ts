@@ -133,10 +133,15 @@ describe("issue 97 conventions and layout", () => {
 
   test("AGENTS.md の参照", async () => {
     const text = await readFile(path.join(root, "AGENTS.md"), "utf8")
-    expect(text).toContain(
+    const policy = await readFile(path.join(root, "docs/policy.md"), "utf8")
+    expect(text).toContain("[docs/conventions.md](docs/conventions.md)")
+    expect(text).not.toContain("一文を一行")
+    expect(text).not.toContain(
       "スキル、サブエージェント、テストの書き方は、このファイルを読む。",
     )
-    expect(text).not.toContain("一文を一行")
+    expect(policy).toContain(
+      "スキル、サブエージェント、テストの書き方は、このファイルを読む。",
+    )
   })
 
   test("旧三ファイルは無い", async () => {

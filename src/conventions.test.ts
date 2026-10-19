@@ -825,13 +825,16 @@ describe("文書", () => {
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8")
     expect(readme).toContain("docs/conventions.md")
     expect(agents).toContain("docs/conventions.md")
-    expect(agents).toContain("src/conventions.ts")
-    expect(agents).toContain(
+    const policy = readFileSync(join(root, "docs/policy.md"), "utf8")
+    expect(readme).toContain("docs/policy.md")
+    expect(agents).toContain("docs/policy.md")
+    expect(policy).toContain(
       "人が閉じるを選んだときに SDD スキルが閉じる場合を除き、課題は閉じない",
     )
-    expect(agents).toContain("課題ランナーは課題を閉じない")
-    expect(agents).toContain(
+    expect(policy).toContain("課題ランナーは課題を閉じない")
+    expect(policy).toContain(
       "`issue close` は、人が閉じるを選んだときに SDD スキルが課題を閉じる場合だけ付ける",
     )
+    expect(policy).toContain("src/conventions.ts")
   })
 })
