@@ -166,7 +166,7 @@
 
 install の検証は、既存の一時ディレクトリの試験のままである。期待の文は変えない。`src/sdd.test.ts` は、`bun src/cli.ts install <temp>` の終了コードが 0 であり、`<temp>/.cursor/skills/sdd-cur/SKILL.md` と、コピーした作成役が、パッケージのそのファイルと一致することを確かめる。この一致が、足した文もコピー先に含まれることを確かめる。ホームの `~/.cursor/skills` へコピーしたことの試験は足さない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `agents/sdd-cur-req-author.md` と `agents/sdd-cur-design-author.md` の `## 親への返信` を、この設計のブロックにする。それより前は変えない。`src/agents.test.ts` に、上の期待を足す。
 2. `skills/sdd-cur/SKILL.md` の「要件」と「設計」に、上の各一文を足す。他の文は残す。`src/sdd.test.ts` の必須文言を、上の試験に合わせる。

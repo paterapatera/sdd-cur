@@ -208,7 +208,7 @@ Markdown として表示したときは、分ける前と同じである。
 
 `src/conventions.test.ts` と `src/docs.test.ts` の既存の期待は残す。`AGENTS.md` の課題作成の文と、`docs/conventions.md` の既存の印は、この課題でも残る。
 
-## 実装の順序
+## 作業の一覧
 
 1. `docs/conventions.md` の末尾に、上の節を足す。既存の節は変えない。
 2. `AGENTS.md` の着手前の 1 番と、構成表の `docs/conventions.md` の役割だけを、上の文言にする。

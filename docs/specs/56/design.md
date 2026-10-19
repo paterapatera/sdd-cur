@@ -338,7 +338,7 @@ quick(input: { issueNumber: number; resultPath: string }): Promise<void>
 
 `skills/sdd-cur/SKILL.md` と `skills/sdd-cur-implement/SKILL.md` の既存の必須文言は、残ったままである。
 
-## 実装の順序
+## 作業の一覧
 
 1. `src/sdd.ts` に `isQuickTarget` を足し、`src/sdd.test.ts` を上の期待に合わせる。
 2. `src/runner.ts` に `selectQuickIssue`、poll の quick、process の quick を足す。既存の実装、不具合修正、完了処理の分岐は残す。

@@ -143,7 +143,7 @@ sdd-cur labels
 
 `bun test` のあと、このリポジトリの作業ツリーで `bun src/cli.ts labels` を一回実行する。標準出力が五件で、終了コードが 0 であることを確かめる。もう一度実行し、五行とも `既にあります:` で、終了コードが 0 であることを確かめる。
 
-## 実装の順序
+## 作業の一覧
 
 1. `getLabel` と `createLabel` を `src/github.ts` に足し、符号化、404、作成の JSON、不正値のテストを通す。
 2. `workflowLabels` と `ensureWorkflowLabels` を `src/labels.ts` に置き、無いものだけ作り、途中の拒否で止まることを確かめる。

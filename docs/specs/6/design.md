@@ -259,7 +259,7 @@ disable-model-invocation: true
 
 `src/cli.test.ts` の、`run` を子プロセスで起動して SIGTERM を送る試験は、一時ディレクトリを作業ディレクトリにし、`PATH` を `bun` のあるディレクトリだけにする。標準エラーは `gh を実行できません` の一行、終了コードは 1 であり、1 分は待たない。SIGINT と SIGTERM でループが終了コード 0 になることは、既存の `src/run.test.ts` が注入で確かめる。
 
-## 実装の順序
+## 作業の一覧
 
 1. `getDefaultBranch` を `src/github.ts` に足し、引数と応答の試験を通す。
 2. `src/git.ts` と `src/agent.ts` を置き、注入した実行係で引数の試験を通す。

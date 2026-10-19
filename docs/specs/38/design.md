@@ -135,7 +135,7 @@ flowchart TD
 
 `src/sdd.ts` の `reflect` と `applyIncorporatedAnswer` の既存のテストは、期待を変えない。`src/agents.test.ts` の期待は変えない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `skills/sdd-cur/SKILL.md` の「回答」を、この設計のスキルの手順に合わせる。他の節は変えない。
 2. `src/sdd.test.ts` の必須文言に、上の文言を足す。既存の必須文言は残す。

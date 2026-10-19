@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises"
-import { readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -733,6 +733,127 @@ describe("validateSpecForm", () => {
       "曖昧な語があります: FIXME",
     )
   })
+
+  const designSections = (
+    parts: {
+      acceptance: string
+      workList?: string
+      test: string
+    },
+  ): string =>
+    [
+      `${marker}## 受け入れ条件\n${parts.acceptance}`,
+      "## 範囲外\n",
+      "## 決定\n",
+      parts.workList === undefined
+        ? ""
+        : `## 作業の一覧\n${parts.workList}`,
+      `## テスト\n${parts.test}`,
+    ]
+      .filter((s) => s.length > 0)
+      .join("\n")
+
+  const twoAcceptance =
+    "- 1. 条件: a 主体: s 結果: r\n- 2. 条件: b 主体: s 結果: r\n"
+
+  test("作業の一覧に無い受け入れ条件", () => {
+    const body = designSections({
+      acceptance: twoAcceptance,
+      workList: "- 1. 実装する。[1]\n",
+      test: "- [1]\n- [2]\n",
+    })
+    expect(validateSpecForm("design", body)).toContain(
+      "受け入れ条件が作業の一覧に入っていません: 2",
+    )
+  })
+
+  test("作業の一覧が受け入れ条件をすべて参照", () => {
+    const body = designSections({
+      acceptance: twoAcceptance,
+      workList: "- 1. 一。[1]\n- 2. 二。[2]\n",
+      test: "- [1]\n- [2]\n",
+    })
+    const v = validateSpecForm("design", body)
+    expect(
+      v.some((x) => x.startsWith("受け入れ条件が作業の一覧に入っていません")),
+    ).toBe(false)
+  })
+
+  test("同じ番号が複数の作業にある", () => {
+    const body = designSections({
+      acceptance: twoAcceptance,
+      workList: "- 1. 一。[1]\n- 2. 二。[1][2]\n",
+      test: "- [1]\n- [2]\n",
+    })
+    const v = validateSpecForm("design", body)
+    expect(
+      v.some((x) => x.startsWith("受け入れ条件が作業の一覧に入っていません")),
+    ).toBe(false)
+  })
+
+  test("作業が存在しない受け入れ条件番号を参照", () => {
+    const body = designSections({
+      acceptance: "- 1. 条件: a 主体: s 結果: r\n",
+      workList: "- 1. 実装。[9]\n",
+      test: "- [1]\n",
+    })
+    const v = validateSpecForm("design", body)
+    expect(v).toContain("受け入れ条件が作業の一覧に入っていません: 1")
+    expect(v.some((x) => x.includes("作業の一覧") && x.includes("9"))).toBe(
+      false,
+    )
+  })
+
+  test("作業の一覧の節が無い", () => {
+    const body = designSections({
+      acceptance: twoAcceptance,
+      test: "- [1]\n- [2]\n",
+    })
+    const v = validateSpecForm("design", body)
+    expect(v).toEqual([
+      "受け入れ条件が作業の一覧に入っていません: 1",
+      "受け入れ条件が作業の一覧に入っていません: 2",
+    ])
+    expect(v.some((x) => x.includes("必須の節がありません: 作業の一覧"))).toBe(
+      false,
+    )
+  })
+
+  test("テスト参照の違反が作業の一覧の違反より前", () => {
+    const body = designSections({
+      acceptance: twoAcceptance,
+      workList: "- 1. 実装。[1]\n",
+      test: "- [1]\n",
+    })
+    const v = validateSpecForm("design", body)
+    const testIdx = v.indexOf("受け入れ条件がテストから参照されていません: 2")
+    const workIdx = v.indexOf("受け入れ条件が作業の一覧に入っていません: 2")
+    expect(testIdx).toBeGreaterThanOrEqual(0)
+    expect(workIdx).toBeGreaterThanOrEqual(0)
+    expect(testIdx).toBeLessThan(workIdx)
+  })
+
+  test("印が無い設計と要件では作業の一覧を見ない", () => {
+    const withWork = `# 1 題\n## 受け入れ条件\n- 1. 条件: a 主体: s 結果: r\n## 作業の一覧\n- 1. x\n## テスト\n- [1]\n`
+    expect(validateSpecForm("design", withWork)).toEqual([])
+    const req = `${marker}## 受け入れ条件\n- 1. 条件: a 主体: s 結果: r\n- 2. 条件: b 主体: s 結果: r\n## 作業の一覧\n- 1. x。[1]\n`
+    expect(
+      validateSpecForm("requirements", req).some((x) =>
+        x.includes("作業の一覧"),
+      ),
+    ).toBe(false)
+  })
+
+  test("行頭が番号だけの行は作業に数えない", () => {
+    const body = designSections({
+      acceptance: "- 1. 条件: a 主体: s 結果: r\n",
+      workList: "1. 旧形式。[1]\n",
+      test: "- [1]\n",
+    })
+    expect(validateSpecForm("design", body)).toContain(
+      "受け入れ条件が作業の一覧に入っていません: 1",
+    )
+  })
 })
 
 describe("文書", () => {
@@ -826,6 +947,37 @@ describe("文書", () => {
     expect(text).toContain("「テスト」")
     const ambBlock = ambiguousWords.join("\n")
     expect(text).toContain(ambBlock)
+    expect(text).toContain("## 作業の一覧")
+    expect(text).toContain(
+      "受け入れ条件が作業の一覧に入っていません: <番号>",
+    )
+  })
+
+  test("docs/specs の design.md 見出し置換 [20]", () => {
+    const specsRoot = join(root, "docs/specs")
+    const oldHeading = "## 実装の順序"
+    const newHeading = "## 作業の一覧"
+    for (const ent of readdirSync(specsRoot, { withFileTypes: true })) {
+      if (!ent.isDirectory()) continue
+      const path = join(specsRoot, ent.name, "design.md")
+      if (!existsSync(path)) continue
+      const md = readFileSync(path, "utf8")
+      for (const line of md.split("\n")) {
+        expect(line).not.toBe(oldHeading)
+      }
+    }
+    const d23 = readFileSync(join(root, "docs/specs/23/design.md"), "utf8")
+    for (const line of d23.split("\n")) {
+      expect(line).not.toBe(newHeading)
+    }
+    const d42 = readFileSync(join(root, "docs/specs/42/design.md"), "utf8")
+    const workIdx = d42.indexOf(`${newHeading}\n`)
+    expect(workIdx).toBeGreaterThanOrEqual(0)
+    const afterHeading = d42.slice(workIdx + newHeading.length + 1)
+    const firstWorkLine = afterHeading.split("\n").find((l) => l.trim() !== "")
+    expect(firstWorkLine).toBe(
+      "1. `src/cli.ts` に `branch` を足し、`printUsage` を変える。",
+    )
   })
 
   test("README と AGENTS.md", () => {
