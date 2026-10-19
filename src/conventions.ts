@@ -1,3 +1,5 @@
+import { readdir, readFile } from "node:fs/promises"
+import { join } from "node:path"
 import type { IssueComment } from "./github.ts"
 
 export const commentMarkers = {
@@ -23,6 +25,16 @@ export type RelatedComments = {
 export const reflectedMarker = "sdd-cur:reflected"
 export const reflectedOpenLine = `<!-- ${reflectedMarker}`
 export const reflectedCloseLine = "-->"
+
+const CANONICAL_READ_FAILED = "正本を読めません"
+const DELTA_SECTION_HEADING = "## 正本への差分"
+const CANONICAL_REQ_HEADING = /^## REQ-([1-9][0-9]*)$/
+const DELTA_ADD_HEADING =
+  /^### 追加 ([a-z][a-z0-9]*(?:-[a-z0-9]+)*) (REQ-[1-9][0-9]*)$/
+const DELTA_CHANGE_HEADING =
+  /^### 変更 ([a-z][a-z0-9]*(?:-[a-z0-9]+)*) (REQ-[1-9][0-9]*)$/
+const DELTA_REMOVE_HEADING =
+  /^### 削除 ([a-z][a-z0-9]*(?:-[a-z0-9]+)*) (REQ-[1-9][0-9]*)$/
 
 const INVALID_NUMBER = "番号が不正です"
 const INVALID_REFLECT_ID = "反映するコメントが不正です"
@@ -793,4 +805,117 @@ export function fixComment(payload: string, ids: readonly string[]): string {
     body = `${body}\n`
   }
   return `${body}${formatFixedBlock(ids)}`
+}
+
+export function canonicalIdsFromMarkdown(markdown: string): string[] {
+  const lines = normalizeNewlines(markdown).split("\n")
+  const ids: string[] = []
+  for (const line of lines) {
+    const match = line.match(CANONICAL_REQ_HEADING)
+    if (match) {
+      ids.push(`REQ-${match[1]}`)
+    }
+  }
+  return ids
+}
+
+export async function readCanonicalIds(root: string): Promise<string[]> {
+  const specDir = join(root, "docs/spec")
+  let entries: Awaited<ReturnType<typeof readdir>>
+  try {
+    entries = await readdir(specDir, { withFileTypes: true })
+  } catch (err: unknown) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? (err as { code: string }).code
+        : ""
+    if (code === "ENOENT") {
+      return []
+    }
+    reject(CANONICAL_READ_FAILED)
+  }
+  const mdFiles = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name)
+    .sort()
+  const ids: string[] = []
+  for (const name of mdFiles) {
+    let content: string
+    try {
+      content = await readFile(join(specDir, name), "utf8")
+    } catch {
+      reject(CANONICAL_READ_FAILED)
+    }
+    ids.push(...canonicalIdsFromMarkdown(content))
+  }
+  return ids
+}
+
+type DeltaItemKind = "add" | "change" | "remove"
+
+function parseDeltaItemHeading(
+  line: string,
+): { kind: DeltaItemKind; id: string } | null {
+  let match = line.match(DELTA_ADD_HEADING)
+  if (match) {
+    return { kind: "add", id: match[2] }
+  }
+  match = line.match(DELTA_CHANGE_HEADING)
+  if (match) {
+    return { kind: "change", id: match[2] }
+  }
+  match = line.match(DELTA_REMOVE_HEADING)
+  if (match) {
+    return { kind: "remove", id: match[2] }
+  }
+  return null
+}
+
+function extractDeltaSectionLines(lines: readonly string[]): string[] | null {
+  let startIndex = -1
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i] === DELTA_SECTION_HEADING) {
+      startIndex = i
+      break
+    }
+  }
+  if (startIndex < 0) {
+    return null
+  }
+  const sectionLines: string[] = []
+  for (let i = startIndex + 1; i < lines.length; i += 1) {
+    if (lines[i].startsWith("## ")) {
+      break
+    }
+    sectionLines.push(lines[i])
+  }
+  return sectionLines
+}
+
+export function validateCanonicalDelta(
+  designMarkdown: string,
+  canonicalIds: readonly string[],
+): string[] {
+  const lines = normalizeNewlines(designMarkdown).split("\n")
+  const sectionLines = extractDeltaSectionLines(lines)
+  if (sectionLines === null) {
+    return []
+  }
+  const idSet = new Set(canonicalIds)
+  const violations: string[] = []
+  for (const line of sectionLines) {
+    const item = parseDeltaItemHeading(line)
+    if (!item) {
+      continue
+    }
+    const hasId = idSet.has(item.id)
+    if (item.kind === "add" && hasId) {
+      violations.push(`追加する識別子が正本にあります: ${item.id}`)
+    } else if (item.kind === "change" && !hasId) {
+      violations.push(`変更する識別子が正本にありません: ${item.id}`)
+    } else if (item.kind === "remove" && !hasId) {
+      violations.push(`削除する識別子が正本にありません: ${item.id}`)
+    }
+  }
+  return violations
 }

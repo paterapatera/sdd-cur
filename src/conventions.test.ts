@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test"
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises"
 import { readFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   acceptanceProcedure,
   ambiguousWords,
+  canonicalIdsFromMarkdown,
   commentMarkers,
   fixComment,
   fixedOpenLine,
@@ -13,6 +16,7 @@ import {
   parseComment,
   parsePullRequestComment,
   parseReview,
+  readCanonicalIds,
   reviewConfirmMarkers,
   reviewJudgmentMarkers,
   pullRequestCommentMarkers,
@@ -23,6 +27,7 @@ import {
   selectUnprocessedBugs,
   specPaths,
   unincorporatedAnswers,
+  validateCanonicalDelta,
   validateSpecForm,
   withReflectedId,
 } from "./conventions.ts"
@@ -508,6 +513,99 @@ describe("parseReview", () => {
   })
 })
 
+describe("canonicalIdsFromMarkdown", () => {
+  test("行全体が ## REQ-1 の識別子だけを返す", () => {
+    const md = [
+      "## REQ-1",
+      "body",
+      "## REQ-01",
+      " ## REQ-1",
+      "### REQ-1",
+      "## REQ-1",
+    ].join("\n")
+    expect(canonicalIdsFromMarkdown(md)).toEqual(["REQ-1", "REQ-1"])
+  })
+})
+
+describe("validateCanonicalDelta", () => {
+  const section = (items: string) =>
+    `## 正本への差分\n${items}\n## 次`
+
+  test("節が無い、または項目が無いとき空", () => {
+    expect(validateCanonicalDelta("# 1 題\n", [])).toEqual([])
+    expect(validateCanonicalDelta(section(""), [])).toEqual([])
+  })
+
+  test("追加", () => {
+    const md = section("### 追加 spec REQ-1\nx")
+    expect(validateCanonicalDelta(md, [])).toEqual([])
+    expect(validateCanonicalDelta(md, ["REQ-1"])).toEqual([
+      "追加する識別子が正本にあります: REQ-1",
+    ])
+  })
+
+  test("変更", () => {
+    const md = section("### 変更 spec REQ-2\nx")
+    expect(validateCanonicalDelta(md, ["REQ-2"])).toEqual([])
+    expect(validateCanonicalDelta(md, [])).toEqual([
+      "変更する識別子が正本にありません: REQ-2",
+    ])
+  })
+
+  test("削除", () => {
+    const md = section("### 削除 spec REQ-3\nx")
+    expect(validateCanonicalDelta(md, ["REQ-3"])).toEqual([])
+    expect(validateCanonicalDelta(md, [])).toEqual([
+      "削除する識別子が正本にありません: REQ-3",
+    ])
+  })
+
+  test("同じ節で追加のあと変更は反映後の集合を見ない", () => {
+    const md = section("### 追加 spec REQ-1\na\n### 変更 spec REQ-1\nb")
+    expect(validateCanonicalDelta(md, [])).toEqual([
+      "変更する識別子が正本にありません: REQ-1",
+    ])
+  })
+
+  test("節の外と二度目の節、形に合わない見出しは見ない", () => {
+    const md = [
+      "### 追加 spec REQ-9",
+      "## 正本への差分",
+      "### 追加 spec REQ-1",
+      "### 追加 spec REQ-1 余分",
+      "## 正本への差分",
+      "### 変更 spec REQ-2",
+    ].join("\n")
+    expect(validateCanonicalDelta(md, [])).toEqual([])
+    expect(validateCanonicalDelta(md, ["REQ-2"])).toEqual([])
+  })
+})
+
+describe("readCanonicalIds", () => {
+  test("docs/spec が無いとき空", async () => {
+    const temp = await mkdtemp(join(tmpdir(), "sdd-canonical-"))
+    try {
+      expect(await readCanonicalIds(temp)).toEqual([])
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("ファイル名昇順で .md だけ読む", async () => {
+    const temp = await mkdtemp(join(tmpdir(), "sdd-canonical-"))
+    try {
+      const specDir = join(temp, "docs/spec")
+      await mkdir(specDir, { recursive: true })
+      await writeFile(join(specDir, "spec.md"), "## REQ-1\nx\n", "utf8")
+      await writeFile(join(specDir, "a.md"), "## REQ-2\ny\n", "utf8")
+      await writeFile(join(specDir, "note.txt"), "## REQ-9\n", "utf8")
+      expect(await readCanonicalIds(temp)).toEqual(["REQ-2", "REQ-1"])
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+})
+
 describe("hasFormMarker", () => {
   test("2 行目の非空行が印のときだけ true", () => {
     expect(
@@ -652,6 +750,17 @@ describe("文書", () => {
     expect(text).toContain("sdd-cur:reflected")
     expect(text).toContain("requirements.md")
     expect(text).toContain("design.md")
+    expect(text).toContain("docs/spec/<領域>.md")
+    expect(text).toContain("## 正本への差分")
+    expect(text).toContain("### 追加 <領域> REQ-<番号>")
+    expect(text).toContain("### 変更 <領域> REQ-<番号>")
+    expect(text).toContain("### 削除 <領域> REQ-<番号>")
+    const fileSection = text.indexOf("## 課題ごとのファイル")
+    const canonicalSection = text.indexOf("## 仕様の正本")
+    const commentSection = text.indexOf("## 課題コメントの種別")
+    expect(fileSection).toBeGreaterThanOrEqual(0)
+    expect(canonicalSection).toBeGreaterThan(fileSection)
+    expect(commentSection).toBeGreaterThan(canonicalSection)
     expect(text).toContain("課題のコメントだけに書く")
     expect(text).toContain("未回答の確認があるあいだ、次の確認は投稿しない")
     expect(text).toContain(
