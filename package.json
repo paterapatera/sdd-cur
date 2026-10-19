@@ -1,10 +1,13 @@
 {
   "name": "@paterapatera/sdd-cur",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "bin": {
     "sdd-cur": "src/cli.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "sdd-cur": "bun src/cli.ts",
