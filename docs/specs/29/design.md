@@ -149,7 +149,7 @@ quick の止まりは、この本文もこのコメントも使わない。状�
 - 末尾の節に、`マージリクエストの本文`、`マージリクエストの URL だけ`、`確認と回答の課題コメントは、変えない。` がある。
 - 三つの印、`課題のコメントだけに書く`、`未回答の確認があるあいだ、次の確認は投稿しない` は残る。
 
-## 実装の順序
+## 作業の一覧
 
 1. `acceptanceProcedure` を `src/conventions.ts` に足し、試験を通す。`parseComment` と `relateComments` の既存の試験は変えない。
 2. `pullRequestBody` を `src/runner.ts` に足し、`runImplementation` と quick の実装の終わりで、本文と課題コメントを上の形にする。試験を通す。

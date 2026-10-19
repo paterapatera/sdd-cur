@@ -93,7 +93,7 @@ function cmdBranch(args: string[]): Promise<number>
 - `設計作成役を起動する前に`
 - `ファイルを変えず`
 
-## 実装の順序
+## 作業の一覧
 
 1. `src/cli.ts` に `branch` を足し、`printUsage` を変える。
 2. `skills/sdd-cur/SKILL.md` の「要件」と「設計」を、上の手順に変える。

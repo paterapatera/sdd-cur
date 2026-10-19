@@ -131,7 +131,7 @@ export function completeIssue(
 - 「動作確認OK」があり「実装依頼」が無い課題の `process` は、`completeIssue` 経由で `squashMerge` を呼ぶ。第一引数はマージリクエスト番号であり、第二引数は決定の件名の形である。課題番号 `5`、題が `題`、マージリクエスト番号 `2` のときは、第一引数が `2`、第二引数が `【課題 5】題` である。`createPullRequest` の `title` にこのプレフィックスが付くことは期待しない。`deleteBranch` は呼ばない。`commitAll`、`createPullRequest`、`addComment` は呼ばない。`issue close` は呼ばない。
 - `process` は `squashMerge` を `completeIssue` の外で呼ばない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `squashMerge` に件名の引数を足し、`pr merge` の引数が上の順であることと、成否の試験を通す。`squashMerge` は件名へプレフィックスを足さない。
 2. `completeIssue` が、マージリクエスト番号と課題番号が違うときに、決定の件名の形を `squashMerge` へ渡す試験を通す。`merged` が true のときは渡さない。

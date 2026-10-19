@@ -130,7 +130,7 @@
 
 実装レビュー役、作成役、修正役の期待は変えない。`src/sdd.test.ts`、`src/install.test.ts`、`src/runner.test.ts` の期待は変えない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `agents/sdd-cur-req-reviewer.md` と `agents/sdd-cur-design-reviewer.md` の本文を、この設計のサブエージェントに合わせる。frontmatter は変えない。
 2. `src/agents.test.ts` の二つの `bodyIncludes` に、上の文言を足す。

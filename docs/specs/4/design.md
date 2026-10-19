@@ -161,7 +161,7 @@ export function unincorporatedAnswers(
 - `docs/conventions.md` に、三つの印、`sdd-cur:reflected`、`requirements.md`、`design.md`、`課題のコメントだけに書く`、`未回答の確認があるあいだ、次の確認は投稿しない` が含まれる。開始行の例は囲みコードブロックの中にあり、同じブロックに終了行 `-->` がある。囲みの外に開始行は無い。
 - `README.md` と `AGENTS.md` に `docs/conventions.md` が含まれる。`AGENTS.md` に `src/conventions.ts` が含まれる。
 
-## 実装の順序
+## 作業の一覧
 
 1. `specPaths`、`isSpecHeading`、`parseComment`、`relateComments`、`readReflectedIds`、`withReflectedId`、`unincorporatedAnswers` を `src/conventions.ts` に置き、関数テストを通す。
 2. `docs/conventions.md` を書き、印、パス、課題コメントだけに書くこと、未回答のあいだは次の確認を投稿しないことを、上の文書テストで確かめる。開始行の例は、このファイルの囲みコードブロックの中に、終了行と組で一つだけ置く。

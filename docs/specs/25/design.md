@@ -174,7 +174,7 @@ AGENTS.md の構成のうち、`src/runner.ts` の行は、`run` が「実装依
 
 `skills/sdd-cur/SKILL.md` の既存の試験は残す。このファイル名を読む期待は足さない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `src/complete.ts` から呼び出し元の読み取りを削除する。リポジトリ直下の `sdd-cur.completion` を削除する。
 2. `src/runner.ts` の `completionCaller` を外し、前段が空のときは「動作確認OK」を探して `completeIssue` を呼ぶ。

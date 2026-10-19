@@ -424,7 +424,7 @@ disable-model-invocation: true
 - `skills/sdd-cur-fix/SKILL.md` の先頭が、上のフロントマターと一致する。本文に、`# sdd-cur-fix`、`## 修正`、`## 禁止`、`docs/specs`、`sdd-cur-implement-author`、`model は渡さない`、`設計の範囲外のため直していない`、`課題を作らない`、`課題を閉じない`、`ラベルを変えない`、`コミットしない`、`push しない`、`マージリクエストを作らない`、`スカッシュマージしない`、`コメントを投稿しない`、`受け入れ手順を書き直さない`、`gh を直接起動しない` が含まれる。
 - `bun src/cli.ts install <temp>` の終了コードは 0 であり、`<temp>/.cursor/skills/sdd-cur-fix/SKILL.md` はパッケージのそのファイルと一致する。
 
-## 実装の順序
+## 作業の一覧
 
 1. `parsePullRequestComment`、`readFixedIds`、`selectUnprocessedBugs`、`fixComment` を `src/conventions.ts` に足し、試験を通す。課題コメントの既存の試験は変えない。
 2. `listPullRequestComments` と `addPullRequestComment` を `src/github.ts` に足し、引数と応答の試験を通す。

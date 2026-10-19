@@ -72,7 +72,7 @@ export function implementationBranch(issueNumber: number): string
 
 `src/complete.test.ts` の、マージリクエストを探す `head` の期待を `task-1` に変える。`sdd-cur/1` は無い。
 
-## 実装の順序
+## 作業の一覧
 
 1. `implementationBranch` の成功時の戻り値を、`task-` と十進の番号の連結に変える。拒否は変えない。
 2. `src/runner.test.ts` に戻り値の試験を足し、`process` が期待するブランチ名を `task-1` に変える。

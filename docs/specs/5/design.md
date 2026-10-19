@@ -325,7 +325,7 @@ description: このプロジェクトの課題について、着手候補の提�
 
 実装の確認では、GitHub へコメントを投稿しない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `candidateViews`、`listStartCandidates`、`specStatus`、`buildIssueView`、`loadIssueView`、`nextUnincorporatedAnswer`、確認、`applyIncorporatedAnswer`、仕様ファイルの読み書きを `src/sdd.ts` に置き、関数テストを通す。
 2. 四つのサブコマンドと使い方の七行を `src/cli.ts` に足す。`src/cli.test.ts` の使い方の期待を更新し、`gh` を呼ばない引数テストを通す。

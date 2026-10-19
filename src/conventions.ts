@@ -709,6 +709,45 @@ function collectTestReferenceViolations(
   return violations
 }
 
+function isWorkListItemLine(line: string): boolean {
+  if (!line.startsWith("- ")) {
+    return false
+  }
+  return /^[1-9]\d*\. /.test(line.slice(2))
+}
+
+function collectWorkListReferenceViolations(
+  markdown: string,
+  acceptanceNumbers: readonly number[],
+): string[] {
+  const acceptanceSet = new Set(acceptanceNumbers)
+  if (acceptanceSet.size === 0) {
+    return []
+  }
+  const workListBody = firstSectionBody(markdown, "作業の一覧")
+  const referenced = new Set<number>()
+  if (workListBody !== null) {
+    for (const line of workListBody.split("\n")) {
+      if (!isWorkListItemLine(line)) {
+        continue
+      }
+      for (const ref of extractTestRefs(line)) {
+        if (acceptanceSet.has(ref)) {
+          referenced.add(ref)
+        }
+      }
+    }
+  }
+  const violations: string[] = []
+  const missing = [...acceptanceSet]
+    .filter((n) => !referenced.has(n))
+    .sort((a, b) => a - b)
+  for (const n of missing) {
+    violations.push(`受け入れ条件が作業の一覧に入っていません: ${n}`)
+  }
+  return violations
+}
+
 function collectReflectedViolation(markdown: string): string | null {
   try {
     readReflectedIds(markdown)
@@ -760,6 +799,10 @@ export function validateSpecForm(
     firstSectionBody(markdown, "テスト") !== null
   ) {
     violations.push(...collectTestReferenceViolations(markdown, numbers))
+  }
+
+  if (kind === "design") {
+    violations.push(...collectWorkListReferenceViolations(markdown, numbers))
   }
 
   const reflected = collectReflectedViolation(markdown)
@@ -915,6 +958,122 @@ export function validateCanonicalDelta(
       violations.push(`変更する識別子が正本にありません: ${item.id}`)
     } else if (item.kind === "remove" && !hasId) {
       violations.push(`削除する識別子が正本にありません: ${item.id}`)
+    }
+  }
+  return violations
+}
+
+const evidenceCitationPattern = /（`([^`]+)` の ([0-9]+) 行）/g
+
+export function countGitShowContentLines(content: string): number {
+  if (content.length === 0) {
+    return 0
+  }
+  const lines = content.split("\n")
+  if (content.endsWith("\n")) {
+    return lines.length - 1
+  }
+  return lines.length
+}
+
+function formatEvidenceLineNumber(nLiteral: string): string {
+  return String(parseInt(nLiteral, 10))
+}
+
+export function collectEvidenceViolations(
+  markdown: string,
+  readMainFile: (path: string) => string | null,
+): string[] {
+  if (!hasFormMarker(markdown)) {
+    return []
+  }
+  const body = firstSectionBody(markdown, "現状")
+  if (body === null) {
+    return []
+  }
+
+  const violations: string[] = []
+  const pattern = new RegExp(evidenceCitationPattern.source, "g")
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(body)) !== null) {
+    const filePath = match[1]
+    const nLiteral = match[2]
+    const nValue = parseInt(nLiteral, 10)
+    const nDisplay = formatEvidenceLineNumber(nLiteral)
+
+    const content = readMainFile(filePath)
+    if (content === null) {
+      violations.push(`根拠のファイルが main にありません: ${filePath}`)
+      continue
+    }
+    if (nValue < 1) {
+      violations.push(`根拠の行番号が不正です: ${nDisplay}`)
+      continue
+    }
+    const lineCount = countGitShowContentLines(content)
+    if (nValue > lineCount) {
+      violations.push(
+        `根拠の行番号がファイルの行数を超えています: ${filePath} ${nDisplay}`,
+      )
+    }
+  }
+  return violations
+}
+
+export async function collectEvidenceViolationsAsync(
+  markdown: string,
+  readMainFile: (path: string) => Promise<string | null>,
+): Promise<string[]> {
+  if (!hasFormMarker(markdown)) {
+    return []
+  }
+  const body = firstSectionBody(markdown, "現状")
+  if (body === null) {
+    return []
+  }
+
+  const violations: string[] = []
+  const pattern = new RegExp(evidenceCitationPattern.source, "g")
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(body)) !== null) {
+    const filePath = match[1]
+    const nLiteral = match[2]
+    const nValue = parseInt(nLiteral, 10)
+    const nDisplay = formatEvidenceLineNumber(nLiteral)
+
+    const content = await readMainFile(filePath)
+    if (content === null) {
+      violations.push(`根拠のファイルが main にありません: ${filePath}`)
+      continue
+    }
+    if (nValue < 1) {
+      violations.push(`根拠の行番号が不正です: ${nDisplay}`)
+      continue
+    }
+    const lineCount = countGitShowContentLines(content)
+    if (nValue > lineCount) {
+      violations.push(
+        `根拠の行番号がファイルの行数を超えています: ${filePath} ${nDisplay}`,
+      )
+    }
+  }
+  return violations
+}
+
+export function collectChangeFilePathViolations(markdown: string): string[] {
+  if (!hasFormMarker(markdown)) {
+    return []
+  }
+  const body = firstSectionBody(markdown, "変えるファイル")
+  if (body === null) {
+    return []
+  }
+
+  const violations: string[] = []
+  for (const line of body.split("\n")) {
+    const filePath = line.startsWith("- ") ? line.slice(2) : line
+    if (filePath.startsWith("..") || filePath.startsWith("/")) {
+      violations.push(`変えるファイルのパスが不正です: ${filePath}`)
     }
   }
   return violations

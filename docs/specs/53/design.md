@@ -144,7 +144,7 @@
 
 `src/runner.test.ts` の `skills/sdd-cur-implement/SKILL.md` の必須文言は、`grok-4.7[reasoning_effort=high,fast=false]` を `grok-4.7-high` に置き換える。この項目以外の必須文言は残す。残すものには、設計 6 のフロントマターと、設計 22 および設計 30 の分が入る。旧形式は必須にしない。無いことの確認は足さない。
 
-## 実装の順序
+## 作業の一覧
 
 1. 六つのサブエージェントの `model` を、受け入れ条件の表にする。`src/agents.test.ts` の六つの期待を合わせる。
 2. `skills/sdd-cur/SKILL.md` の「要件」と、`skills/sdd-cur-implement/SKILL.md` の「レビュー」の、3 回目から渡すモデル文字列を `grok-4.7-high` にする。`src/sdd.test.ts` と `src/runner.test.ts` の必須文言を合わせる。

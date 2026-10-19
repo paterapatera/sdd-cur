@@ -197,7 +197,7 @@ export function parseReview(body: string): ParsedReview
 
 `src/runner.test.ts` の `skills/sdd-cur-implement/SKILL.md` の必須文言は、今の一覧を残す。加えて `下から`、`行全体`、`あと 1 回`、`合計最大 2 回`、`印が壊れている`、`確認: あり`、`確認: なし`、`では分岐しない` が含まれる。`最後の非空行が` は無い。失敗理由の `最初の非空行` は残る。`確認: なし` が本文に無い、という確認は外す。
 
-## 実装の順序
+## 作業の一覧
 
 1. `parseReview` と、上の文字列の試験を `src/conventions.ts` と `src/conventions.test.ts` に足す。既存の関数の試験は残す。
 2. `docs/conventions.md` に「レビューの判定」を足す。文書の試験を通す。
