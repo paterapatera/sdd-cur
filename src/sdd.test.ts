@@ -571,13 +571,28 @@ disable-model-invocation: true
       "実装依頼に進める旨を伝えない",
       "未反映が無いことだけでは",
       "確認: なしでも、設計の修正役は起動しない",
+      "bun src/cli.ts validate <番号>",
+      "sdd-cur-req-reviewer` を起動しない",
+      "sdd-cur-req-fixer` に渡す",
+      "連続不合格に数えない",
+      "sdd-cur-design-reviewer` を起動しない",
+      "sdd-cur-design-fixer` に渡す",
+      "`validate` も実行しない",
+      "要求作成役を起動する前には `validate` を実行しない",
+      "設計作成役を起動する前には `validate` を実行しない",
     ]
     for (const phrase of required) {
       expect(text).toContain(phrase)
     }
     const requirementsStart = text.indexOf("## 要件")
     const designStart = text.indexOf("## 設計")
+    expect(text.slice(requirementsStart, designStart)).toContain(
+      "bun src/cli.ts validate <番号>",
+    )
     const confirmStart = text.indexOf("## 確認")
+    expect(text.slice(designStart, confirmStart)).toContain(
+      "bun src/cli.ts validate <番号>",
+    )
     const requirementsSlice = text.slice(requirementsStart, designStart)
     const designSlice = text.slice(designStart, confirmStart)
     const sectionRequired = [

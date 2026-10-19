@@ -388,6 +388,9 @@ describe("createRunner start claim", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1299,6 +1302,9 @@ describe("createRunner start claim", () => {
         async checkoutFetched() {
           ghLog.push("checkoutFetched")
         },
+        async mergeFetched() {
+          return { status: "merged" }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -1447,6 +1453,9 @@ describe("createRunner start claim", () => {
         },
         async fetch() {},
         async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" }
+        },
         async headCommit() {
           return "deadbeef"
         },
@@ -3589,6 +3598,7 @@ describe("createRunner", () => {
   test("実装の mergeFetched が conflict のとき implement を呼ばない", async () => {
     let implementCalled = false
     let mergeFetchedCalls = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -3608,8 +3618,12 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          startIssueComments.recordStartComment(body)
           return { url: "https://c" }
+        },
+        async listComments() {
+          return startIssueComments.listComments()
         },
         async listPullRequests() {
           return []
@@ -3675,6 +3689,9 @@ describe("createRunner", () => {
         },
         async addComment() {
           return { url: "https://c" }
+        },
+        async listComments() {
+          return []
         },
         async listPullRequests() {
           return []
@@ -5452,6 +5469,9 @@ disable-model-invocation: true
       "sdd-cur-design-author",
       "sdd-cur-design-reviewer",
       "sdd-cur-design-fixer",
+      "bun src/cli.ts validate <番号>",
+      "sdd-cur-req-fixer` に渡す",
+      "sdd-cur-design-fixer` に渡す",
       "確認: あり",
       "決められない",
       "軽微でない",
@@ -5483,6 +5503,23 @@ disable-model-invocation: true
       expect(installed).toBe(source)
     } finally {
       await rm(temp, { recursive: true, force: true })
+    }
+  })
+})
+
+describe("validate は sdd-cur と sdd-cur-quick だけ", () => {
+  test("implement fix complete create-issue に validate コマンドは無い", async () => {
+    for (const rel of [
+      "sdd-cur-implement/SKILL.md",
+      "sdd-cur-fix/SKILL.md",
+      "sdd-cur-complete/SKILL.md",
+      "sdd-cur-create-issue/SKILL.md",
+    ]) {
+      const text = await readFile(
+        path.join(import.meta.dir, "../skills", rel),
+        "utf8",
+      )
+      expect(text).not.toContain("bun src/cli.ts validate")
     }
   })
 })
