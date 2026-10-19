@@ -1,11 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import {
-  completeIssue,
-  type CompletionCaller,
-  selectCompletionIssue,
-} from "./complete.ts"
+import { completeIssue, selectCompletionIssue } from "./complete.ts"
 import {
   commentMarkers,
   fixComment,
@@ -282,7 +278,6 @@ export async function defaultCreateProcedureFile(): Promise<{
 }
 
 type RunnerDeps = {
-  completionCaller: CompletionCaller | null
   github: {
     viewerLogin: GitHubClient["viewerLogin"]
     listIssues: GitHubClient["listIssues"]
@@ -387,9 +382,6 @@ export function createRunner(deps: RunnerDeps): Runner {
         return { id: String(quickSelected.number) }
       }
 
-      if (deps.completionCaller !== "runner") {
-        return null
-      }
       const completionIssues = await withRetry(() =>
         deps.github.listIssues({
           labels: [LABEL_VERIFIED],
@@ -431,10 +423,7 @@ export function createRunner(deps: RunnerDeps): Runner {
         return
       }
 
-      if (
-        deps.completionCaller === "runner" &&
-        issue.labels.includes(LABEL_VERIFIED)
-      ) {
+      if (issue.labels.includes(LABEL_VERIFIED)) {
         await completeIssue(deps.github, issueNumber)
       }
     },

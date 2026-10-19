@@ -2,13 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import {
-  completeIssue,
-  completionCallerFileName,
-  parseCompletionCaller,
-  readCompletionCaller,
-  selectCompletionIssue,
-} from "./complete.ts"
+import { completeIssue, selectCompletionIssue } from "./complete.ts"
 import {
   createGitHub,
   type GhResult,
@@ -60,65 +54,6 @@ function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
     ...partial,
   }
 }
-
-describe("parseCompletionCaller", () => {
-  test("runner と skill を返す", () => {
-    expect(parseCompletionCaller("runner")).toBe("runner")
-    expect(parseCompletionCaller("skill")).toBe("skill")
-    expect(parseCompletionCaller("  runner  ")).toBe("runner")
-  })
-
-  test("空や並べた文字列は拒否する", () => {
-    expect(() => parseCompletionCaller("")).toThrow("完了の呼び出し元が不正です")
-    expect(() => parseCompletionCaller("runner\nskill")).toThrow(
-      "完了の呼び出し元が不正です",
-    )
-    expect(() => parseCompletionCaller("runner skill")).toThrow(
-      "完了の呼び出し元が不正です",
-    )
-  })
-})
-
-describe("readCompletionCaller", () => {
-  test("ファイルが無いとき null", async () => {
-    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-complete-caller-"))
-    try {
-      expect(await readCompletionCaller(temp)).toBe(null)
-    } finally {
-      await rm(temp, { recursive: true, force: true })
-    }
-  })
-
-  test("runner と skill のファイル", async () => {
-    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-complete-caller-"))
-    try {
-      await writeFile(path.join(temp, completionCallerFileName), "runner\n")
-      expect(await readCompletionCaller(temp)).toBe("runner")
-      await writeFile(path.join(temp, completionCallerFileName), "skill")
-      expect(await readCompletionCaller(temp)).toBe("skill")
-    } finally {
-      await rm(temp, { recursive: true, force: true })
-    }
-  })
-
-  test("不正な中身とディレクトリは拒否する", async () => {
-    const invalid = await mkdtemp(path.join(os.tmpdir(), "sdd-complete-caller-"))
-    const asDir = await mkdtemp(path.join(os.tmpdir(), "sdd-complete-caller-"))
-    try {
-      await writeFile(path.join(invalid, completionCallerFileName), "both")
-      await expect(readCompletionCaller(invalid)).rejects.toThrow(
-        "完了の呼び出し元が不正です",
-      )
-      await mkdir(path.join(asDir, completionCallerFileName))
-      await expect(readCompletionCaller(asDir)).rejects.toThrow(
-        "完了の呼び出し元が不正です",
-      )
-    } finally {
-      await rm(invalid, { recursive: true, force: true })
-      await rm(asDir, { recursive: true, force: true })
-    }
-  })
-})
 
 describe("selectCompletionIssue", () => {
   test("動作確認OK があり番号昇順の先頭", () => {
@@ -473,7 +408,7 @@ describe("skills/sdd-cur-complete/SKILL.md", () => {
     const text = await readFile(completeSkillPath, "utf8")
     expect(text.startsWith(`---
 name: sdd-cur-complete
-description: Project A の Cursor で、人が指定した課題の完了処理を行う。作業ツリーの呼び出し元が skill のときに使う。
+description: Project A の Cursor で、人が指定した課題の完了処理を行う。
 disable-model-invocation: true
 ---
 `)).toBe(true)

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises"
-import { completionCallerFileName } from "./complete.ts"
+const completionCallerFileName = "sdd-cur.completion"
 import os from "node:os"
 import path from "node:path"
 import { reflectedOpenLine } from "./conventions.ts"
@@ -246,7 +246,7 @@ describe("cli subprocess", () => {
     }
   })
 
-  test("complete 7 は runner の呼び出し元", async () => {
+  test("complete 7 は runner ファイルでも gh 無し", async () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-complete-run-"))
     try {
       await writeFile(path.join(temp, completionCallerFileName), "runner")
@@ -258,7 +258,7 @@ describe("cli subprocess", () => {
       })
       expect(await proc.exited).toBe(1)
       expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
-        "完了は課題ランナーが行います",
+        "gh を実行できません",
       )
     } finally {
       await rm(temp, { recursive: true, force: true })
@@ -275,6 +275,91 @@ describe("cli subprocess", () => {
         stderr: "pipe",
         env: { ...process.env, PATH: isolatedPath },
       })
+      expect(await proc.exited).toBe(1)
+      expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+        "gh を実行できません",
+      )
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("complete 7 は不正な中身でも gh 無し", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-complete-bad-"))
+    try {
+      await writeFile(path.join(temp, completionCallerFileName), "both")
+      const proc = Bun.spawn([bunExe, cliPath, "complete", "7"], {
+        cwd: temp,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      expect(await proc.exited).toBe(1)
+      expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+        "gh を実行できません",
+      )
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("run は runner ファイルでも gh 無し", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-run-runner-"))
+    try {
+      await writeFile(path.join(temp, completionCallerFileName), "runner")
+      const proc = Bun.spawn(
+        [bunExe, cliPath, "run", "--interval-min", "1"],
+        {
+          cwd: temp,
+          stdout: "pipe",
+          stderr: "pipe",
+          env: { ...process.env, PATH: isolatedPath },
+        },
+      )
+      expect(await proc.exited).toBe(1)
+      expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+        "gh を実行できません",
+      )
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("run は skill ファイルでも gh 無し", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-run-skill-"))
+    try {
+      await writeFile(path.join(temp, completionCallerFileName), "skill")
+      const proc = Bun.spawn(
+        [bunExe, cliPath, "run", "--interval-min", "1"],
+        {
+          cwd: temp,
+          stdout: "pipe",
+          stderr: "pipe",
+          env: { ...process.env, PATH: isolatedPath },
+        },
+      )
+      expect(await proc.exited).toBe(1)
+      expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
+        "gh を実行できません",
+      )
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
+  })
+
+  test("run は不正な中身でも gh 無し", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-run-bad-"))
+    try {
+      await writeFile(path.join(temp, completionCallerFileName), "both")
+      const proc = Bun.spawn(
+        [bunExe, cliPath, "run", "--interval-min", "1"],
+        {
+          cwd: temp,
+          stdout: "pipe",
+          stderr: "pipe",
+          env: { ...process.env, PATH: isolatedPath },
+        },
+      )
       expect(await proc.exited).toBe(1)
       expect(await new Response(proc.stderr).text().then((s) => s.trim())).toBe(
         "gh を実行できません",

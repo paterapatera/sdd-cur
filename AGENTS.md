@@ -18,8 +18,8 @@
 | `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`confirm`、`reflect`、`complete` |
 | `src/install.ts` | `skills/<名前>/` を `~/.cursor/skills` または `<project>/.cursor/skills` へ、`agents/<名前>.md` を `~/.cursor/agents` または `<project>/.cursor/agents` へコピーする |
 | `src/run.ts` | 停止まで `poll` と `process` を繰り返す。処理のあいだは次の `poll` を呼ばない |
-| `src/runner.ts` | `poll` と `process`。`run` は「実装依頼」から「実装完了」まで行うランナーを使う。`sdd-cur.completion` が `runner` のときは「動作確認OK」の完了も行う |
-| `src/complete.ts` | `completeIssue` と呼び出し元ファイルの読み取り |
+| `src/runner.ts` | `poll` と `process`。`run` が「実装依頼」から「実装完了」までと、「動作確認OK」の完了を、このファイルを読まずに行う |
+| `src/complete.ts` | `completeIssue` |
 | `src/git.ts` | クローン上の git 操作 |
 | `src/agent.ts` | Cursor `agent` の起動 |
 | `src/github.ts` | Issue の取得、コメント、ラベル、ブランチ、マージリクエスト、スカッシュマージ |
