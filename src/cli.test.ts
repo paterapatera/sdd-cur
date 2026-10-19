@@ -19,7 +19,8 @@ const usageText =
   "sdd-cur confirm <番号>\n" +
   "sdd-cur close <番号>\n" +
   "sdd-cur reflect <番号> <requirements|design>\n" +
-  "sdd-cur complete <番号>\n"
+  "sdd-cur complete <番号>\n" +
+  "sdd-cur restore <番号>\n"
 
 describe("cli subprocess", () => {
   test("install が <temp>/.cursor/skills を作る", async () => {
@@ -88,7 +89,7 @@ describe("cli subprocess", () => {
     expect(stderr).toBe(usageText)
   })
 
-  test("candidates extra は使い方の九行で終了コード 1", async () => {
+  test("candidates extra は使い方の十一行で終了コード 1", async () => {
     const proc = Bun.spawn([bunExe, cliPath, "candidates", "extra"], {
       stdout: "pipe",
       stderr: "pipe",
@@ -215,6 +216,26 @@ describe("cli subprocess", () => {
     })
     expect(await proc.exited).toBe(1)
     expect(await new Response(proc.stderr).text()).toBe(usageText)
+  })
+
+  test("restore の引数が無いときは使い方", async () => {
+    const proc = Bun.spawn([bunExe, cliPath, "restore"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: isolatedPath },
+    })
+    expect(await proc.exited).toBe(1)
+    expect(await new Response(proc.stderr).text()).toBe(usageText)
+  })
+
+  test("restore foo は番号が不正です", async () => {
+    const proc = Bun.spawn([bunExe, cliPath, "restore", "foo"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, PATH: isolatedPath },
+    })
+    expect(await proc.exited).toBe(1)
+    expect(await new Response(proc.stderr).text()).toBe("番号が不正です\n")
   })
 
   test("complete 01 は番号が不正です", async () => {

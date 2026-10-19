@@ -39,8 +39,10 @@ const usageText =
   "sdd-cur show <番号>\n" +
   "sdd-cur branch <番号>\n" +
   "sdd-cur confirm <番号>\n" +
+  "sdd-cur close <番号>\n" +
   "sdd-cur reflect <番号> <requirements|design>\n" +
-  "sdd-cur complete <番号>\n"
+  "sdd-cur complete <番号>\n" +
+  "sdd-cur restore <番号>\n"
 
 async function listFilesRecursive(root: string): Promise<string[]> {
   const out: string[] = []
@@ -195,13 +197,13 @@ describe("installed bin", () => {
     await rm(packDest, { recursive: true, force: true })
   })
 
-  test("--help は終了コード 0 で使い方の九行", async () => {
+  test("--help は終了コード 0 で使い方の十一行", async () => {
     const proc = spawnInstalledBin(binPath, ["--help"])
     expect(await proc.exited).toBe(0)
     expect(await new Response(proc.stderr).text()).toBe(usageText)
   })
 
-  test("run --interval-min 0 はエラー行のあと使い方の九行", async () => {
+  test("run --interval-min 0 はエラー行のあと使い方の十一行", async () => {
     const proc = spawnInstalledBin(binPath, ["run", "--interval-min", "0"])
     expect(await proc.exited).toBe(1)
     const stderr = await new Response(proc.stderr).text()
@@ -288,7 +290,7 @@ describe("installed bin", () => {
 })
 
 describe("dev entry", () => {
-  test("bun src/cli.ts --help は終了コード 0 で使い方の九行", async () => {
+  test("bun src/cli.ts --help は終了コード 0 で使い方の十一行", async () => {
     const cliPath = path.join(repoRoot, "src", "cli.ts")
     const proc = Bun.spawn([bunExe, cliPath, "--help"], {
       cwd: repoRoot,

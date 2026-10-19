@@ -1,3 +1,7 @@
+import type { LabelEvent } from "./restore.ts"
+
+export type { LabelEvent }
+
 export type GhResult = {
   stdout: string
   stderr: string
@@ -46,6 +50,7 @@ export type GitHubClient = {
     limit?: number
   }): Promise<Issue[]>
   getIssue(number: number): Promise<Issue>
+  listIssueEvents(number: number): Promise<LabelEvent[]>
   listComments(number: number): Promise<IssueComment[]>
   addComment(number: number, body: string): Promise<{ url: string }>
   closeIssue(number: number): Promise<void>
@@ -294,6 +299,27 @@ function normalizeIssue(raw: unknown): Issue {
   }
 }
 
+function normalizeLabelEvent(raw: unknown): LabelEvent | null {
+  if (typeof raw !== "object" || raw === null) {
+    return null
+  }
+  const o = raw as Record<string, unknown>
+  const event = o.event
+  if (event !== "labeled" && event !== "unlabeled") {
+    return null
+  }
+  const labelRaw = o.label
+  if (typeof labelRaw !== "object" || labelRaw === null) {
+    return null
+  }
+  const name = (labelRaw as { name?: unknown }).name
+  const createdAt = o.created_at
+  if (typeof name !== "string" || typeof createdAt !== "string") {
+    return null
+  }
+  return { event, name, createdAt }
+}
+
 function normalizeComment(raw: unknown): IssueComment {
   if (typeof raw !== "object" || raw === null) {
     reject(PARSE_ERROR)
@@ -460,6 +486,27 @@ export function createGitHub(options: {
         ISSUE_JSON_FIELDS,
       ])
       return normalizeIssue(parseJson(result.stdout))
+    },
+
+    async listIssueEvents(number) {
+      assertPositiveInteger(number)
+      const result = await runGh([
+        "api",
+        "--paginate",
+        `repos/${parts.owner}/${parts.name}/issues/${number}/events`,
+      ])
+      const parsed = parseJson(result.stdout)
+      if (!Array.isArray(parsed)) {
+        reject(PARSE_ERROR)
+      }
+      const events: LabelEvent[] = []
+      for (const item of parsed) {
+        const normalized = normalizeLabelEvent(item)
+        if (normalized !== null) {
+          events.push(normalized)
+        }
+      }
+      return events
     },
 
     async listComments(number) {

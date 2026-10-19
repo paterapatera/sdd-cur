@@ -779,4 +779,49 @@ describe("getDefaultBranch", () => {
     )
     expect(calls).toHaveLength(1)
   })
+
+  test("listIssueEvents は labeled と unlabeled だけを順に返す", async () => {
+    const payload = [
+      { event: "mentioned", actor: {} },
+      {
+        event: "labeled",
+        label: { name: "実装中" },
+        created_at: "2020-01-01T00:00:00Z",
+      },
+      {
+        event: "unlabeled",
+        label: { name: "実装依頼" },
+        created_at: "2020-01-01T00:00:01Z",
+      },
+      { event: "labeled", label: { name: "実装中" } },
+    ]
+    const { runner, calls } = recordingRunner(() => okJson(payload))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    const events = await github.listIssueEvents(12)
+    expect(calls[0]?.args).toEqual([
+      "api",
+      "--paginate",
+      "repos/o/r/issues/12/events",
+    ])
+    expect(events).toEqual([
+      {
+        event: "labeled",
+        name: "実装中",
+        createdAt: "2020-01-01T00:00:00Z",
+      },
+      {
+        event: "unlabeled",
+        name: "実装依頼",
+        createdAt: "2020-01-01T00:00:01Z",
+      },
+    ])
+  })
+
+  test("listIssueEvents は配列でない応答を拒否する", async () => {
+    const { runner } = recordingRunner(() => okJson({}))
+    const github = createGitHub({ gh: runner, repo: "o/r" })
+    await expect(github.listIssueEvents(1)).rejects.toThrow(
+      "gh の応答を解釈できません",
+    )
+  })
 })
