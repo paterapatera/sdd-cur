@@ -34,28 +34,27 @@ describe("課題 92", () => {
 
     const reviewSection = sectionBetween(text, "## レビュー", "## 禁止")
     for (const phrase of [
-      "直前の不合格レビューは無い",
-      "番号付き指摘",
-      "2 回連続",
-      "要求のレビュー手順の直前は使わない",
-      "設計のレビュー手順の直前は使わない",
-      "別の agent 起動",
-      "本文が直前と同じときは",
-      "次のレビューを起動しない",
-      "修正役を起動しない",
-      "このやり直しをしない",
-      "失敗理由の固定文言は書かない",
-      "その都度、条件を満たす日本語の一行を出す",
-      "`実装レビューが不合格のまま10回に達した` ではない",
-      "`レビューの判定がありません` ではない",
-      "確認行は、この止まりの条件に含めない",
-      "実装レビューが不合格のまま10回に達した",
+      "bun src/cli.ts review-next",
+      "`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries`",
+      "返った一行 JSON の `action`、`model`、`kind` に従う",
+      "`reason` があるとき、その文字列を失敗の理由にする",
+      "第1引数は `implement` である",
+      "実装レビュー役を起動する前",
+      "レビュー役は、設計の「テスト」節を実行しない",
     ]) {
       expect(reviewSection).toContain(phrase)
     }
 
-    expect(reviewSection).toContain("確認: あり")
-    expect(reviewSection).toContain("確認: なし")
-    expect(reviewSection).toContain("では分岐しない")
+    for (const phrase of [
+      "直前の不合格レビューは無い",
+      "2 回連続",
+      "実装レビューが不合格のまま10回に達した",
+      "レビューの判定がありません",
+      "確認: あり",
+      "確認: なし",
+      "では分岐しない",
+    ]) {
+      expect(reviewSection).not.toContain(phrase)
+    }
   })
 })

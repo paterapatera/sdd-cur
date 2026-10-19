@@ -379,7 +379,7 @@ describe("課題 94", () => {
   test("ドキュメントとスキル、runner、printUsage", async () => {
     const policy = await readFile(path.join(root, "docs/policy.md"), "utf8")
     expect(policy).toContain(
-      "サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`request`",
+      "サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`",
     )
 
     const agents = await readFile(path.join(root, "AGENTS.md"), "utf8")

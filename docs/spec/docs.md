@@ -40,7 +40,7 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 
 もとになった課題は #83 である。
 
-サブコマンドの正は`src/cli.ts` の `main` にある `switch (sub)` の `case "..."` である。`default` は含めない。順は `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`complete`である。
+サブコマンドの正は `src/cli.ts` の `main` にある `switch (sub)` の `case "..."` である。`default` は含めない。順は `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next` である。
 
 ## REQ-714
 

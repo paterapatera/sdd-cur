@@ -4,8 +4,12 @@ import process from "node:process"
 import {
   collectChangeFilePathViolations,
   collectEvidenceViolationsAsync,
+  reviewNext,
   specPaths,
   validateSpecForm,
+  type ReviewNextInput,
+  type ReviewNextSuccess,
+  type ReviewStage,
 } from "./conventions.ts"
 import { defaultGitRunner } from "./git.ts"
 import {
@@ -418,6 +422,84 @@ async function cmdValidate(args: string[]): Promise<number> {
   return 0
 }
 
+const reviewStageNames = new Set<string>([
+  "requirements",
+  "reflect-design",
+  "quick",
+  "implement",
+])
+
+function parseReviewStage(value: string | undefined): ReviewStage | null {
+  if (value === undefined || !reviewStageNames.has(value)) {
+    return null
+  }
+  return value as ReviewStage
+}
+
+function parseReviewNextStdin(raw: string): ReviewNextInput {
+  const parsed = JSON.parse(raw.trim()) as Record<string, unknown>
+  return {
+    response: String(parsed.response ?? ""),
+    consecutiveFailures: Number(parsed.consecutiveFailures),
+    previousFindings: String(parsed.previousFindings ?? ""),
+    brokenStampRetries: Number(parsed.brokenStampRetries),
+  }
+}
+
+function formatReviewNextLine(value: ReviewNextSuccess): string {
+  const obj: Record<string, unknown> = {
+    consecutiveFailures: value.consecutiveFailures,
+    previousFindings: value.previousFindings,
+    brokenStampRetries: value.brokenStampRetries,
+    action: value.action,
+    model: value.model,
+    kind: value.kind,
+  }
+  if (value.reason !== undefined) {
+    obj.reason = value.reason
+  }
+  if (value.resultLine !== undefined) {
+    obj.resultLine = value.resultLine
+  }
+  if (value.rewriteProcedure !== undefined) {
+    obj.rewriteProcedure = value.rewriteProcedure
+  }
+  return JSON.stringify(obj)
+}
+
+async function cmdReviewNext(args: string[]): Promise<number> {
+  const stage = parseReviewStage(args[0])
+  if (stage === null) {
+    console.error("段階の種別が不正です")
+    return 1
+  }
+
+  let stdin: string
+  try {
+    stdin = await readStdinAll()
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  let input: ReviewNextInput
+  try {
+    input = parseReviewNextStdin(stdin)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const result = reviewNext(stage, input)
+  if (!result.ok) {
+    console.error(result.message)
+    return 1
+  }
+
+  console.log(formatReviewNextLine(result.value))
+  return 0
+}
+
 async function cmdRestore(args: string[]): Promise<number> {
   if (args.length !== 1) {
     printUsage()
@@ -558,6 +640,8 @@ async function main(): Promise<number> {
       return await cmdComplete(rest)
     case "restore":
       return await cmdRestore(rest)
+    case "review-next":
+      return await cmdReviewNext(rest)
     case "request":
       return await cmdRequest(rest)
     default:
