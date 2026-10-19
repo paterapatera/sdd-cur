@@ -962,3 +962,119 @@ export function validateCanonicalDelta(
   }
   return violations
 }
+
+const evidenceCitationPattern = /（`([^`]+)` の ([0-9]+) 行）/g
+
+export function countGitShowContentLines(content: string): number {
+  if (content.length === 0) {
+    return 0
+  }
+  const lines = content.split("\n")
+  if (content.endsWith("\n")) {
+    return lines.length - 1
+  }
+  return lines.length
+}
+
+function formatEvidenceLineNumber(nLiteral: string): string {
+  return String(parseInt(nLiteral, 10))
+}
+
+export function collectEvidenceViolations(
+  markdown: string,
+  readMainFile: (path: string) => string | null,
+): string[] {
+  if (!hasFormMarker(markdown)) {
+    return []
+  }
+  const body = firstSectionBody(markdown, "現状")
+  if (body === null) {
+    return []
+  }
+
+  const violations: string[] = []
+  const pattern = new RegExp(evidenceCitationPattern.source, "g")
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(body)) !== null) {
+    const filePath = match[1]
+    const nLiteral = match[2]
+    const nValue = parseInt(nLiteral, 10)
+    const nDisplay = formatEvidenceLineNumber(nLiteral)
+
+    const content = readMainFile(filePath)
+    if (content === null) {
+      violations.push(`根拠のファイルが main にありません: ${filePath}`)
+      continue
+    }
+    if (nValue < 1) {
+      violations.push(`根拠の行番号が不正です: ${nDisplay}`)
+      continue
+    }
+    const lineCount = countGitShowContentLines(content)
+    if (nValue > lineCount) {
+      violations.push(
+        `根拠の行番号がファイルの行数を超えています: ${filePath} ${nDisplay}`,
+      )
+    }
+  }
+  return violations
+}
+
+export async function collectEvidenceViolationsAsync(
+  markdown: string,
+  readMainFile: (path: string) => Promise<string | null>,
+): Promise<string[]> {
+  if (!hasFormMarker(markdown)) {
+    return []
+  }
+  const body = firstSectionBody(markdown, "現状")
+  if (body === null) {
+    return []
+  }
+
+  const violations: string[] = []
+  const pattern = new RegExp(evidenceCitationPattern.source, "g")
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(body)) !== null) {
+    const filePath = match[1]
+    const nLiteral = match[2]
+    const nValue = parseInt(nLiteral, 10)
+    const nDisplay = formatEvidenceLineNumber(nLiteral)
+
+    const content = await readMainFile(filePath)
+    if (content === null) {
+      violations.push(`根拠のファイルが main にありません: ${filePath}`)
+      continue
+    }
+    if (nValue < 1) {
+      violations.push(`根拠の行番号が不正です: ${nDisplay}`)
+      continue
+    }
+    const lineCount = countGitShowContentLines(content)
+    if (nValue > lineCount) {
+      violations.push(
+        `根拠の行番号がファイルの行数を超えています: ${filePath} ${nDisplay}`,
+      )
+    }
+  }
+  return violations
+}
+
+export function collectChangeFilePathViolations(markdown: string): string[] {
+  if (!hasFormMarker(markdown)) {
+    return []
+  }
+  const body = firstSectionBody(markdown, "変えるファイル")
+  if (body === null) {
+    return []
+  }
+
+  const violations: string[] = []
+  for (const line of body.split("\n")) {
+    const filePath = line.startsWith("- ") ? line.slice(2) : line
+    if (filePath.startsWith("..") || filePath.startsWith("/")) {
+      violations.push(`変えるファイルのパスが不正です: ${filePath}`)
+    }
+  }
+  return violations
+}
