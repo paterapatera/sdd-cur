@@ -36,6 +36,7 @@ bun src/cli.ts reflect <番号> <requirements|design>
 bun src/cli.ts validate <番号>
 bun src/cli.ts complete <番号>
 bun src/cli.ts restore <番号>
+bun src/cli.ts request <番号>
 bun test
 ```
 

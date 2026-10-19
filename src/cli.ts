@@ -26,6 +26,7 @@ import { createAgent, defaultAgentRunner } from "./agent.ts"
 import { createGit, defaultGitRunner } from "./git.ts"
 import { parseRunArgs, runLoop } from "./run.ts"
 import { restoreIssue } from "./restore.ts"
+import { requestImplementation } from "./request.ts"
 import {
   createRunner,
   defaultCreateProcedureFile,
@@ -444,6 +445,46 @@ async function cmdRestore(args: string[]): Promise<number> {
   }
 }
 
+async function cmdRequest(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const cwd = process.cwd()
+
+  try {
+    const git = createGit({ git: defaultGitRunner, cwd })
+    await requestImplementation(
+      {
+        git,
+        openGitHub: async () => {
+          const repo = await resolveRepo(defaultGhRunner, cwd)
+          const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
+          return {
+            getIssue: github.getIssue.bind(github),
+            editLabels: github.editLabels.bind(github),
+          }
+        },
+        readSpecs: readSpecPair,
+      },
+      issueNumber,
+    )
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
 async function cmdComplete(args: string[]): Promise<number> {
   if (args.length !== 1) {
     printUsage()
@@ -517,6 +558,8 @@ async function main(): Promise<number> {
       return await cmdComplete(rest)
     case "restore":
       return await cmdRestore(rest)
+    case "request":
+      return await cmdRequest(rest)
     default:
       printUsage()
       return 1
