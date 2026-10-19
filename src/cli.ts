@@ -1,7 +1,13 @@
 #!/usr/bin/env bun
 import { homedir } from "node:os"
 import process from "node:process"
-import { specPaths, validateSpecForm } from "./conventions.ts"
+import {
+  collectChangeFilePathViolations,
+  collectEvidenceViolationsAsync,
+  specPaths,
+  validateSpecForm,
+} from "./conventions.ts"
+import { defaultGitRunner } from "./git.ts"
 import {
   assertDirectoryExists,
   defaultAgentsSourceDir,
@@ -361,9 +367,26 @@ async function cmdValidate(args: string[]): Promise<number> {
     return 1
   }
 
+  const cwd = process.cwd()
+  const readMainFile = async (filePath: string): Promise<string | null> => {
+    const result = await defaultGitRunner.run(["show", `main:${filePath}`], {
+      cwd,
+    })
+    if (result.exitCode !== 0) {
+      return null
+    }
+    return result.stdout
+  }
+
   const violations: string[] = []
   if (reqFile.exists) {
     for (const v of validateSpecForm("requirements", reqFile.markdown)) {
+      violations.push(`${paths.requirements}: ${v}`)
+    }
+    for (const v of await collectEvidenceViolationsAsync(
+      reqFile.markdown,
+      readMainFile,
+    )) {
       violations.push(`${paths.requirements}: ${v}`)
     }
   }
@@ -378,6 +401,9 @@ async function cmdValidate(args: string[]): Promise<number> {
 
   if (designFile.exists) {
     for (const v of validateSpecForm("design", designFile.markdown)) {
+      violations.push(`${paths.design}: ${v}`)
+    }
+    for (const v of collectChangeFilePathViolations(designFile.markdown)) {
       violations.push(`${paths.design}: ${v}`)
     }
   }
