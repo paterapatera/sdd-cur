@@ -101,7 +101,7 @@
 
 `src/runner.test.ts` の `describe("skills/sdd-cur-implement/SKILL.md")` 内の必須文言リストで、`grok-4.7-high` を `grok-4.7[context=256k,reasoning_effort=high,fast=false]` に置き換える。`describe("skills/sdd-cur-quick/SKILL.md")` の必須文言は変えない。implement のテストで、それ以外の必須文言は残す。残すものには、設計 6 のフロントマターと、設計 22 および設計 30 の分が入る。`grok-4.7-high` を implement の 3 回目モデルの必須文言として要求しない。旧形式や `grok-4.7-high` の無いことの確認は足さない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `skills/sdd-cur/SKILL.md` の「要件」の二箇所と、`skills/sdd-cur-implement/SKILL.md` の「レビュー」の 3 回目モデル文字列を、決定の high 文字列にする。
 2. `src/sdd.test.ts` と `src/runner.test.ts` の implement 用必須文言を合わせる。quick 用のテストは触らない。

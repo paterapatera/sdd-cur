@@ -293,7 +293,7 @@ flowchart TD
 
 `src/sdd.test.ts` と `src/install.test.ts` の期待は、この課題では変えない。
 
-## 実装の順序
+## 作業の一覧
 
 1. `agents/sdd-cur-implement-reviewer.md` の本文を、この設計のレビュー役に合わせる。`src/agents.test.ts` を通す。
 2. `skills/sdd-cur-implement/SKILL.md` の「実装」と「レビュー」を、この設計の手順に合わせる。`src/runner.test.ts` の必須文言を足す。

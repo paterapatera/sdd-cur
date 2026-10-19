@@ -101,7 +101,7 @@ flowchart TD
 
 `src/agents.test.ts`、`src/install.test.ts`、`src/runner.test.ts` の、本課題で変えない対象の期待は残す。
 
-## 実装の順序
+## 作業の一覧
 
 1. `skills/sdd-cur/SKILL.md` の「設計」を、上の手順に合わせる。
 2. `src/sdd.test.ts` の必須文言を足す。

@@ -197,7 +197,7 @@ export type GitHubClient = {
 - 標準入力を渡さない操作では、記録用の `GhRunner` に `stdin` が付かない。
 - `resolveRepo` は `repo view --json nameWithOwner` を、渡した `cwd` で呼ぶ。
 
-## 実装の順序
+## 作業の一覧
 
 1. `GhRunner`、`createGitHub`、検証を置き、不正値が `gh` を呼ばずに拒否されることを確かめる。
 2. `listIssues`、`getIssue`、`listComments` と応答の正規化を作り、関数テストを通す。

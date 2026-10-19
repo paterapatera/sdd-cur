@@ -457,7 +457,7 @@ describe("cli subprocess", () => {
       const specDir = path.join(temp, "docs", "specs", "9")
       await mkdir(specDir, { recursive: true })
       const okReq = `# 9 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n`
-      const okDesign = `# 9 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n## 範囲外\n\n## 決定\n\n## テスト\n- [1]\n`
+      const okDesign = `# 9 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n## 範囲外\n\n## 決定\n\n## 作業の一覧\n- 1. 実装する。[1]\n## テスト\n- [1]\n`
       await writeFile(path.join(specDir, "requirements.md"), okReq)
       await writeFile(path.join(specDir, "design.md"), okDesign)
       const okProc = Bun.spawn([bunExe, cliPath, "validate", "9"], {

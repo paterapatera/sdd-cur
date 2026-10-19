@@ -149,7 +149,7 @@ flowchart TD
 - `bun src/cli.ts install <temp>` が終了コード 0 で、`<temp>/.cursor/skills` を作る。
 - `bun src/cli.ts run --interval-min 1` を起動し、SIGTERM を送ると、1 分の満了を待たずに終了コード 0 で終わる。
 
-## 実装の順序
+## 作業の一覧
 
 1. `package.json` と `src/cli.ts` を置き、未知のサブコマンドが終了コード 1 になることを確かめる。
 2. `install` の宛先解決とコピーを作り、関数テストを通す。

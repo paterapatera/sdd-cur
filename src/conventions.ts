@@ -709,6 +709,45 @@ function collectTestReferenceViolations(
   return violations
 }
 
+function isWorkListItemLine(line: string): boolean {
+  if (!line.startsWith("- ")) {
+    return false
+  }
+  return /^[1-9]\d*\. /.test(line.slice(2))
+}
+
+function collectWorkListReferenceViolations(
+  markdown: string,
+  acceptanceNumbers: readonly number[],
+): string[] {
+  const acceptanceSet = new Set(acceptanceNumbers)
+  if (acceptanceSet.size === 0) {
+    return []
+  }
+  const workListBody = firstSectionBody(markdown, "作業の一覧")
+  const referenced = new Set<number>()
+  if (workListBody !== null) {
+    for (const line of workListBody.split("\n")) {
+      if (!isWorkListItemLine(line)) {
+        continue
+      }
+      for (const ref of extractTestRefs(line)) {
+        if (acceptanceSet.has(ref)) {
+          referenced.add(ref)
+        }
+      }
+    }
+  }
+  const violations: string[] = []
+  const missing = [...acceptanceSet]
+    .filter((n) => !referenced.has(n))
+    .sort((a, b) => a - b)
+  for (const n of missing) {
+    violations.push(`受け入れ条件が作業の一覧に入っていません: ${n}`)
+  }
+  return violations
+}
+
 function collectReflectedViolation(markdown: string): string | null {
   try {
     readReflectedIds(markdown)
@@ -760,6 +799,10 @@ export function validateSpecForm(
     firstSectionBody(markdown, "テスト") !== null
   ) {
     violations.push(...collectTestReferenceViolations(markdown, numbers))
+  }
+
+  if (kind === "design") {
+    violations.push(...collectWorkListReferenceViolations(markdown, numbers))
   }
 
   const reflected = collectReflectedViolation(markdown)
