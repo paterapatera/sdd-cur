@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, mock, spyOn, test } from "bun:test"
+import * as nodeCrypto from "node:crypto"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
@@ -6,7 +7,7 @@ import {
   commentMarkers,
   pullRequestCommentMarkers,
 } from "./conventions.ts"
-import type { Issue } from "./github.ts"
+import type { Issue, IssueComment } from "./github.ts"
 import { workflowLabels } from "./labels.ts"
 import {
   acceptanceComment,
@@ -17,7 +18,37 @@ import {
   selectFixIssues,
   selectImplementationIssue,
   selectQuickIssue,
+  decideStartClaim,
+  issueStartCutoff,
+  latestCreatedAt,
+  startComment,
+  startMarker,
 } from "./runner.ts"
+
+function createIssueCommentStore(initial: IssueComment[] = []) {
+  const comments = [...initial]
+  let seq = comments.length
+  return {
+    comments,
+    async listComments() {
+      return [...comments]
+    },
+    recordStartComment(body) {
+      if (!body.startsWith(`${startMarker}\n`)) {
+        return false
+      }
+      seq += 1
+      comments.push({
+        id: `IC_start_${seq}`,
+        body,
+        author: "",
+        createdAt: `2026-08-${String(seq).padStart(2, "0")}T00:00:00Z`,
+      })
+      return true
+    },
+  }
+}
+
 
 const implementSkillPath = path.join(
   import.meta.dir,
@@ -175,9 +206,1238 @@ describe("pullRequestBody", () => {
   })
 })
 
+function startCommentBody(cloneId: string): string {
+  return `${startMarker}\n${cloneId}`
+}
+
+function ic(id: string, body: string, createdAt: string): IssueComment {
+  return { id, body, author: "", createdAt }
+}
+
+describe("startComment", () => {
+  test("空と空白を含む識別子を拒否する", () => {
+    expect(() => startComment("")).toThrow("クローン識別子が不正です")
+    expect(() => startComment(" ")).toThrow("クローン識別子が不正です")
+    expect(() => startComment("a b")).toThrow("クローン識別子が不正です")
+  })
+
+  test("成功時は印と識別子の二行", () => {
+    const id = "550e8400-e29b-41d4-a716-446655440000"
+    const body = startComment(id)
+    const lines = body.split("\n")
+    expect(lines[0]).toBe(startMarker)
+    expect(lines[1]).toBe(id)
+    expect(lines.length).toBe(2)
+  })
+})
+
+describe("decideStartClaim", () => {
+  test("古い識別子が continue で新しい識別子が yield", () => {
+    const comments = [
+      ic("1", startCommentBody("old"), "2026-01-02T00:00:00Z"),
+      ic("2", startCommentBody("new"), "2026-01-03T00:00:00Z"),
+    ]
+    const before = comments.map((c) => ({ ...c }))
+    expect(decideStartClaim(comments, "old", null)).toBe("continue")
+    expect(decideStartClaim(comments, "new", null)).toBe("yield")
+    expect(comments).toEqual(before)
+  })
+
+  test("createdAt が同じとき id が小さいほうが continue", () => {
+    const comments = [
+      ic("b", startCommentBody("second"), "2026-01-01T00:00:00Z"),
+      ic("a", startCommentBody("first"), "2026-01-01T00:00:00Z"),
+    ]
+    expect(decideStartClaim(comments, "first", null)).toBe("continue")
+    expect(decideStartClaim(comments, "second", null)).toBe("yield")
+  })
+
+  test("基準時刻以前の着手は競合に入らない", () => {
+    const comments = [
+      ic("1", startCommentBody("old"), "2026-01-01T00:00:00Z"),
+      ic("2", "通常\n本文", "2026-01-02T00:00:00Z"),
+      ic("eq", startCommentBody("same-time"), "2026-01-02T00:00:00Z"),
+      ic("3", startCommentBody("mine"), "2026-01-03T00:00:00Z"),
+    ]
+    expect(decideStartClaim(comments, "mine", "2026-01-02T00:00:00Z")).toBe(
+      "continue",
+    )
+    expect(decideStartClaim(comments, "old", "2026-01-02T00:00:00Z")).toBe(
+      "unseen",
+    )
+    expect(
+      decideStartClaim(comments, "same-time", "2026-01-02T00:00:00Z"),
+    ).toBe("unseen")
+  })
+
+  test("印の行の前に空白があるコメントは着手ではない", () => {
+    const comments = [
+      ic("1", ` ${startMarker}\nignored`, "2026-01-01T00:00:00Z"),
+    ]
+    expect(decideStartClaim(comments, "ignored", null)).toBe("unseen")
+  })
+})
+
+describe("issueStartCutoff", () => {
+  test("着手を除いた最新 createdAt", () => {
+    const comments = [
+      ic("1", startCommentBody("x"), "2026-01-05T00:00:00Z"),
+      ic("2", "plain", "2026-01-03T00:00:00Z"),
+      ic("3", "other", "2026-01-04T00:00:00Z"),
+    ]
+    expect(issueStartCutoff(comments)).toBe("2026-01-04T00:00:00Z")
+    expect(issueStartCutoff([ic("1", startCommentBody("x"), "2026-01-01")]))
+      .toBeNull()
+  })
+})
+
+describe("createRunner start claim", () => {
+  test("実装の着手は listComments と着手 addComment のあと editLabels", async () => {
+    const ghLog: string[] = []
+    const procedurePath = "/tmp/start-claim-proc.txt"
+    await writeFile(procedurePath, "手順", "utf8")
+    const startIssueComments = createIssueCommentStore()
+    let postedStartId = ""
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 9, url: "https://issue/9" })
+        },
+        async listComments() {
+          ghLog.push("listComments")
+          return startIssueComments.listComments()
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            postedStartId = body.split("\n")[1] ?? ""
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          }
+          ghLog.push("addComment:pr")
+          return { url: "https://c" }
+        },
+        async editLabels(_n, change) {
+          if (change.add?.includes(LABEL_IN_PROGRESS)) {
+            ghLog.push("editLabels:start")
+          } else {
+            ghLog.push("editLabels:done")
+          }
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          ghLog.push("createPullRequest")
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {
+          ghLog.push("push")
+        },
+      },
+      agent: { async implement() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "9" })
+    expect(ghLog.slice(0, 5)).toEqual([
+      "listComments",
+      "addComment:start",
+      "listComments",
+      "listComments",
+      "editLabels:start",
+    ])
+    expect(postedStartId.length).toBeGreaterThan(0)
+    await rm(procedurePath, { force: true })
+  })
+
+  test("書いたあとに自分より古い他識別子があるとき editLabels と fetch を呼ばない", async () => {
+    const ghLog: string[] = []
+    let listCall = 0
+    let myCloneId = ""
+    const startIssueComments = createIssueCommentStore()
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async listComments() {
+          listCall += 1
+          ghLog.push("listComments")
+          if (listCall === 1) {
+            return []
+          }
+          if (listCall === 2) {
+            return [
+              ic(
+                "older",
+                startCommentBody("other-clone"),
+                "2026-08-01T00:00:00Z",
+              ),
+              ic(
+                "mine",
+                startCommentBody(myCloneId),
+                "2026-08-02T00:00:00Z",
+              ),
+            ]
+          }
+          return startIssueComments.listComments()
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            myCloneId = body.split("\n")[1] ?? ""
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          }
+          return { url: "https://c" }
+        },
+        async editLabels() {
+          ghLog.push("editLabels")
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          ghLog.push("createPullRequest")
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {
+          ghLog.push("fetch")
+        },
+        async checkoutFetched() {
+          ghLog.push("checkoutFetched")
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {
+          ghLog.push("push")
+        },
+      },
+      agent: { async implement() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "1" })
+    expect(ghLog).toEqual([
+      "listComments",
+      "addComment:start",
+      "listComments",
+    ])
+    expect(myCloneId.length).toBeGreaterThan(0)
+  })
+
+  test("最初の listComments に古い他識別子と自分があるとき addComment も editLabels も呼ばない", async () => {
+    const ghLog: string[] = []
+    const uuidSpy = spyOn(nodeCrypto, "randomUUID").mockReturnValue("mine-id")
+    try {
+      const runner = createRunner({
+        github: {
+          async viewerLogin() {
+            return VIEWER_LOGIN
+          },
+          async listIssues() {
+            return []
+          },
+          async getIssue() {
+            return issue({ number: 1 })
+          },
+          async listComments() {
+            ghLog.push("listComments")
+            return [
+              ic(
+                "older",
+                startCommentBody("other-clone"),
+                "2026-08-01T00:00:00Z",
+              ),
+              ic("mine", startCommentBody("mine-id"), "2026-08-02T00:00:00Z"),
+            ]
+          },
+          async addComment() {
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          },
+          async editLabels() {
+            ghLog.push("editLabels")
+          },
+          async getDefaultBranch() {
+            return "main"
+          },
+          async createBranch() {},
+          async createPullRequest() {
+            ghLog.push("createPullRequest")
+            return { number: 1, url: "https://pr" }
+          },
+          async listPullRequests() {
+            return []
+          },
+          async listPullRequestComments() {
+            return []
+          },
+          async addPullRequestComment() {
+            return { url: "https://c" }
+          },
+          async squashMerge() {},
+        },
+        git: {
+          async remoteName() {
+            return "origin"
+          },
+          async fetch() {
+            ghLog.push("fetch")
+          },
+          async checkoutFetched() {
+            ghLog.push("checkoutFetched")
+          },
+          async headCommit() {
+            return "deadbeef"
+          },
+          async hasChanges() {
+            return true
+          },
+          async commitAll() {},
+          async push() {
+            ghLog.push("push")
+          },
+        },
+        agent: { async implement() {}, async quick() {} },
+        createProcedureFile: async () => ({
+          path: "/tmp/p",
+          async remove() {},
+        }),
+      })
+      await runner.process({ id: "1" })
+      expect(ghLog).toEqual(["listComments"])
+    } finally {
+      uuidSpy.mockRestore()
+      mock.restore()
+    }
+  })
+
+  test("listComments が常に空のとき editLabels を呼ばない", async () => {
+    const ghLog: string[] = []
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async listComments() {
+          ghLog.push("listComments")
+          return []
+        },
+        async addComment(_n, body) {
+          if (body.startsWith(`${startMarker}\n`)) {
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          }
+          return { url: "https://c" }
+        },
+        async editLabels() {
+          ghLog.push("editLabels")
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "1" })
+    expect(ghLog).toEqual([
+      "listComments",
+      "addComment:start",
+      "listComments",
+      "listComments",
+    ])
+  })
+
+  test("quick は listComments が常に空のとき editLabels を呼ばない", async () => {
+    const ghLog: string[] = []
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1, body: "quick 対象", labels: [] })
+        },
+        async listComments() {
+          ghLog.push("listComments")
+          return []
+        },
+        async addComment(_n, body) {
+          if (body.startsWith(`${startMarker}\n`)) {
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          }
+          return { url: "https://c" }
+        },
+        async editLabels() {
+          ghLog.push("editLabels")
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {
+          ghLog.push("checkoutFetched")
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "1" })
+    expect(ghLog).toEqual([
+      "listComments",
+      "addComment:start",
+      "listComments",
+      "listComments",
+    ])
+    expect(ghLog).not.toContain("checkoutFetched")
+  })
+
+  test("quick は最初の listComments に古い他識別子と自分があるとき addComment も editLabels も呼ばない", async () => {
+    const ghLog: string[] = []
+    const uuidSpy = spyOn(nodeCrypto, "randomUUID").mockReturnValue("mine-id")
+    try {
+      const runner = createRunner({
+        github: {
+          async viewerLogin() {
+            return VIEWER_LOGIN
+          },
+          async listIssues() {
+            return []
+          },
+          async getIssue() {
+            return issue({ number: 1, body: "quick 対象", labels: [] })
+          },
+          async listComments() {
+            ghLog.push("listComments")
+            return [
+              ic(
+                "older",
+                startCommentBody("other-clone"),
+                "2026-08-01T00:00:00Z",
+              ),
+              ic("mine", startCommentBody("mine-id"), "2026-08-02T00:00:00Z"),
+            ]
+          },
+          async addComment() {
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          },
+          async editLabels() {
+            ghLog.push("editLabels")
+          },
+          async getDefaultBranch() {
+            return "main"
+          },
+          async createBranch() {},
+          async createPullRequest() {
+            return { number: 1, url: "https://pr" }
+          },
+          async listPullRequests() {
+            return []
+          },
+          async listPullRequestComments() {
+            return []
+          },
+          async addPullRequestComment() {
+            return { url: "https://c" }
+          },
+          async squashMerge() {},
+        },
+        git: {
+          async remoteName() {
+            return "origin"
+          },
+          async fetch() {},
+          async checkoutFetched() {
+            ghLog.push("checkoutFetched")
+          },
+          async headCommit() {
+            return "deadbeef"
+          },
+          async hasChanges() {
+            return true
+          },
+          async commitAll() {},
+          async push() {},
+        },
+        agent: { async implement() {}, async quick() {} },
+        createProcedureFile: async () => ({
+          path: "/tmp/p",
+          async remove() {},
+        }),
+      })
+      await runner.process({ id: "1" })
+      expect(ghLog).toEqual(["listComments"])
+      expect(ghLog).not.toContain("checkoutFetched")
+    } finally {
+      uuidSpy.mockRestore()
+      mock.restore()
+    }
+  })
+
+  test("quick は書いたあとに自分より古い他識別子があるとき checkoutFetched と editLabels を呼ばない", async () => {
+    const ghLog: string[] = []
+    let listCall = 0
+    let myCloneId = ""
+    const startIssueComments = createIssueCommentStore()
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1, body: "quick 対象", labels: [] })
+        },
+        async listComments() {
+          listCall += 1
+          ghLog.push("listComments")
+          if (listCall === 1) {
+            return []
+          }
+          if (listCall === 2) {
+            return [
+              ic(
+                "older",
+                startCommentBody("other-clone"),
+                "2026-08-01T00:00:00Z",
+              ),
+              ic(
+                "mine",
+                startCommentBody(myCloneId),
+                "2026-08-02T00:00:00Z",
+              ),
+            ]
+          }
+          return startIssueComments.listComments()
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            myCloneId = body.split("\n")[1] ?? ""
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          }
+          return { url: "https://c" }
+        },
+        async editLabels(_n, change) {
+          ghLog.push(
+            `editLabels:remove=${change.remove?.join(",") ?? ""}:add=${change.add?.join(",") ?? ""}`,
+          )
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {
+          ghLog.push("checkoutFetched")
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "1" })
+    expect(ghLog).toEqual([
+      "listComments",
+      "addComment:start",
+      "listComments",
+    ])
+    expect(ghLog).not.toContain("checkoutFetched")
+    expect(ghLog.some((e) => e.startsWith("editLabels"))).toBe(false)
+  })
+
+  test("quick が続けるとき editLabels は実装中だけを付け実装依頼は外さない", async () => {
+    const labelChanges: { remove?: string[]; add?: string[] }[] = []
+    const startIssueComments = createIssueCommentStore()
+    const quickPath = "/tmp/quick-start-claim.txt"
+    await writeFile(quickPath, "続行\n", "utf8")
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1, body: "quick 対象", labels: [] })
+        },
+        async listComments() {
+          return startIssueComments.listComments()
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start" }
+          }
+          return { url: "https://c" }
+        },
+        async editLabels(_n, change) {
+          labelChanges.push(change)
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return false
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async implement() {},
+        async quick() {},
+      },
+      createProcedureFile: async () => ({
+        path: quickPath,
+        async remove() {},
+      }),
+    })
+    try {
+      await runner.process({ id: "1" })
+    } catch {
+      // 着手の editLabels まで進めば足りる
+    }
+    const startEdit = labelChanges.find((c) =>
+      c.add?.includes(LABEL_IN_PROGRESS),
+    )
+    expect(startEdit).toBeDefined()
+    expect(startEdit?.remove ?? []).not.toContain(LABEL_REQUEST)
+    await rm(quickPath, { force: true })
+  })
+
+  test("修正は未処理が無いとき着手 addComment を呼ばない", async () => {
+    const ghLog: string[] = []
+    const startIssueComments = createIssueCommentStore()
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 2, labels: [LABEL_DONE] })
+        },
+        async listComments() {
+          ghLog.push("listComments")
+          return startIssueComments.listComments()
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          }
+          return { url: "https://c" }
+        },
+        async editLabels() {
+          ghLog.push("editLabels")
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return [{ number: 1, url: "https://pr", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          ghLog.push("addPullRequestComment")
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {
+          ghLog.push("fetch")
+        },
+        async checkoutFetched() {
+          ghLog.push("checkoutFetched")
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {
+          ghLog.push("push")
+        },
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "2" })
+    expect(ghLog).not.toContain("addComment:start")
+    expect(ghLog).not.toContain("listComments")
+  })
+
+  test("修正は続けないとき fetch と editLabels を呼ばない", async () => {
+    const ghLog: string[] = []
+    let listCall = 0
+    let myCloneId = ""
+    const startIssueComments = createIssueCommentStore()
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 3, labels: [LABEL_DONE] })
+        },
+        async listComments() {
+          listCall += 1
+          ghLog.push("listComments")
+          if (listCall === 1) {
+            return []
+          }
+          if (listCall === 2) {
+            return [
+              ic(
+                "older",
+                startCommentBody("other-clone"),
+                "2026-08-01T00:00:00Z",
+              ),
+              ic(
+                "mine",
+                startCommentBody(myCloneId),
+                "2026-08-02T00:00:00Z",
+              ),
+            ]
+          }
+          return startIssueComments.listComments()
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            myCloneId = body.split("\n")[1] ?? ""
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          }
+          return { url: "https://c" }
+        },
+        async editLabels() {
+          ghLog.push("editLabels")
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return [{ number: 7, url: "https://pr/7", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_bug1",
+              body: `${pullRequestCommentMarkers.bug}\n不具合`,
+              author: "u",
+              createdAt: "2026-02-01T00:00:00Z",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          ghLog.push("addPullRequestComment")
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {
+          ghLog.push("fetch")
+        },
+        async checkoutFetched() {
+          ghLog.push("checkoutFetched")
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {
+          ghLog.push("push")
+        },
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await runner.process({ id: "3" })
+    expect(ghLog).toEqual([
+      "listComments",
+      "addComment:start",
+      "listComments",
+    ])
+    expect(ghLog).not.toContain("fetch")
+    expect(ghLog).not.toContain("checkoutFetched")
+    expect(ghLog).not.toContain("push")
+    expect(ghLog).not.toContain("addPullRequestComment")
+    expect(ghLog).not.toContain("editLabels")
+  })
+
+  test("修正は会話の基準時刻より前の課題着手では止まらない", async () => {
+    const ghLog: string[] = []
+    const startIssueComments = createIssueCommentStore()
+    const procedurePath = "/tmp/fix-cutoff-proc.txt"
+    await writeFile(procedurePath, "再確認手順", "utf8")
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 4, labels: [LABEL_DONE] })
+        },
+        async listComments() {
+          ghLog.push("listComments")
+          const stored = await startIssueComments.listComments()
+          return [
+            ic(
+              "old-issue-start",
+              startCommentBody("other-clone"),
+              "2026-01-01T00:00:00Z",
+            ),
+            ...stored,
+          ]
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            ghLog.push("addComment:start")
+            return { url: "https://start" }
+          }
+          return { url: "https://c" }
+        },
+        async editLabels(_n, change) {
+          if (change.add?.includes(LABEL_IN_PROGRESS)) {
+            ghLog.push("editLabels:start")
+          }
+        },
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async listPullRequests() {
+          return [{ number: 9, url: "https://pr/9", state: "open", merged: false }]
+        },
+        async listPullRequestComments() {
+          return [
+            {
+              id: "IC_bug1",
+              body: `${pullRequestCommentMarkers.bug}\n不具合`,
+              author: "u",
+              createdAt: "2026-02-01T00:00:00Z",
+            },
+          ]
+        },
+        async addPullRequestComment() {
+          ghLog.push("addPullRequestComment")
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {
+          ghLog.push("fetch")
+        },
+        async checkoutFetched() {
+          ghLog.push("checkoutFetched")
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return false
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: {
+        async implement() {},
+        async fix() {
+          ghLog.push("fix")
+        },
+      },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    await expect(runner.process({ id: "4" })).rejects.toThrow(
+      "実装の変更がありません",
+    )
+    expect(ghLog).toContain("editLabels:start")
+    expect(ghLog).toContain("addComment:start")
+    await rm(procedurePath, { force: true })
+  })
+
+  test("poll は着手 addComment を呼ばない", async () => {
+    const startIssueComments = createIssueCommentStore()
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return [issue({ number: 1 })]
+          }
+          return []
+        },
+        async getIssue() {
+          throw new Error("unexpected")
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+        async listComments() {
+          return startIssueComments.listComments()
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/p",
+        async remove() {},
+      }),
+    })
+    await runner.poll()
+    expect(startIssueComments.comments).toEqual([])
+  })
+
+  test("動作確認OK の process は着手 addComment を呼ばない", async () => {
+    const startIssueComments = createIssueCommentStore()
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          return [issue({ number: 5, labels: [LABEL_VERIFIED] })]
+        },
+        async getIssue() {
+          return issue({ number: 5, labels: [LABEL_VERIFIED] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return [
+            {
+              number: 4,
+              url: "https://pr/4",
+              state: "open",
+              merged: false,
+            },
+          ]
+        },
+        async squashMerge() {},
+        async listComments() {
+          return startIssueComments.listComments()
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    await runner.process(item!)
+    expect(startIssueComments.comments).toEqual([])
+  })
+})
+
 describe("createRunner", () => {
   test("poll は listIssues を実装依頼で呼び候補が無いとき null", async () => {
     let calls = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -227,7 +1487,10 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -240,6 +1503,9 @@ describe("createRunner", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -272,6 +1538,7 @@ describe("createRunner", () => {
 
   test("poll は listIssues が一度拒否し二度目に返す", async () => {
     let calls = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -295,8 +1562,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -327,6 +1600,7 @@ describe("createRunner", () => {
   test("viewerLogin が一度拒否し二度目に login を返すとき listIssues は一回", async () => {
     let viewerCalls = 0
     let listCalls = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -351,7 +1625,10 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -364,6 +1641,9 @@ describe("createRunner", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -393,6 +1673,7 @@ describe("createRunner", () => {
 
   test("viewerLogin が二度とも拒否すると listIssues は呼ばない", async () => {
     let listCalls = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -413,8 +1694,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -444,6 +1731,7 @@ describe("createRunner", () => {
 
   test("ラベルは合うが assignees に login が無いとき poll は null", async () => {
     let listCalls = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -467,13 +1755,19 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
           return []
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -502,6 +1796,7 @@ describe("createRunner", () => {
 
   test("process はラベルが違うとき editLabels を呼ばない", async () => {
     let editCalled = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -523,8 +1818,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -557,6 +1858,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure.txt"
     await writeFile(procedurePath, "手順本文", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -594,10 +1896,16 @@ describe("createRunner", () => {
           return { number: 1, url: "https://pr" }
         },
         async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           log.push(`addComment:${body}`)
           expect(body).toBe("https://pr")
           expect(body).not.toContain(commentMarkers.acceptance)
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -665,6 +1973,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure-reject.txt"
     await writeFile(procedurePath, "   ", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       completionCaller: null,
       github: {
@@ -686,9 +1995,15 @@ describe("createRunner", () => {
           prCalled = true
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           commentCalled = true
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -726,6 +2041,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure-retry.txt"
     await writeFile(procedurePath, "手順", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -745,8 +2061,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -786,6 +2108,7 @@ describe("createRunner", () => {
 
   test("implement が二度拒否したとき後続を呼ばない", async () => {
     let commitCalled = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -805,8 +2128,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -847,6 +2176,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure-head.txt"
     await writeFile(procedurePath, "手順", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       completionCaller: null,
       github: {
@@ -867,8 +2197,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -911,6 +2247,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure-head-fail.txt"
     await writeFile(procedurePath, "手順", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       completionCaller: null,
       github: {
@@ -931,8 +2268,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -981,6 +2324,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure-empty.txt"
     await writeFile(procedurePath, "手順", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1001,8 +2345,14 @@ describe("createRunner", () => {
           prCalled = true
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -1041,6 +2391,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure-fetch.txt"
     await writeFile(procedurePath, "手順", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1062,8 +2413,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -1114,6 +2471,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure-fetch-fail.txt"
     await writeFile(procedurePath, "手順", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1135,8 +2493,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -1184,6 +2548,7 @@ describe("createRunner", () => {
     const procedurePath = "/tmp/procedure-labels.txt"
     await writeFile(procedurePath, "手順", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1208,9 +2573,15 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           addCalls += 1
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -1252,6 +2623,7 @@ describe("createRunner", () => {
     store.set(1, [LABEL_REQUEST])
     store.set(2, [LABEL_REQUEST])
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1281,8 +2653,14 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -1320,6 +2698,7 @@ describe("createRunner", () => {
 
   test("poll は不具合修正があるとき quick の listIssues を呼ばない", async () => {
     let quickListed = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1348,7 +2727,10 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -1368,6 +2750,9 @@ describe("createRunner", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -1397,6 +2782,7 @@ describe("createRunner", () => {
 
   test("poll は実装依頼があるとき quick の listIssues を呼ばない", async () => {
     let quickListed = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1422,7 +2808,10 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -1435,6 +2824,9 @@ describe("createRunner", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -1464,6 +2856,7 @@ describe("createRunner", () => {
 
   test("poll は quick があるとき動作確認OK を探さない", async () => {
     let verifiedListed = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1494,7 +2887,10 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -1507,6 +2903,9 @@ describe("createRunner", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -1542,6 +2941,7 @@ describe("createRunner", () => {
     await writeFile(quickPath, "続行\n", "utf8")
     await writeFile(implementPath, "手順", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1583,6 +2983,9 @@ describe("createRunner", () => {
           return { number: 1, url: "https://pr" }
         },
         async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           log.push(`addComment:${body}`)
           expect(body).toBe("https://pr")
           expect(body).not.toContain(commentMarkers.acceptance)
@@ -1597,6 +3000,9 @@ describe("createRunner", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -1675,6 +3081,7 @@ describe("createRunner", () => {
     const quickPath = "/tmp/quick-not-minor.txt"
     await writeFile(quickPath, "軽微でない\n詳細", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1698,12 +3105,18 @@ describe("createRunner", () => {
           return { number: 1, url: "https://pr" }
         },
         async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           commentBody = body
         },
         async listPullRequests() {
           return []
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -1751,6 +3164,7 @@ describe("createRunner", () => {
     const quickPath = "/tmp/quick-undecided.txt"
     await writeFile(quickPath, "決められない\n未記載の点", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1771,12 +3185,18 @@ describe("createRunner", () => {
           return { number: 1, url: "https://pr" }
         },
         async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           commentBody = body
         },
         async listPullRequests() {
           return []
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -1816,6 +3236,7 @@ describe("createRunner", () => {
 
   test("agent.quick が二度拒否したとき状況コメントを投稿しない", async () => {
     let commentCalled = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -1835,13 +3256,19 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           commentCalled = true
         },
         async listPullRequests() {
           return []
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -1883,6 +3310,7 @@ describe("createRunner", () => {
     const quickPath = "/tmp/quick-head-success.txt"
     await writeFile(quickPath, "続行\n", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       completionCaller: null,
       github: {
@@ -1903,13 +3331,19 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
           return []
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -1959,6 +3393,7 @@ describe("createRunner", () => {
     let headCalls = 0
     const quickPath = "/tmp/quick-head-fail-twice.txt"
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       completionCaller: null,
       github: {
@@ -1979,13 +3414,19 @@ describe("createRunner", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
           return []
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2034,6 +3475,7 @@ describe("createRunner completion", () => {
   test("前段が空のとき動作確認OK を探す", async () => {
     let listCalls = 0
     let verifiedAssignee: string | undefined
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2058,7 +3500,10 @@ describe("createRunner completion", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -2071,6 +3516,9 @@ describe("createRunner completion", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2097,6 +3545,7 @@ describe("createRunner completion", () => {
 
   test("runner で実装依頼があれば動作確認OK を探さない", async () => {
     let secondList = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2119,13 +3568,19 @@ describe("createRunner completion", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
           return []
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2155,6 +3610,7 @@ describe("createRunner completion", () => {
 
   test("runner で動作確認OK のみを返す", async () => {
     let secondAssignee: string | undefined
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2178,7 +3634,10 @@ describe("createRunner completion", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -2192,6 +3651,9 @@ describe("createRunner completion", () => {
           ]
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2223,6 +3685,7 @@ describe("createRunner completion", () => {
     const procDir = await mkdtemp(path.join(os.tmpdir(), "sdd-runner-proc-"))
     const procedurePath = path.join(procDir, "procedure.txt")
     await writeFile(procedurePath, "手順", "utf8")
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2242,7 +3705,10 @@ describe("createRunner completion", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -2250,6 +3716,9 @@ describe("createRunner completion", () => {
         },
         async squashMerge() {
           squashCalled = true
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -2288,6 +3757,7 @@ describe("createRunner completion", () => {
     )
     const procedurePath = path.join(procDir, "procedure.txt")
     await writeFile(procedurePath, "手順", "utf8")
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2307,7 +3777,10 @@ describe("createRunner completion", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -2315,6 +3788,9 @@ describe("createRunner completion", () => {
         },
         async squashMerge() {
           squashCalls += 1
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -2346,6 +3822,7 @@ describe("createRunner completion", () => {
 
   test("動作確認OK では squashMerge と完了 editLabels だけ", async () => {
     const calls: string[] = []
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2373,7 +3850,10 @@ describe("createRunner completion", () => {
           calls.push("createPullRequest")
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           calls.push("addComment")
           return { url: "https://c" }
         },
@@ -2389,6 +3869,9 @@ describe("createRunner completion", () => {
         },
         async squashMerge(n, subject) {
           calls.push(`squash:${n}:${subject}`)
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -2426,6 +3909,7 @@ describe("createRunner completion", () => {
 
   test("完了後の poll はその課題を返さない", async () => {
     let verifiedIssues = [issue({ number: 6, labels: [LABEL_VERIFIED] })]
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2458,7 +3942,10 @@ describe("createRunner completion", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -2472,6 +3959,9 @@ describe("createRunner completion", () => {
           ]
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2559,7 +4049,10 @@ describe("createRunner completion", () => {
         calls.push("createPullRequest")
         return { number: 1, url: "https://pr" }
       },
-      async addComment() {
+      async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
         calls.push("addComment")
         return { url: "https://c" }
       },
@@ -2578,6 +4071,7 @@ describe("createRunner completion", () => {
       },
     }
     expect("deleteBranch" in github).toBe(false)
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github,
       git: {
@@ -2618,6 +4112,7 @@ describe("createRunner completion", () => {
 
   test("動作確認OK の process は completeIssue の外で squashMerge を呼ばない", async () => {
     let squashCalls = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       completionCaller: "runner",
       github: {
@@ -2641,7 +4136,10 @@ describe("createRunner completion", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -2657,6 +4155,9 @@ describe("createRunner completion", () => {
         async squashMerge(_n, subject) {
           squashCalls += 1
           expect(subject).toBe("【課題 5】題")
+        },
+      async listComments() {
+          return startIssueComments.listComments()
         },
       },
       git: {
@@ -2686,6 +4187,7 @@ describe("createRunner completion", () => {
 describe("createRunner fix", () => {
   test("poll は実装依頼を優先し実装完了の listIssues を呼ばない", async () => {
     let doneList = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2708,7 +4210,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -2721,6 +4226,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2749,6 +4257,7 @@ describe("createRunner fix", () => {
 
   test("未処理の不具合がある課題を返す", async () => {
     let prCalls = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2771,7 +4280,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests(query) {
@@ -2793,6 +4305,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2820,6 +4335,7 @@ describe("createRunner fix", () => {
   })
 
   test("2 件以上のマージリクエストで拒否", async () => {
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2842,7 +4358,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -2858,6 +4377,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2887,6 +4409,7 @@ describe("createRunner fix", () => {
     const log: string[] = []
     const procedurePath = "/tmp/fix-proc.txt"
     await writeFile(procedurePath, "再確認手順", "utf8")
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -2912,7 +4435,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           log.push("addComment")
           return { url: "https://c" }
         },
@@ -2934,6 +4460,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -2994,6 +4523,7 @@ describe("createRunner fix", () => {
 
   test("小さい番号をスキップし未処理がある番号だけ返す", async () => {
     let prFor10 = 0
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -3019,7 +4549,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests(query) {
@@ -3046,6 +4579,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -3074,6 +4610,7 @@ describe("createRunner fix", () => {
 
   test("不具合を探す", async () => {
     let verifiedList = false
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -3099,7 +4636,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -3119,6 +4659,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -3149,6 +4692,7 @@ describe("createRunner fix", () => {
     const log: string[] = []
     const procedurePath = "/tmp/fix-oos.txt"
     await writeFile(procedurePath, "設計の範囲外のため直していない", "utf8")
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -3170,7 +4714,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -3191,6 +4738,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -3229,6 +4779,7 @@ describe("createRunner fix", () => {
     const procedurePath = "/tmp/fix-head-oos.txt"
     await writeFile(procedurePath, "設計の範囲外のため直していない", "utf8")
 
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       completionCaller: null,
       github: {
@@ -3251,7 +4802,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -3272,6 +4826,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -3312,6 +4869,7 @@ describe("createRunner fix", () => {
     const log: string[] = []
     const procedurePath = "/tmp/fix-nochg.txt"
     await writeFile(procedurePath, "直した", "utf8")
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -3335,7 +4893,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -3356,6 +4917,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -3390,6 +4954,7 @@ describe("createRunner fix", () => {
     let fixCalls = 0
     const procedurePath = "/tmp/fix-retry.txt"
     await writeFile(procedurePath, "手順", "utf8")
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -3409,7 +4974,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -3429,6 +4997,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
@@ -3465,6 +5036,7 @@ describe("createRunner fix", () => {
   })
 
   test("実装中の課題は poll の不具合探索で返さない", async () => {
+    const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
         async viewerLogin() {
@@ -3492,7 +5064,10 @@ describe("createRunner fix", () => {
         async createPullRequest() {
           return { number: 1, url: "https://pr" }
         },
-        async addComment() {
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
           return { url: "https://c" }
         },
         async listPullRequests() {
@@ -3505,6 +5080,9 @@ describe("createRunner fix", () => {
           return { url: "https://c" }
         },
         async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
       },
       git: {
         async remoteName() {
