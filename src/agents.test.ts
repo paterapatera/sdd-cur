@@ -284,4 +284,18 @@ describe("agents/*.md", () => {
       expect(text).not.toContain("書いたファイルの全文")
     })
   }
+
+  test("作成・レビュー・修正役に validate は無い", async () => {
+    for (const file of [
+      "sdd-cur-req-author.md",
+      "sdd-cur-design-author.md",
+      "sdd-cur-req-reviewer.md",
+      "sdd-cur-design-reviewer.md",
+      "sdd-cur-req-fixer.md",
+      "sdd-cur-design-fixer.md",
+    ]) {
+      const text = await readFile(path.join(agentsDir, file), "utf8")
+      expect(text).not.toContain("bun src/cli.ts validate")
+    }
+  })
 })
