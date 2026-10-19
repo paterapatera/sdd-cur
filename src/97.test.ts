@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import { access, readFile } from "node:fs/promises"
+import { access, readFile, readdir } from "node:fs/promises"
 import path from "node:path"
-import { readdir } from "node:fs/promises"
 
 const root = path.join(import.meta.dir, "..")
 
@@ -175,6 +174,18 @@ describe("issue 97 conventions and layout", () => {
       if (!file.endsWith(".md")) continue
       const text = await readFile(path.join(agentsDir, file), "utf8")
       assertBodyOneSentencePerLine(bodyAfterFrontmatter(text))
+    }
+  })
+
+  test("validate は sdd-cur と sdd-cur-quick だけ", async () => {
+    for (const rel of [
+      "sdd-cur-implement/SKILL.md",
+      "sdd-cur-fix/SKILL.md",
+      "sdd-cur-complete/SKILL.md",
+      "sdd-cur-create-issue/SKILL.md",
+    ]) {
+      const text = await readFile(path.join(root, "skills", rel), "utf8")
+      expect(text).not.toContain("bun src/cli.ts validate")
     }
   })
 })

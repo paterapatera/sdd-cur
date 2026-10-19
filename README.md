@@ -25,6 +25,7 @@ bun src/cli.ts branch <番号>
 bun src/cli.ts confirm <番号>
 bun src/cli.ts close <番号>
 bun src/cli.ts reflect <番号> <requirements|design>
+bun src/cli.ts validate <番号>
 bun src/cli.ts complete <番号>
 bun src/cli.ts restore <番号>
 bun test
@@ -41,8 +42,9 @@ bun test
 | `confirm` | 承認した確認本文を標準入力から受け取り、課題にコメントする |
 | `close` | 標準入力の本文を課題にコメントし、課題を閉じる |
 | `reflect` | 取り込み先の全文を標準入力から受け取り、未反映の回答を一件記録する |
+| `validate` | 指定課題の要件と設計の形式を検査する |
 | `complete` | 指定課題の完了処理を行う。作業ツリーの `sdd-cur.completion` は読まない。 |
-| `restore` | 「実装中」を外し、着手前のラベルに戻す |
+| `restore` | 指定課題のラベルと状態を着手前に戻す |
 | `bun test` | テスト。`gh` は起動しない |
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-quick` である。
