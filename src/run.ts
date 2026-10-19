@@ -53,6 +53,44 @@ export type RunLoopDeps = {
   log: (line: string) => void
   logError: (line: string) => void
   commentFailure: (issueId: string, line: string) => Promise<void>
+  now?: () => number
+}
+
+export function formatDurationMs(elapsedMs: number): string {
+  const seconds = Math.floor(elapsedMs / 1000)
+  if (seconds < 1) {
+    return "0s"
+  }
+  const minutes = Math.floor(seconds / 60)
+  const remainder = seconds % 60
+  if (remainder === 0) {
+    return `${minutes}m`
+  }
+  if (minutes === 0) {
+    return `${seconds}s`
+  }
+  return `${minutes}m${remainder}s`
+}
+
+export function formatProcessTiming(
+  elapsedMs: number,
+  counts: { quick: number; implement: number; fix: number },
+): string {
+  const duration = formatDurationMs(elapsedMs)
+  const parts: string[] = []
+  if (counts.quick >= 1) {
+    parts.push(`quick=${counts.quick}`)
+  }
+  if (counts.implement >= 1) {
+    parts.push(`implement=${counts.implement}`)
+  }
+  if (counts.fix >= 1) {
+    parts.push(`fix=${counts.fix}`)
+  }
+  if (parts.length === 0) {
+    return `(${duration})`
+  }
+  return `(${duration} ${parts.join(" ")})`
 }
 
 function errorLine(error: unknown): string {
@@ -64,6 +102,7 @@ function errorLine(error: unknown): string {
 
 export async function runLoop(deps: RunLoopDeps): Promise<0 | 1> {
   const intervalMs = deps.intervalMin * 60 * 1000
+  const now = deps.now ?? Date.now
 
   while (!deps.shouldStop()) {
     let item: WorkItem | null
@@ -81,11 +120,15 @@ export async function runLoop(deps: RunLoopDeps): Promise<0 | 1> {
       }
 
       deps.log(`処理を開始します: ${item.id}`)
+      const startedAt = now()
       try {
         await deps.runner.process(item)
       } catch (error) {
         const line = errorLine(error)
         deps.logError(line)
+        const elapsedMs = now() - startedAt
+        const timing = formatProcessTiming(elapsedMs, deps.runner.agentLaunches())
+        deps.logError(timing)
         try {
           await deps.commentFailure(item.id, line)
         } catch (commentError) {
@@ -93,7 +136,9 @@ export async function runLoop(deps: RunLoopDeps): Promise<0 | 1> {
         }
         return 1
       }
-      deps.log(`処理を終了します: ${item.id}`)
+      const elapsedMs = now() - startedAt
+      const timing = formatProcessTiming(elapsedMs, deps.runner.agentLaunches())
+      deps.log(`処理を終了します: ${item.id} ${timing}`)
 
       if (deps.shouldStop()) {
         deps.log("終了します")

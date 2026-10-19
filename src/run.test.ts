@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { MAX_INTERVAL_MIN, MIN_INTERVAL_MIN, parseRunArgs, runLoop } from "./run.ts"
-import type { Runner, WorkItem } from "./runner.ts"
+import type { AgentLaunchCounts, Runner, WorkItem } from "./runner.ts"
 
 function deferred<T>(): {
   promise: Promise<T>
@@ -39,6 +39,12 @@ describe("parseRunArgs", () => {
 
 async function noopCommentFailure(): Promise<void> {}
 
+const zeroAgentLaunches = (): AgentLaunchCounts => ({
+  quick: 0,
+  implement: 0,
+  fix: 0,
+})
+
 describe("runLoop", () => {
   test("poll が null のあと停止すると poll は一度だけ", async () => {
     let pollCount = 0
@@ -50,6 +56,7 @@ describe("runLoop", () => {
         return null
       },
       async process() {},
+      agentLaunches: zeroAgentLaunches,
     }
 
     const logs: string[] = []
@@ -82,6 +89,7 @@ describe("runLoop", () => {
       async process() {
         await processGate.promise
       },
+      agentLaunches: zeroAgentLaunches,
     }
 
     let stop = false
@@ -115,6 +123,7 @@ describe("runLoop", () => {
         return null
       },
       async process() {},
+      agentLaunches: zeroAgentLaunches,
     }
 
     let stop = false
@@ -147,6 +156,7 @@ describe("runLoop", () => {
         stop = true
         await processGate.promise
       },
+      agentLaunches: zeroAgentLaunches,
     }
 
     const loopPromise = runLoop({
@@ -173,6 +183,7 @@ describe("runLoop", () => {
         return null
       },
       async process() {},
+      agentLaunches: zeroAgentLaunches,
     }
 
     await runLoop({
@@ -204,6 +215,7 @@ describe("runLoop", () => {
       async process() {
         processCalled = true
       },
+      agentLaunches: zeroAgentLaunches,
     }
 
     const logs: string[] = []
@@ -229,6 +241,7 @@ describe("runLoop", () => {
         throw new Error("poll failed")
       },
       async process() {},
+      agentLaunches: zeroAgentLaunches,
     }
     let commentCalled = false
     expect(
@@ -255,6 +268,7 @@ describe("runLoop", () => {
       async process() {
         throw new Error("process failed")
       },
+      agentLaunches: zeroAgentLaunches,
     }
     expect(
       await runLoop({
@@ -282,6 +296,7 @@ describe("runLoop", () => {
       async process() {
         throw new Error("process failed")
       },
+      agentLaunches: zeroAgentLaunches,
     }
 
     const code = await runLoop({
@@ -294,10 +309,11 @@ describe("runLoop", () => {
       commentFailure: async (issueId, line) => {
         comments.push({ issueId, line })
       },
+      now: () => 0,
     })
 
     expect(code).toBe(1)
-    expect(errors).toEqual(["process failed"])
+    expect(errors).toEqual(["process failed", "(0s)"])
     expect(comments).toEqual([{ issueId: "42", line: "process failed" }])
     expect(pollCount).toBe(1)
   })
@@ -313,6 +329,7 @@ describe("runLoop", () => {
       async process() {
         throw new Error("process failed")
       },
+      agentLaunches: zeroAgentLaunches,
     }
 
     const code = await runLoop({
@@ -325,10 +342,11 @@ describe("runLoop", () => {
       commentFailure: async () => {
         throw new Error("comment rejected")
       },
+      now: () => 0,
     })
 
     expect(code).toBe(1)
-    expect(errors).toEqual(["process failed", "comment rejected"])
+    expect(errors).toEqual(["process failed", "(0s)", "comment rejected"])
     expect(pollCount).toBe(1)
   })
 })

@@ -16,6 +16,7 @@ import {
 import type { GitHubClient, Issue, IssueComment, PullRequest } from "./github.ts"
 import type { GitClient } from "./git.ts"
 import { workflowLabels } from "./labels.ts"
+import type { AgentLaunchCounts } from "./agent.ts"
 import {
   isQuickTarget,
   parseIssueNumberString,
@@ -27,9 +28,12 @@ export type WorkItem = {
   id: string
 }
 
+export type { AgentLaunchCounts }
+
 export type Runner = {
   poll: () => Promise<WorkItem | null>
   process: (item: WorkItem) => Promise<void>
+  agentLaunches: () => AgentLaunchCounts
 }
 
 const EMPTY_ACCEPTANCE = "受け入れ手順が空です"
@@ -466,6 +470,8 @@ type RunnerDeps = {
       issueNumber: number
       resultPath: string
     }): Promise<void>
+    launchCounts?(): AgentLaunchCounts
+    resetLaunchCounts?(): void
   }
   createProcedureFile: () => Promise<{
     path: string
@@ -601,6 +607,8 @@ export function createRunner(deps: RunnerDeps): Runner {
     },
 
     async process(item) {
+      deps.agent.resetLaunchCounts?.()
+
       const issueNumber = parseIssueNumberString(item.id)
 
       const issue = await withRetry(() => deps.github.getIssue(issueNumber))
@@ -630,6 +638,13 @@ export function createRunner(deps: RunnerDeps): Runner {
       if (issue.labels.includes(LABEL_VERIFIED)) {
         await completeIssue(deps.github, deps.git, issueNumber)
       }
+    },
+
+    agentLaunches() {
+      if (deps.agent.launchCounts) {
+        return deps.agent.launchCounts()
+      }
+      return { quick: 0, implement: 0, fix: 0 }
     },
   }
 }
@@ -1133,4 +1148,7 @@ export const defaultRunner: Runner = {
     return null
   },
   async process() {},
+  agentLaunches() {
+    return { quick: 0, implement: 0, fix: 0 }
+  },
 }
