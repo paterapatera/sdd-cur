@@ -30,6 +30,11 @@ export const workflowLabels: readonly {
     description: "スカッシュマージと同時に付ける",
     color: "5319E7",
   },
+  {
+    name: "コンフリクト",
+    description: "取り込みがコンフリクトした",
+    color: "B60205",
+  },
 ]
 
 export type LabelEnsureResult = {

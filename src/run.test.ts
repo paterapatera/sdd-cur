@@ -37,6 +37,8 @@ describe("parseRunArgs", () => {
   })
 })
 
+async function noopCommentFailure(): Promise<void> {}
+
 describe("runLoop", () => {
   test("poll が null のあと停止すると poll は一度だけ", async () => {
     let pollCount = 0
@@ -58,6 +60,7 @@ describe("runLoop", () => {
       sleep: async () => {},
       log: (line) => logs.push(line),
       logError: () => {},
+      commentFailure: noopCommentFailure,
     })
 
     expect(pollCount).toBe(1)
@@ -89,6 +92,7 @@ describe("runLoop", () => {
       sleep: async () => {},
       log: () => {},
       logError: () => {},
+      commentFailure: noopCommentFailure,
     })
 
     await Bun.sleep(10)
@@ -123,6 +127,7 @@ describe("runLoop", () => {
       },
       log: () => {},
       logError: () => {},
+      commentFailure: noopCommentFailure,
     })
 
     expect(pollCount).toBe(2)
@@ -151,6 +156,7 @@ describe("runLoop", () => {
       sleep: async () => {},
       log: () => {},
       logError: () => {},
+      commentFailure: noopCommentFailure,
     })
 
     await Bun.sleep(10)
@@ -179,6 +185,7 @@ describe("runLoop", () => {
       },
       log: () => {},
       logError: () => {},
+      commentFailure: noopCommentFailure,
     })
 
     expect(sleptMs).toBeLessThanOrEqual(100)
@@ -207,6 +214,7 @@ describe("runLoop", () => {
       sleep: async () => {},
       log: (line) => logs.push(line),
       logError: () => {},
+      commentFailure: noopCommentFailure,
     })
 
     expect(pollCount).toBe(1)
@@ -222,6 +230,7 @@ describe("runLoop", () => {
       },
       async process() {},
     }
+    let commentCalled = false
     expect(
       await runLoop({
         runner: pollFail,
@@ -230,8 +239,12 @@ describe("runLoop", () => {
         sleep: async () => {},
         log: () => {},
         logError: () => {},
+        commentFailure: async () => {
+          commentCalled = true
+        },
       }),
     ).toBe(1)
+    expect(commentCalled).toBe(false)
 
     let polled = false
     const processFail: Runner = {
@@ -251,8 +264,71 @@ describe("runLoop", () => {
         sleep: async () => {},
         log: () => {},
         logError: () => {},
+        commentFailure: noopCommentFailure,
       }),
     ).toBe(1)
     expect(polled).toBe(true)
+  })
+
+  test("process が Error の process failed で拒否したとき commentFailure へ同じ一行", async () => {
+    const errors: string[] = []
+    const comments: { issueId: string; line: string }[] = []
+    let pollCount = 0
+    const runner: Runner = {
+      async poll() {
+        pollCount += 1
+        return { id: "42" }
+      },
+      async process() {
+        throw new Error("process failed")
+      },
+    }
+
+    const code = await runLoop({
+      runner,
+      intervalMin: 1,
+      shouldStop: () => false,
+      sleep: async () => {},
+      log: () => {},
+      logError: (line) => errors.push(line),
+      commentFailure: async (issueId, line) => {
+        comments.push({ issueId, line })
+      },
+    })
+
+    expect(code).toBe(1)
+    expect(errors).toEqual(["process failed"])
+    expect(comments).toEqual([{ issueId: "42", line: "process failed" }])
+    expect(pollCount).toBe(1)
+  })
+
+  test("commentFailure が拒否したとき process の一行のあと投稿の一行", async () => {
+    const errors: string[] = []
+    let pollCount = 0
+    const runner: Runner = {
+      async poll() {
+        pollCount += 1
+        return { id: "3" }
+      },
+      async process() {
+        throw new Error("process failed")
+      },
+    }
+
+    const code = await runLoop({
+      runner,
+      intervalMin: 1,
+      shouldStop: () => false,
+      sleep: async () => {},
+      log: () => {},
+      logError: (line) => errors.push(line),
+      commentFailure: async () => {
+        throw new Error("comment rejected")
+      },
+    })
+
+    expect(code).toBe(1)
+    expect(errors).toEqual(["process failed", "comment rejected"])
+    expect(pollCount).toBe(1)
   })
 })

@@ -52,6 +52,7 @@ export type RunLoopDeps = {
   sleep: (ms: number) => Promise<void>
   log: (line: string) => void
   logError: (line: string) => void
+  commentFailure: (issueId: string, line: string) => Promise<void>
 }
 
 function errorLine(error: unknown): string {
@@ -83,7 +84,13 @@ export async function runLoop(deps: RunLoopDeps): Promise<0 | 1> {
       try {
         await deps.runner.process(item)
       } catch (error) {
-        deps.logError(errorLine(error))
+        const line = errorLine(error)
+        deps.logError(line)
+        try {
+          await deps.commentFailure(item.id, line)
+        } catch (commentError) {
+          deps.logError(errorLine(commentError))
+        }
         return 1
       }
       deps.log(`処理を終了します: ${item.id}`)

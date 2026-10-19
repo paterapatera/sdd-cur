@@ -8,10 +8,15 @@ export type GitRunner = {
   run: (args: string[], options: { cwd: string }) => Promise<GitResult>
 }
 
+export type MergeFetchedResult =
+  | { status: "merged" }
+  | { status: "conflict"; files: readonly string[] }
+
 export type GitClient = {
   remoteName(): Promise<string>
   fetch(remote: string, branch: string): Promise<void>
   checkoutFetched(branch: string): Promise<void>
+  mergeFetched(): Promise<MergeFetchedResult>
   headCommit(): Promise<string>
   hasChanges(): Promise<boolean>
   commitAll(message: string): Promise<void>
@@ -84,6 +89,30 @@ export function createGit(options: { git: GitRunner; cwd: string }): GitClient {
     async checkoutFetched(branch) {
       const result = await run(["checkout", "-B", branch, "FETCH_HEAD"])
       assertGitOk(result)
+    },
+
+    async mergeFetched() {
+      const mergeResult = await run(["merge", "FETCH_HEAD", "--no-edit"])
+      if (mergeResult.exitCode === 0) {
+        return { status: "merged" }
+      }
+      const diffResult = await run([
+        "diff",
+        "--name-only",
+        "--diff-filter=U",
+      ])
+      assertGitOk(diffResult)
+      const files = diffResult.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .sort((a, b) => a.localeCompare(b))
+      if (files.length === 0) {
+        reject(failReason(mergeResult))
+      }
+      const abortResult = await run(["merge", "--abort"])
+      assertGitOk(abortResult)
+      return { status: "conflict", files }
     },
 
     async headCommit() {

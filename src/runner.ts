@@ -1,7 +1,12 @@
+import { randomUUID } from "node:crypto"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import { completeIssue, selectCompletionIssue } from "./complete.ts"
+import {
+  completeIssue,
+  conflictFileComment,
+  selectCompletionIssue,
+} from "./complete.ts"
 import {
   commentMarkers,
   fixComment,
@@ -40,6 +45,8 @@ const BAD_DES_HEADING = "設計の見出しが不正です"
 const BAD_QUICK_RESULT = "quick の結果を解釈できません"
 const NOT_MINOR_LINE = "処理の途中で軽微な修正でないと分かりました"
 const UNDECIDED_LINE = "決められない点があるため止めました"
+const INVALID_CLONE_ID = "クローン識別子が不正です"
+export const startMarker = "sdd-cur: 着手"
 
 const allMarkers = new Set<string>(Object.values(commentMarkers))
 const workflowLabelNames = new Set(workflowLabels.map((l) => l.name))
@@ -49,6 +56,7 @@ const LABEL_IN_PROGRESS = workflowLabels[1].name
 const LABEL_DONE = workflowLabels[2].name
 const LABEL_VERIFIED = workflowLabels[3].name
 const LABEL_MERGED = workflowLabels[4].name
+const LABEL_CONFLICT = workflowLabels[5].name
 
 function reject(message: string): never {
   throw new Error(message)
@@ -122,6 +130,9 @@ export function selectImplementationIssue(
     if (labels.includes(LABEL_IN_PROGRESS)) {
       return false
     }
+    if (labels.includes(LABEL_CONFLICT)) {
+      return false
+    }
     if (!issue.assignees.includes(login)) {
       return false
     }
@@ -137,6 +148,9 @@ export function issueHasFixLabels(issue: Issue): boolean {
     return false
   }
   if (labels.includes(LABEL_IN_PROGRESS)) {
+    return false
+  }
+  if (labels.includes(LABEL_CONFLICT)) {
     return false
   }
   if (labels.includes(LABEL_VERIFIED)) {
@@ -297,6 +311,115 @@ export function pullRequestBody(issueUrl: string, payload: string): string {
   return `${issueUrl}\n${acceptance}`
 }
 
+function parseStartCommentBody(body: string): {
+  isStart: boolean
+  cloneId: string | null
+} {
+  const normalized = normalizeNewlines(body)
+  const lines = normalized.split("\n")
+  const firstIdx = firstNonemptyLineIndex(lines)
+  if (firstIdx < 0) {
+    return { isStart: false, cloneId: null }
+  }
+  if (lines[firstIdx] !== startMarker) {
+    return { isStart: false, cloneId: null }
+  }
+  const idLine = lines[firstIdx + 1]
+  if (idLine === undefined) {
+    return { isStart: true, cloneId: null }
+  }
+  if (idLine.length === 0 || /\s/.test(idLine)) {
+    return { isStart: true, cloneId: null }
+  }
+  return { isStart: true, cloneId: idLine }
+}
+
+function isStartComment(body: string): boolean {
+  return parseStartCommentBody(body).isStart
+}
+
+function startCommentCloneId(body: string): string | null {
+  return parseStartCommentBody(body).cloneId
+}
+
+export function startComment(cloneId: string): string {
+  if (cloneId.length === 0 || /\s/.test(cloneId)) {
+    reject(INVALID_CLONE_ID)
+  }
+  return `${startMarker}\n${cloneId}`
+}
+
+export function issueStartCutoff(
+  comments: readonly IssueComment[],
+): string | null {
+  let max: string | null = null
+  for (const comment of comments) {
+    if (isStartComment(comment.body)) {
+      continue
+    }
+    if (max === null || comment.createdAt > max) {
+      max = comment.createdAt
+    }
+  }
+  return max
+}
+
+export function latestCreatedAt(
+  comments: readonly IssueComment[],
+): string | null {
+  if (comments.length === 0) {
+    return null
+  }
+  let max = comments[0].createdAt
+  for (let i = 1; i < comments.length; i += 1) {
+    if (comments[i].createdAt > max) {
+      max = comments[i].createdAt
+    }
+  }
+  return max
+}
+
+export function decideStartClaim(
+  comments: readonly IssueComment[],
+  cloneId: string,
+  cutoff: string | null,
+): "continue" | "yield" | "unseen" {
+  type Entry = { cloneId: string; createdAt: string; id: string }
+  const entries: Entry[] = []
+  for (const comment of comments) {
+    const id = startCommentCloneId(comment.body)
+    if (id === null) {
+      continue
+    }
+    if (cutoff !== null && comment.createdAt <= cutoff) {
+      continue
+    }
+    entries.push({
+      cloneId: id,
+      createdAt: comment.createdAt,
+      id: comment.id,
+    })
+  }
+  const hasOwn = entries.some((e) => e.cloneId === cloneId)
+  if (!hasOwn) {
+    return "unseen"
+  }
+  const sorted = [...entries].sort((a, b) => {
+    if (a.createdAt !== b.createdAt) {
+      return a.createdAt < b.createdAt ? -1 : 1
+    }
+    if (a.id !== b.id) {
+      return a.id < b.id ? -1 : 1
+    }
+    return 0
+  })
+  const winner = sorted[0]
+  if (winner.cloneId === cloneId) {
+    return "continue"
+  }
+  return "yield"
+}
+
 export async function defaultCreateProcedureFile(): Promise<{
   path: string
   remove(): Promise<void>
@@ -322,6 +445,7 @@ type RunnerDeps = {
     createBranch: GitHubClient["createBranch"]
     createPullRequest: GitHubClient["createPullRequest"]
     addComment: GitHubClient["addComment"]
+    listComments: GitHubClient["listComments"]
     listPullRequests: GitHubClient["listPullRequests"]
     listPullRequestComments: GitHubClient["listPullRequestComments"]
     addPullRequestComment: GitHubClient["addPullRequestComment"]
@@ -384,7 +508,52 @@ async function findFixWorkItem(
   return null
 }
 
+async function ensureStartClaim(
+  deps: RunnerDeps,
+  issueNumber: number,
+  cloneId: string,
+  fixedCutoff: string | null,
+  recomputeIssueCutoff: boolean,
+): Promise<boolean> {
+  let issueCutoff = fixedCutoff
+
+  const cutoffFor = (comments: readonly IssueComment[]): string | null =>
+    recomputeIssueCutoff ? issueStartCutoff(comments) : issueCutoff
+
+  let comments = await withRetry(() => deps.github.listComments(issueNumber))
+  let claim = decideStartClaim(comments, cloneId, cutoffFor(comments))
+
+  if (claim === "yield") {
+    return false
+  }
+
+  if (claim === "unseen") {
+    await withRetry(() =>
+      deps.github.addComment(issueNumber, startComment(cloneId)),
+    )
+    comments = await withRetry(() => deps.github.listComments(issueNumber))
+    claim = decideStartClaim(comments, cloneId, cutoffFor(comments))
+    if (claim === "unseen") {
+      comments = await withRetry(() => deps.github.listComments(issueNumber))
+      claim = decideStartClaim(comments, cloneId, cutoffFor(comments))
+    }
+  }
+
+  if (claim !== "continue") {
+    return false
+  }
+
+  comments = await withRetry(() => deps.github.listComments(issueNumber))
+  claim = decideStartClaim(comments, cloneId, cutoffFor(comments))
+  if (claim !== "continue") {
+    return false
+  }
+
+  return true
+}
+
 export function createRunner(deps: RunnerDeps): Runner {
+  const cloneId = randomUUID()
   return {
     async poll() {
       const login = await withRetry(() => deps.github.viewerLogin())
@@ -438,12 +607,12 @@ export function createRunner(deps: RunnerDeps): Runner {
       const hasRequest = issue.labels.includes(LABEL_REQUEST)
       const hasInProgress = issue.labels.includes(LABEL_IN_PROGRESS)
       if (hasRequest && !hasInProgress) {
-        await runImplementation(deps, issueNumber, issue)
+        await runImplementation(deps, issueNumber, issue, cloneId)
         return
       }
 
       if (issueHasFixLabels(issue)) {
-        await runFixProcess(deps, issueNumber)
+        await runFixProcess(deps, issueNumber, cloneId)
         return
       }
 
@@ -454,12 +623,12 @@ export function createRunner(deps: RunnerDeps): Runner {
         issue.assignees.includes(login) &&
         isQuickTarget(issue)
       ) {
-        await runQuick(deps, issueNumber, issue)
+        await runQuick(deps, issueNumber, issue, cloneId)
         return
       }
 
       if (issue.labels.includes(LABEL_VERIFIED)) {
-        await completeIssue(deps.github, issueNumber)
+        await completeIssue(deps.github, deps.git, issueNumber)
       }
     },
   }
@@ -469,7 +638,14 @@ async function runQuick(
   deps: RunnerDeps,
   issueNumber: number,
   issue: Issue,
+  cloneId: string,
 ): Promise<void> {
+  if (
+    !(await ensureStartClaim(deps, issueNumber, cloneId, null, true))
+  ) {
+    return
+  }
+
   await withRetry(() =>
     deps.github.editLabels(issueNumber, {
       add: [LABEL_IN_PROGRESS],
@@ -618,11 +794,74 @@ async function runQuick(
   }
 }
 
+async function reportImplementationConflict(
+  deps: RunnerDeps,
+  issueNumber: number,
+  files: readonly string[],
+): Promise<void> {
+  const head = implementationBranch(issueNumber)
+  const pullRequests = await withRetry(() =>
+    deps.github.listPullRequests({ head, limit: 100 }),
+  )
+  const open = pullRequests.filter((pr) => pr.state === "open")
+  const body = conflictFileComment(files)
+  if (open.length === 1) {
+    await withRetry(() =>
+      deps.github.addPullRequestComment(open[0]!.number, body),
+    )
+  } else {
+    await withRetry(() => deps.github.addComment(issueNumber, body))
+  }
+  await withRetry(() =>
+    deps.github.editLabels(issueNumber, {
+      remove: [LABEL_IN_PROGRESS],
+      add: [LABEL_CONFLICT],
+    }),
+  )
+}
+
+async function reportFixConflict(
+  deps: RunnerDeps,
+  issueNumber: number,
+  pullRequest: PullRequest,
+  files: readonly string[],
+): Promise<void> {
+  const body = conflictFileComment(files)
+  await withRetry(() =>
+    deps.github.addPullRequestComment(pullRequest.number, body),
+  )
+  await withRetry(() =>
+    deps.github.editLabels(issueNumber, {
+      remove: [LABEL_IN_PROGRESS],
+      add: [LABEL_CONFLICT],
+    }),
+  )
+}
+
+async function mergeDefaultBranchIntoWorkBranch(
+  deps: RunnerDeps,
+  remote: string,
+  defaultBranch: string,
+): Promise<
+  | { status: "merged" }
+  | { status: "conflict"; files: readonly string[] }
+> {
+  await withRetry(() => deps.git.fetch(remote, defaultBranch))
+  return deps.git.mergeFetched()
+}
+
 async function runImplementation(
   deps: RunnerDeps,
   issueNumber: number,
   issue: Issue,
+  cloneId: string,
 ): Promise<void> {
+  if (
+    !(await ensureStartClaim(deps, issueNumber, cloneId, null, true))
+  ) {
+    return
+  }
+
   await withRetry(() =>
     deps.github.editLabels(issueNumber, {
       remove: [LABEL_REQUEST],
@@ -636,6 +875,16 @@ async function runImplementation(
   const remote = await withRetry(() => deps.git.remoteName())
   await withRetry(() => deps.git.fetch(remote, branch))
   await withRetry(() => deps.git.checkoutFetched(branch))
+
+  const mergeResult = await mergeDefaultBranchIntoWorkBranch(
+    deps,
+    remote,
+    defaultBranch,
+  )
+  if (mergeResult.status === "conflict") {
+    await reportImplementationConflict(deps, issueNumber, mergeResult.files)
+    return
+  }
 
   const procedure = await deps.createProcedureFile()
   try {
@@ -704,7 +953,12 @@ async function resolveFixContext(
   issueNumber: number,
 ): Promise<
   | { kind: "skip" }
-  | { kind: "work"; pullRequest: PullRequest; bugs: IssueComment[] }
+  | {
+      kind: "work"
+      pullRequest: PullRequest
+      bugs: IssueComment[]
+      prComments: IssueComment[]
+    }
 > {
   const head = implementationBranch(issueNumber)
   const pullRequests = await withRetry(() =>
@@ -724,18 +978,31 @@ async function resolveFixContext(
   if (bugs.length === 0) {
     return { kind: "skip" }
   }
-  return { kind: "work", pullRequest: classified.pullRequest, bugs }
+  return {
+    kind: "work",
+    pullRequest: classified.pullRequest,
+    bugs,
+    prComments: comments,
+  }
 }
 
 async function runFixProcess(
   deps: RunnerDeps,
   issueNumber: number,
+  cloneId: string,
 ): Promise<void> {
   const ctx = await resolveFixContext(deps, issueNumber)
   if (ctx.kind === "skip") {
     return
   }
-  await runFix(deps, issueNumber, ctx.pullRequest, ctx.bugs)
+  await runFix(
+    deps,
+    issueNumber,
+    ctx.pullRequest,
+    ctx.bugs,
+    ctx.prComments,
+    cloneId,
+  )
 }
 
 async function runFix(
@@ -743,7 +1010,16 @@ async function runFix(
   issueNumber: number,
   pullRequest: PullRequest,
   bugs: IssueComment[],
+  prComments: readonly IssueComment[],
+  cloneId: string,
 ): Promise<void> {
+  const fixCutoff = latestCreatedAt(prComments)
+  if (
+    !(await ensureStartClaim(deps, issueNumber, cloneId, fixCutoff, false))
+  ) {
+    return
+  }
+
   const bugIds = bugs.map((b) => b.id)
   fixComment(".", bugIds)
 
@@ -766,6 +1042,22 @@ async function runFix(
     const remote = await withRetry(() => deps.git.remoteName())
     await withRetry(() => deps.git.fetch(remote, branch))
     await withRetry(() => deps.git.checkoutFetched(branch))
+
+    const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
+    const mergeResult = await mergeDefaultBranchIntoWorkBranch(
+      deps,
+      remote,
+      defaultBranch,
+    )
+    if (mergeResult.status === "conflict") {
+      await reportFixConflict(
+        deps,
+        issueNumber,
+        pullRequest,
+        mergeResult.files,
+      )
+      return
+    }
 
     const procedure = await deps.createProcedureFile()
 
