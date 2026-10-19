@@ -5,6 +5,12 @@ export type AgentRunner = {
   run: (args: string[], options: { cwd: string }) => Promise<GitResult>
 }
 
+export type AgentLaunchCounts = {
+  quick: number
+  implement: number
+  fix: number
+}
+
 function reject(message: string): never {
   throw new Error(message)
 }
@@ -96,11 +102,23 @@ export function createAgent(options: {
     bugs: readonly { id: string; payload: string }[]
   }): Promise<void>
   quick(input: { issueNumber: number; resultPath: string }): Promise<void>
+  launchCounts(): AgentLaunchCounts
+  resetLaunchCounts(): void
 } {
   const agent = options.agent
   const cwd = options.cwd
+  const counts: AgentLaunchCounts = { quick: 0, implement: 0, fix: 0 }
 
   return {
+    launchCounts() {
+      return { ...counts }
+    },
+    resetLaunchCounts() {
+      counts.quick = 0
+      counts.implement = 0
+      counts.fix = 0
+    },
+
     async implement(input) {
       if (!Number.isSafeInteger(input.issueNumber) || input.issueNumber < 1) {
         reject("番号が不正です")
@@ -120,6 +138,7 @@ export function createAgent(options: {
         prompt,
       ]
 
+      counts.implement += 1
       let result: GitResult
       try {
         result = await agent.run(args, { cwd })
@@ -153,6 +172,7 @@ export function createAgent(options: {
         prompt,
       ]
 
+      counts.fix += 1
       let result: GitResult
       try {
         result = await agent.run(args, { cwd })
@@ -187,6 +207,7 @@ export function createAgent(options: {
         prompt,
       ]
 
+      counts.quick += 1
       let result: GitResult
       try {
         result = await agent.run(args, { cwd })
