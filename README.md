@@ -21,7 +21,9 @@ bun src/cli.ts run [--interval-min <1 以上 1440 以下の整数>]
 bun src/cli.ts labels
 bun src/cli.ts candidates
 bun src/cli.ts show <番号>
+bun src/cli.ts branch <番号>
 bun src/cli.ts confirm <番号>
+bun src/cli.ts close <番号>
 bun src/cli.ts reflect <番号> <requirements|design>
 bun src/cli.ts complete <番号>
 bun test
@@ -34,12 +36,14 @@ bun test
 | `labels` | 作業ツリーのリポジトリに、五つの業務ラベルを作る。無いものだけ作る |
 | `candidates` | 着手候補の課題を JSON で一行出力する |
 | `show` | 課題と仕様の状態を JSON で一行出力する |
+| `branch` | 作業ブランチ名 `task-<番号>` を一行出力する |
 | `confirm` | 承認した確認本文を標準入力から受け取り、課題にコメントする |
+| `close` | 標準入力の本文を課題にコメントし、課題を閉じる |
 | `reflect` | 取り込み先の全文を標準入力から受け取り、未反映の回答を一件記録する |
 | `complete` | 指定課題の完了処理を行う。作業ツリーの `sdd-cur.completion` は読まない。 |
 | `bun test` | テスト。`gh` は起動しない |
 
-`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-implement`、`skills/sdd-cur-complete` である。
+`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-quick` である。
 
 使い方は `bun src/cli.ts --help` で標準エラーへ出る。
 
@@ -98,9 +102,12 @@ src/conventions.ts    specs パスと課題コメントの判定
 src/sdd.ts            SDD スキル用の判定と投稿
 src/complete.ts       完了処理
 src/*.test.ts
-skills/sdd-cur/       install がコピーする SDD スキル
-skills/sdd-cur-implement/  install がコピーする実装スキル
-skills/sdd-cur-complete/   install がコピーする完了スキル
+skills/sdd-cur/               install がコピーする SDD スキル
+skills/sdd-cur-complete/      install がコピーする完了スキル
+skills/sdd-cur-create-issue/  install がコピーする課題作成スキル
+skills/sdd-cur-fix/           install がコピーする修正スキル
+skills/sdd-cur-implement/     install がコピーする実装スキル
+skills/sdd-cur-quick/         install がコピーする quick のスキル
 ```
 
 設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md)、[SDD スキル](docs/specs/5/design.md)、[課題ランナー](docs/specs/6/design.md)、[完了処理](docs/specs/7/design.md) である。
