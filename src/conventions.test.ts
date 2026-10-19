@@ -529,6 +529,7 @@ describe("文書", () => {
     )
     expect(text).toContain("## マージリクエストの本文")
     expect(text).toContain("マージリクエストの URL だけ")
+    expect(text).toContain("sdd-cur: 着手")
     expect(text).toContain("確認と回答の課題コメントは、変えない。")
     expect(text).toContain(pullRequestCommentMarkers.bug)
     expect(text).toContain(pullRequestCommentMarkers.fix)
