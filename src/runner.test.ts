@@ -160,7 +160,6 @@ describe("createRunner", () => {
   test("poll は listIssues を実装依頼で呼び候補が無いとき null", async () => {
     let calls = 0
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -183,8 +182,16 @@ describe("createRunner", () => {
             })
             return []
           }
+          if (calls === 3) {
+            expect(query).toEqual({
+              state: "open",
+              assignee: VIEWER_LOGIN,
+              limit: 100,
+            })
+            return []
+          }
           expect(query).toEqual({
-            state: "open",
+            labels: [LABEL_VERIFIED],
             assignee: VIEWER_LOGIN,
             limit: 100,
           })
@@ -238,13 +245,12 @@ describe("createRunner", () => {
       }),
     })
     await expect(runner.poll()).resolves.toBeNull()
-    expect(calls).toBe(3)
+    expect(calls).toBe(4)
   })
 
   test("poll は listIssues が一度拒否し二度目に返す", async () => {
     let calls = 0
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -297,7 +303,6 @@ describe("createRunner", () => {
     let viewerCalls = 0
     let listCalls = 0
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           viewerCalls += 1
@@ -355,13 +360,12 @@ describe("createRunner", () => {
     })
     await expect(runner.poll()).resolves.toBeNull()
     expect(viewerCalls).toBe(2)
-    expect(listCalls).toBe(3)
+    expect(listCalls).toBe(4)
   })
 
   test("viewerLogin が二度とも拒否すると listIssues は呼ばない", async () => {
     let listCalls = 0
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           throw new Error("auth failed")
@@ -410,7 +414,6 @@ describe("createRunner", () => {
   test("ラベルは合うが assignees に login が無いとき poll は null", async () => {
     let listCalls = 0
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -466,7 +469,6 @@ describe("createRunner", () => {
   test("process はラベルが違うとき editLabels を呼ばない", async () => {
     let editCalled = false
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -519,7 +521,6 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順本文", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -617,7 +618,6 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -675,7 +675,6 @@ describe("createRunner", () => {
   test("implement が二度拒否したとき後続を呼ばない", async () => {
     let commitCalled = false
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -733,7 +732,6 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -791,7 +789,6 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -862,7 +859,6 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -930,7 +926,6 @@ describe("createRunner", () => {
     await writeFile(procedurePath, "手順", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -996,7 +991,6 @@ describe("createRunner", () => {
     store.set(2, [LABEL_REQUEST])
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1062,7 +1056,6 @@ describe("createRunner", () => {
   test("poll は不具合修正があるとき quick の listIssues を呼ばない", async () => {
     let quickListed = false
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1137,7 +1130,6 @@ describe("createRunner", () => {
   test("poll は実装依頼があるとき quick の listIssues を呼ばない", async () => {
     let quickListed = false
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1202,7 +1194,6 @@ describe("createRunner", () => {
   test("poll は quick があるとき動作確認OK を探さない", async () => {
     let verifiedListed = false
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1278,7 +1269,6 @@ describe("createRunner", () => {
     await writeFile(implementPath, "手順", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1399,7 +1389,6 @@ describe("createRunner", () => {
     await writeFile(quickPath, "軽微でない\n詳細", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1473,7 +1462,6 @@ describe("createRunner", () => {
     await writeFile(quickPath, "決められない\n未記載の点", "utf8")
 
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1536,7 +1524,6 @@ describe("createRunner", () => {
   test("agent.quick が二度拒否したとき状況コメントを投稿しない", async () => {
     let commentCalled = false
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1594,72 +1581,73 @@ describe("createRunner", () => {
 })
 
 describe("createRunner completion", () => {
-  test("completionCaller null または skill では動作確認OK を探さない", async () => {
+  test("前段が空のとき動作確認OK を探す", async () => {
     let listCalls = 0
-    for (const caller of [null, "skill"] as const) {
-      listCalls = 0
-      const runner = createRunner({
-        completionCaller: caller,
-        github: {
-          async viewerLogin() {
-            return VIEWER_LOGIN
-          },
-          async listIssues() {
-            listCalls += 1
-            return []
-          },
-          async getIssue() {
-            return issue({ number: 1 })
-          },
-          async editLabels() {},
-          async getDefaultBranch() {
-            return "main"
-          },
-          async createBranch() {},
-          async createPullRequest() {
-            return { number: 1, url: "https://pr" }
-          },
-          async addComment() {
-            return { url: "https://c" }
-          },
-          async listPullRequests() {
-            return []
-          },
-          async listPullRequestComments() {
-            return []
-          },
-          async addPullRequestComment() {
-            return { url: "https://c" }
-          },
-          async squashMerge() {},
+    let verifiedAssignee: string | undefined
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
         },
-        git: {
-          async remoteName() {
-            return "origin"
-          },
-          async fetch() {},
-          async checkoutFetched() {},
-          async hasChanges() {
-            return true
-          },
-          async commitAll() {},
-          async push() {},
+        async listIssues(query) {
+          listCalls += 1
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            verifiedAssignee = query.assignee
+            return [issue({ number: 9, labels: [LABEL_VERIFIED] })]
+          }
+          return []
         },
-        agent: { async implement() {}, async fix() {}, async quick() {} },
-        createProcedureFile: async () => ({
-          path: "/tmp/x",
-          async remove() {},
-        }),
-      })
-      expect(await runner.poll()).toBe(null)
-      expect(listCalls).toBe(3)
-    }
+        async getIssue() {
+          return issue({ number: 9, labels: [LABEL_VERIFIED] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment() {
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    expect(await runner.poll()).toEqual({ id: "9" })
+    expect(listCalls).toBe(4)
+    expect(verifiedAssignee).toBe(VIEWER_LOGIN)
   })
 
   test("runner で実装依頼があれば動作確認OK を探さない", async () => {
     let secondList = false
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1715,7 +1703,6 @@ describe("createRunner completion", () => {
   test("runner で動作確認OK のみを返す", async () => {
     let secondAssignee: string | undefined
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1781,7 +1768,6 @@ describe("createRunner completion", () => {
     const procedurePath = path.join(procDir, "procedure.txt")
     await writeFile(procedurePath, "手順", "utf8")
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1844,7 +1830,6 @@ describe("createRunner completion", () => {
     const procedurePath = path.join(procDir, "procedure.txt")
     await writeFile(procedurePath, "手順", "utf8")
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1900,7 +1885,6 @@ describe("createRunner completion", () => {
   test("動作確認OK では squashMerge と完了 editLabels だけ", async () => {
     const calls: string[] = []
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -1978,7 +1962,6 @@ describe("createRunner completion", () => {
   test("完了後の poll はその課題を返さない", async () => {
     let verifiedIssues = [issue({ number: 6, labels: [LABEL_VERIFIED] })]
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2128,7 +2111,6 @@ describe("createRunner completion", () => {
     }
     expect("deleteBranch" in github).toBe(false)
     const runner = createRunner({
-      completionCaller: "runner",
       github,
       git: {
         async remoteName() {
@@ -2165,7 +2147,6 @@ describe("createRunner fix", () => {
   test("poll は実装依頼を優先し実装完了の listIssues を呼ばない", async () => {
     let doneList = false
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2226,7 +2207,6 @@ describe("createRunner fix", () => {
   test("未処理の不具合がある課題を返す", async () => {
     let prCalls = 0
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2295,7 +2275,6 @@ describe("createRunner fix", () => {
 
   test("2 件以上のマージリクエストで拒否", async () => {
     const runner = createRunner({
-      completionCaller: "runner",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2360,7 +2339,6 @@ describe("createRunner fix", () => {
     const procedurePath = "/tmp/fix-proc.txt"
     await writeFile(procedurePath, "再確認手順", "utf8")
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2461,7 +2439,6 @@ describe("createRunner fix", () => {
   test("小さい番号をスキップし未処理がある番号だけ返す", async () => {
     let prFor10 = 0
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2536,10 +2513,9 @@ describe("createRunner fix", () => {
     expect(prFor10).toBe(1)
   })
 
-  test("completionCaller が skill でも不具合を探す", async () => {
+  test("不具合を探す", async () => {
     let verifiedList = false
     const runner = createRunner({
-      completionCaller: "skill",
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2612,7 +2588,6 @@ describe("createRunner fix", () => {
     const procedurePath = "/tmp/fix-oos.txt"
     await writeFile(procedurePath, "設計の範囲外のため直していない", "utf8")
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2688,7 +2663,6 @@ describe("createRunner fix", () => {
     const procedurePath = "/tmp/fix-nochg.txt"
     await writeFile(procedurePath, "直した", "utf8")
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2764,7 +2738,6 @@ describe("createRunner fix", () => {
     const procedurePath = "/tmp/fix-retry.txt"
     await writeFile(procedurePath, "手順", "utf8")
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN
@@ -2837,7 +2810,6 @@ describe("createRunner fix", () => {
 
   test("実装中の課題は poll の不具合探索で返さない", async () => {
     const runner = createRunner({
-      completionCaller: null,
       github: {
         async viewerLogin() {
           return VIEWER_LOGIN

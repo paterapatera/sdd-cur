@@ -9,7 +9,7 @@ import {
   installAll,
   parseInstallArgs,
 } from "./install.ts"
-import { completeIssue, readCompletionCaller } from "./complete.ts"
+import { completeIssue } from "./complete.ts"
 import {
   createGitHub,
   defaultGhRunner,
@@ -116,13 +116,6 @@ async function cmdRun(args: string[]): Promise<number> {
   process.on("SIGTERM", onSignal)
 
   const cwd = process.cwd()
-  let completionCaller
-  try {
-    completionCaller = await readCompletionCaller(cwd)
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error))
-    return 1
-  }
 
   let github
   try {
@@ -136,7 +129,6 @@ async function cmdRun(args: string[]): Promise<number> {
   const git = createGit({ git: defaultGitRunner, cwd })
   const agent = createAgent({ agent: defaultAgentRunner, cwd })
   const runner = createRunner({
-    completionCaller,
     github,
     git,
     agent,
@@ -332,18 +324,6 @@ async function cmdComplete(args: string[]): Promise<number> {
   }
 
   const cwd = process.cwd()
-  let caller
-  try {
-    caller = await readCompletionCaller(cwd)
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error))
-    return 1
-  }
-
-  if (caller === "runner") {
-    console.error("完了は課題ランナーが行います")
-    return 1
-  }
 
   try {
     const repo = await resolveRepo(defaultGhRunner, cwd)
