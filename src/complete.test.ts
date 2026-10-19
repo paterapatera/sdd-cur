@@ -272,7 +272,7 @@ describe("completeIssue", () => {
     await completeIssue(
       {
         async getIssue() {
-          return issue({ number: 7, labels: [LABEL_VERIFIED] })
+          return issue({ number: 7, title: "t", labels: [LABEL_VERIFIED] })
         },
         async listPullRequests() {
           return [
@@ -284,8 +284,8 @@ describe("completeIssue", () => {
             },
           ]
         },
-        async squashMerge(n) {
-          calls.push(`squash:${n}`)
+        async squashMerge(n, subject) {
+          calls.push(`squash:${n}:${subject}`)
         },
         async editLabels(n, change) {
           calls.push(`labels:${n}:${change.remove?.join(",")}:${change.add?.join(",")}`)
@@ -294,9 +294,39 @@ describe("completeIssue", () => {
       7,
     )
     expect(calls).toEqual([
-      "squash:9",
+      "squash:9:【課題 7】t",
       `labels:7:${LABEL_VERIFIED}:${LABEL_MERGED}`,
     ])
+  })
+
+  test("課題番号とマージリクエスト番号が違うとき件名は課題番号を使う", async () => {
+    let squashArgs: [number, string] | null = null
+    await completeIssue(
+      {
+        async getIssue() {
+          return issue({ number: 7, title: "t", labels: [LABEL_VERIFIED] })
+        },
+        async listPullRequests() {
+          return [
+            {
+              number: 9,
+              url: "https://pr/9",
+              state: "open",
+              merged: false,
+            },
+          ]
+        },
+        async squashMerge(n, subject) {
+          squashArgs = [n, subject]
+        },
+        async editLabels() {},
+      },
+      7,
+    )
+    expect(squashArgs).toEqual([9, "【課題 7】t"])
+    expect(squashArgs?.[1]).not.toBe("【課題 9】t")
+    expect(squashArgs?.[1]).not.toBe("【課題 7】 t")
+    expect(squashArgs?.[1]).not.toBe("feat: 【課題 7】t")
   })
 
   test("merged true のとき squashMerge を呼ばない", async () => {
@@ -459,6 +489,10 @@ describe("completeIssue", () => {
     )
     expect(mergeCalls.length).toBe(1)
     expect(mergeCalls[0]?.args).toContain("--delete-branch")
+    const subjectIndex = mergeCalls[0]?.args.indexOf("--subject")
+    expect(subjectIndex).toBeGreaterThan(-1)
+    expect(mergeCalls[0]?.args[subjectIndex! + 1]).toBe("【課題 7】t")
+    expect(mergeCalls[0]?.args).not.toContain("--body")
     for (const call of calls) {
       expect(call.args).not.toContain("close")
       if (call.args[0] === "issue" && call.args[1] === "edit") {
