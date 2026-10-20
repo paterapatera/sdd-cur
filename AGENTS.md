@@ -38,6 +38,7 @@ bun src/cli.ts complete <番号>
 bun src/cli.ts restore <番号>
 bun src/cli.ts request <番号>
 bun src/cli.ts review-next <requirements|reflect-design|quick|implement> <番号>
+bun src/cli.ts spec-check
 bun test
 ```
 
