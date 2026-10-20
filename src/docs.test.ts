@@ -54,37 +54,6 @@ function firstCodeFenceAfter(text: string, heading: string): string {
   return rest.slice(bodyStart, fenceEnd)
 }
 
-function firstMarkdownTableAfter(text: string, afterIndex: number): string {
-  const after = text.slice(afterIndex)
-  const lines = after.split("\n")
-  let start = -1
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith("|") && lines[i].includes("---")) {
-      start = i - 1
-      break
-    }
-  }
-  expect(start).toBeGreaterThanOrEqual(0)
-  const tableLines: string[] = []
-  for (let i = start; i < lines.length; i++) {
-    if (!lines[i].startsWith("|")) break
-    tableLines.push(lines[i])
-  }
-  return tableLines.join("\n")
-}
-
-function subcommandsFromMarkdownTable(table: string): Set<string> {
-  const names = new Set<string>()
-  for (const line of table.split("\n")) {
-    if (!line.startsWith("|") || line.includes("---")) continue
-    const m = line.match(/^\|\s*`([^`]+)`\s*\|/)
-    if (!m) continue
-    if (m[1] === "bun test") continue
-    names.add(m[1])
-  }
-  return names
-}
-
 function policyCliTableRoleCell(policy: string): string {
   for (const line of policy.split("\n")) {
     if (line.startsWith("| `src/cli.ts` |")) {
@@ -144,7 +113,6 @@ describe("docs と skills の整合", () => {
     const expected = cliSubcommandNames()
     const policy = readFileSync(join(root, "docs/policy.md"), "utf8")
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8")
-    const readme = readFileSync(join(root, "README.md"), "utf8")
 
     const fromPolicyTable = backtickNamesInText(policyCliTableRoleCell(policy))
     expect(sorted(fromPolicyTable)).toEqual(sorted(expected))
@@ -153,18 +121,6 @@ describe("docs と skills の整合", () => {
     expect(sorted(subcommandsFromCliCodeFence(agentsFence))).toEqual(
       sorted(expected),
     )
-
-    const readmeFence = firstCodeFenceAfter(readme, "## 開発中の起動")
-    expect(sorted(subcommandsFromCliCodeFence(readmeFence))).toEqual(
-      sorted(expected),
-    )
-
-    const fenceEnd =
-      readme.indexOf("## 開発中の起動") +
-      readme.slice(readme.indexOf("## 開発中の起動")).indexOf("```", 3) +
-      3
-    const table = firstMarkdownTableAfter(readme, fenceEnd)
-    expect(sorted(subcommandsFromMarkdownTable(table))).toEqual(sorted(expected))
   })
 
   test("README のスキル記述が skills/ 直下のディレクトリと一致する", () => {

@@ -331,7 +331,7 @@ describe("課題 122 spec-check", () => {
     expect(agents).toContain("bun src/cli.ts spec-check")
 
     const readme = await readFile(path.join(root, "README.md"), "utf8")
-    expect(readme).toContain("bun src/cli.ts spec-check")
-    expect(readme).toContain("| `spec-check` |")
+    expect(readme).not.toContain("bun src/cli.ts spec-check")
+    expect(readme).not.toContain("| `spec-check` |")
   })
 })

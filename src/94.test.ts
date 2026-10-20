@@ -387,12 +387,12 @@ describe("課題 94", () => {
     expect(agents).toContain("bun src/cli.ts request <番号>")
 
     const readme = await readFile(path.join(root, "README.md"), "utf8")
-    expect(readme).toContain("bun src/cli.ts request <番号>")
     expect(readme).toContain(
-      "| `request` | 作業ブランチを push し、成功したあと課題に「実装依頼」を付ける |",
+      "人は Project A で、`sdd-cur request <番号>` で作業ブランチを push してから「実装依頼」を付ける。",
     )
-    expect(readme).toContain(
-      "人は Project A で、`bun src/cli.ts request <番号>` で作業ブランチを push してから「実装依頼」を付ける。",
+    expect(readme).not.toContain("bun src/cli.ts request <番号>")
+    expect(readme).not.toContain(
+      "| `request` | 作業ブランチを push し、成功したあと課題に「実装依頼」を付ける |",
     )
     expect(readme).toContain("| 実装依頼 | 人 |")
 
