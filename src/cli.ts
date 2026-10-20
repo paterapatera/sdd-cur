@@ -53,6 +53,7 @@ import {
   validateReflectLocal,
   writeSpecFile,
 } from "./sdd.ts"
+import { checkSpec } from "./spec.ts"
 
 export function printUsage(): void {
   console.error("sdd-cur install [project-root]")
@@ -66,6 +67,7 @@ export function printUsage(): void {
   console.error("sdd-cur reflect <番号> <requirements|design>")
   console.error("sdd-cur validate <番号>")
   console.error("sdd-cur complete <番号>")
+  console.error("sdd-cur spec-check")
 }
 
 function wantsHelp(argv: string[]): boolean {
@@ -527,6 +529,25 @@ async function cmdRestore(args: string[]): Promise<number> {
   }
 }
 
+async function cmdSpecCheck(args: string[]): Promise<number> {
+  if (args.length > 0) {
+    console.error("引数は受け取れません")
+    return 1
+  }
+
+  const cwd = process.cwd()
+  try {
+    const lines = await checkSpec(cwd)
+    for (const line of lines) {
+      console.error(line)
+    }
+    return lines.length > 0 ? 1 : 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
 async function cmdRequest(args: string[]): Promise<number> {
   if (args.length !== 1) {
     printUsage()
@@ -602,7 +623,7 @@ async function cmdComplete(args: string[]): Promise<number> {
 
 async function main(): Promise<number> {
   const argv = process.argv.slice(2)
-  if (wantsHelp(argv)) {
+  if (wantsHelp(argv) && argv[0] !== "spec-check") {
     printUsage()
     return 0
   }
@@ -644,6 +665,8 @@ async function main(): Promise<number> {
       return await cmdReviewNext(rest)
     case "request":
       return await cmdRequest(rest)
+    case "spec-check":
+      return await cmdSpecCheck(argv.slice(1))
     default:
       printUsage()
       return 1

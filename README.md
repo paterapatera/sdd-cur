@@ -29,6 +29,7 @@ bun src/cli.ts complete <番号>
 bun src/cli.ts restore <番号>
 bun src/cli.ts request <番号>
 bun src/cli.ts review-next <requirements|reflect-design|quick|implement> <番号>
+bun src/cli.ts spec-check
 bun test
 ```
 
@@ -48,6 +49,7 @@ bun test
 | `restore` | 指定課題のラベルと状態を着手前に戻す |
 | `request` | 作業ブランチを push し、成功したあと課題に「実装依頼」を付ける |
 | `review-next` | レビュー応答と連続不合格と直前の指摘から、次の動作を JSON 一行で返す |
+| `spec-check` | `docs/spec/` 直下の正本について、近い本文、壊れた文末、空の本文、識別子の重複を検査する |
 | `bun test` | テスト。`gh` は起動しない |
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-quick` である。
