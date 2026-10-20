@@ -2,15 +2,15 @@
 
 ## REQ-62
 
-もとになった課題は #3 である。
+もとになった課題は #132 である。
 
-`bun src/cli.ts labels` を、対象リポジトリの作業ツリーで実行すると、下の五つのラベルが GitHub 上に存在する。すでにあるラベルは作り直さない。
+`bun src/cli.ts labels` を、対象リポジトリの作業ツリーで実行すると、業務ラベル六件と、名前が `quick 対象` のラベル一件が GitHub 上に存在する。すでにあるラベルは作り直さない。
 
 ## REQ-63
 
-もとになった課題は #3 である。
+もとになった課題は #132 である。
 
-五つの名前、説明、色の定義は `workflowLabels` だけが持つ。この課題では `editLabels` を呼ばない。
+業務ラベル六件の名前、説明、色の定義は `workflowLabels` だけが持つ。名前が `quick 対象` のラベルの名前、説明、色の定義は `quickTargetLabel` だけが持つ。この課題では `editLabels` を呼ばない。
 
 ## REQ-64
 
@@ -26,9 +26,9 @@
 
 ## REQ-66
 
-もとになった課題は #3 である。
+もとになった課題は #132 である。
 
-作成は`GitHubClient` に `getLabel` と `createLabel` を足す。`ensureWorkflowLabels` が五件を順に、無いものだけ作るである。
+作成は`GitHubClient` に `getLabel` と `createLabel` を足す。`ensureWorkflowLabels` が業務ラベル六件を順に、続けて名前が `quick 対象` のラベル一件を、無いものだけ作るである。
 
 ## REQ-67
 
@@ -110,9 +110,9 @@ createLabel(input: {
 
 ## REQ-77
 
-もとになった課題は #3 である。
+もとになった課題は #132 である。
 
-`ensureWorkflowLabels` は `workflowLabels` の順に `getLabel` を呼ぶ。`null` のときだけ `createLabel` を呼び、`status` を `"created"` にする。名前が返ったときは `createLabel` を呼ばず `"existing"` にする。戻り値は五件で、並びは `workflowLabels` と同じである。
+`ensureWorkflowLabels` は、先に `workflowLabels` の順に `getLabel` を呼ぶ。`null` のときだけ `createLabel` を呼び、`status` を `"created"` にする。名前が返ったときは `createLabel` を呼ばず `"existing"` にする。そのあと、名前が `quick 対象` のラベルについて、同じ規則で `getLabel` と `createLabel` を一回だけ行う。戻り値は七件で、並びは `workflowLabels` と同じ六件のあと、名前が `quick 対象` のラベル一件である。
 
 ## REQ-78
 
@@ -197,3 +197,21 @@ createLabel(input: {
 もとになった課題は #82 である。
 
 使い方は `bun src/cli.ts restore <番号>` である。`<番号>` は課題番号である。
+
+## REQ-808
+
+もとになった課題は #132 である。
+
+`src/labels.ts` に `quickTargetLabel` を置く。形は `{ name: string; description: string; color: string }` であり、`workflowLabels` の各要素と同じ三フィールドである。名前は `quick 対象`、説明は `軽微な修正として quick で進める`、色は `0075CA` である。`quickTargetLabel` は `workflowLabels` に含めない。
+
+## REQ-809
+
+もとになった課題は #132 である。
+
+名前が `quick 対象` のラベルは業務ラベルではない。`workflowLabels` の `name` から作る業務ラベルの集合に含めない。
+
+## REQ-810
+
+もとになった課題は #132 である。
+
+`isQuickTarget` が見るラベル名の字面は、`quickTargetLabel.name` である。`bun src/cli.ts labels` が登録で使う名前と一文字も違わない。字面の定義は `src/labels.ts` に一箇所だけ置き、`src/sdd.ts` で別定義しない。

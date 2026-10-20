@@ -5,7 +5,11 @@ import {
   type GhRunner,
   type GhRunOptions,
 } from "./github.ts"
-import { ensureWorkflowLabels, workflowLabels } from "./labels.ts"
+import {
+  ensureWorkflowLabels,
+  quickTargetLabel,
+  workflowLabels,
+} from "./labels.ts"
 
 type RecordedCall = { args: string[]; options: GhRunOptions }
 
@@ -24,8 +28,11 @@ function recordingRunner(): { runner: GhRunner; calls: RecordedCall[] } {
       if (getCalls === 1) {
         return fail404()
       }
-      const label = workflowLabels[getCalls - 1]
-      return okJson({ name: label.name })
+      if (getCalls <= workflowLabels.length) {
+        const label = workflowLabels[getCalls - 1]
+        return okJson({ name: label.name })
+      }
+      return okJson({ name: quickTargetLabel.name })
     },
   }
   return { runner, calls }
@@ -84,6 +91,7 @@ describe("ensureWorkflowLabels", () => {
       { name: "動作確認OK", status: "existing" },
       { name: "マージ済み", status: "existing" },
       { name: "コンフリクト", status: "existing" },
+      { name: quickTargetLabel.name, status: "existing" },
     ])
     const creates = calls.filter((call) => call.args.includes("--method"))
     expect(creates.length).toBe(1)

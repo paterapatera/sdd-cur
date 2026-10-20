@@ -37,6 +37,16 @@ export const workflowLabels: readonly {
   },
 ]
 
+export const quickTargetLabel: {
+  name: string
+  description: string
+  color: string
+} = {
+  name: "quick 対象",
+  description: "軽微な修正として quick で進める",
+  color: "0075CA",
+}
+
 export type LabelEnsureResult = {
   name: string
   status: "created" | "existing"
@@ -46,7 +56,7 @@ export async function ensureWorkflowLabels(
   github: GitHubClient,
 ): Promise<LabelEnsureResult[]> {
   const results: LabelEnsureResult[] = []
-  for (const label of workflowLabels) {
+  for (const label of [...workflowLabels, quickTargetLabel]) {
     const existing = await github.getLabel(label.name)
     if (existing !== null) {
       results.push({ name: label.name, status: "existing" })
