@@ -43,6 +43,8 @@ function assertAgentOk(result: GitResult): void {
   }
 }
 
+const AGENT_MODEL = "composer-2.5[fast=false]"
+
 const INVALID_PROCEDURE_PATH = "受け入れ手順のパスが不正です"
 const INVALID_RESULT_PATH = "修正結果のパスが不正です"
 const INVALID_QUICK_RESULT_PATH = "quick の結果パスが不正です"
@@ -131,6 +133,8 @@ export function createAgent(options: {
         "-p",
         "--force",
         "--trust",
+        "--model",
+        AGENT_MODEL,
         "--workspace",
         cwd,
         "--output-format",
@@ -165,6 +169,8 @@ export function createAgent(options: {
         "-p",
         "--force",
         "--trust",
+        "--model",
+        AGENT_MODEL,
         "--workspace",
         cwd,
         "--output-format",
@@ -200,6 +206,8 @@ export function createAgent(options: {
         "-p",
         "--force",
         "--trust",
+        "--model",
+        AGENT_MODEL,
         "--workspace",
         cwd,
         "--output-format",
