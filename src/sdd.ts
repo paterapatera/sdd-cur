@@ -14,7 +14,7 @@ import {
   withReflectedId,
 } from "./conventions.ts"
 import type { GitHubClient, Issue, IssueComment } from "./github.ts"
-import { workflowLabels } from "./labels.ts"
+import { quickTargetLabel, workflowLabels } from "./labels.ts"
 
 const INVALID_NUMBER = "番号が不正です"
 const INVALID_KIND = "種別が不正です"
@@ -127,17 +127,14 @@ export function candidateViews(issues: readonly Issue[]): Candidate[] {
   return result
 }
 
-const QUICK_TARGET_LABEL = "quick 対象"
-const QUICK_TARGET_BODY = "quick 対象"
-
 export function isQuickTarget(issue: {
   body: string
   labels: readonly string[]
 }): boolean {
-  if (issue.labels.includes(QUICK_TARGET_LABEL)) {
+  if (issue.labels.includes(quickTargetLabel.name)) {
     return true
   }
-  if (issue.body.includes(QUICK_TARGET_BODY)) {
+  if (issue.body.includes(quickTargetLabel.name)) {
     return true
   }
   return false
