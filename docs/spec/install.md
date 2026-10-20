@@ -113,3 +113,15 @@
 もとになった課題は #75 である。
 
 `install` のコピー元は`defaultSkillsSourceDir` と `defaultAgentsSourceDir` のまま。公開物として展開されたときは、その公開物の `skills/` と `agents/` を指すである。
+
+## REQ-808
+
+もとになった課題は #116 である。
+
+このリポジトリで `bun link` を実行したあと、`sdd-cur` は手元の `src/cli.ts` を実行する。`bin.sdd-cur` は `src/cli.ts` のままである。`src/cli.ts` の先頭行は `#!/usr/bin/env bun` のままである。開発時の `bun src/cli.ts` は残す。
+
+## REQ-809
+
+もとになった課題は #116 である。
+
+`install` は、スキルをコピーする。スキル本文を書き換えない。コピーした版をスキルの横に記録しない。実行中の `sdd-cur` の版が違っても、スキルは知らせない。版の記録と、版が違うときの通知は、採用しない。

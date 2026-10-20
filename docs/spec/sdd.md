@@ -94,9 +94,9 @@ sdd-cur reflect <番号> <requirements|design>
 
 ## REQ-165
 
-もとになった課題は #20 である。
+もとになった課題は #116 である。
 
-レビューは`sdd-cur-req-reviewer.md`である。
+要求のレビューは、中級の `sdd-cur-req-reviewer.md` と、上級の `sdd-cur-req-reviewer-high.md` である。
 
 ## REQ-166
 
@@ -358,9 +358,9 @@ E3: 二択で一方を選び、他方を採用しないときは、他方を採�
 
 ## REQ-209
 
-もとになった課題は #30 である。
+もとになった課題は #116 である。
 
-レビューのモデルは数えた 1 回目と 2 回目は `model` を渡さない。frontmatter は medium のままである。1 回目と 2 回目が続けて不合格のとき、3 回目から親が `model` に `grok-4.7[reasoning_effort=high,fast=false]` を渡す。合格まで渡す。medium には戻さないである。
+要求レビューでは、親は Task に `model` を渡さない。`review-next` が返した `model` が空文字のときは `sdd-cur-req-reviewer` を起動する。空でないときは `sdd-cur-req-reviewer-high` を起動する。1 回目と 2 回目の返る `model` は空文字である。設計レビューと実装レビューでは、数えた 1 回目と 2 回目は `model` を渡さない。frontmatter は medium のままである。1 回目と 2 回目が続けて不合格のとき、3 回目から親が `model` に `grok-4.7[reasoning_effort=high,fast=false]` を渡す。合格まで渡す。medium には戻さないである。
 
 ## REQ-210
 
@@ -400,9 +400,9 @@ E3: 二択で一方を選び、他方を採用しないときは、他方を採�
 
 ## REQ-216
 
-もとになった課題は #90 である。
+もとになった課題は #116 である。
 
-`subagentFileNames` は、次の十個をこの順で置く。`sdd-cur-req-author.md`、`sdd-cur-req-reviewer.md`、`sdd-cur-req-fixer.md`、`sdd-cur-design-author.md`、`sdd-cur-design-reviewer.md`、`sdd-cur-design-fixer.md`、`sdd-cur-implement-author.md`、`sdd-cur-implement-reviewer.md`、`sdd-cur-implement-fixer.md`、`sdd-cur-explore.md` である。宛先、標準出力、ソースが揃わないときの失敗文は、設計 22 のままである。
+`subagentFileNames` は、次の十一個をこの順で置く。`sdd-cur-req-author.md`、`sdd-cur-req-reviewer.md`、`sdd-cur-req-reviewer-high.md`、`sdd-cur-req-fixer.md`、`sdd-cur-design-author.md`、`sdd-cur-design-reviewer.md`、`sdd-cur-design-fixer.md`、`sdd-cur-implement-author.md`、`sdd-cur-implement-reviewer.md`、`sdd-cur-implement-fixer.md`、`sdd-cur-explore.md` である。宛先、標準出力、ソースが揃わないときの失敗文は、設計 22 のままである。
 
 ## REQ-217
 
@@ -424,9 +424,9 @@ E3: 二択で一方を選び、他方を採用しないときは、他方を採�
 
 ## REQ-220
 
-もとになった課題は #30 である。
+もとになった課題は #116 である。
 
-要求のレビューと修正指示は`sdd-cur-req-reviewer.md`である。
+要求のレビューと修正指示は、中級の `sdd-cur-req-reviewer` と、上級の `sdd-cur-req-reviewer-high` である。
 
 ## REQ-221
 
@@ -871,9 +871,9 @@ installは`src/install.ts` は変えない。コピーされるスキルの内�
 
 ## REQ-294
 
-もとになった課題は #41 である。
+もとになった課題は #116 である。
 
-完了スキルは、人が Cursor のチャットで、対象マージリクエストの URL とマージする旨を明示して承認するまで、`bun src/cli.ts complete <番号>` を実行しない。その承認のあとだけ実行する。
+完了スキルは、人が Cursor のチャットで、対象マージリクエストの URL とマージする旨を明示して承認するまで、`sdd-cur complete <番号>` を実行しない。その承認のあとだけ実行する。
 
 ## REQ-295
 
@@ -901,9 +901,9 @@ installは`src/install.ts` は変えない。コピーされるスキルの内�
 
 ## REQ-299
 
-もとになった課題は #41 である。
+もとになった課題は #116 である。
 
-承認が無いときは`bun src/cli.ts complete <番号>` を実行しない。対象マージリクエストの URL とマージする旨の両方が要ることを伝えるである。
+承認が無いときは`sdd-cur complete <番号>` を実行しない。対象マージリクエストの URL とマージする旨の両方が要ることを伝えるである。
 
 ## REQ-300
 
@@ -931,9 +931,9 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 ## REQ-304
 
-もとになった課題は #41 である。
+もとになった課題は #116 である。
 
-人が明示するのは、マージする旨である。スカッシュマージとして実行するのは、承認のあとの `bun src/cli.ts complete <番号>` である。
+人が明示するのは、マージする旨である。スカッシュマージとして実行するのは、承認のあとの `sdd-cur complete <番号>` である。
 
 ## REQ-305
 
@@ -943,9 +943,9 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 ## REQ-306
 
-もとになった課題は #41 である。
+もとになった課題は #116 である。
 
-承認を要するのは、完了スキルが `bun src/cli.ts complete <番号>` でマージするときだけである。完了スキルは、その承認があるまで、このコマンドを実行しない。承認のあと、このコマンドを実行する。コマンドが行うスカッシュマージと、「動作確認OK」を外して「マージ済み」を付けることは、現状のままである。
+承認を要するのは、完了スキルが `sdd-cur complete <番号>` でマージするときだけである。完了スキルは、その承認があるまで、このコマンドを実行しない。承認のあと、このコマンドを実行する。コマンドが行うスカッシュマージと、「動作確認OK」を外して「マージ済み」を付けることは、現状のままである。
 
 ## REQ-307
 
@@ -991,9 +991,9 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 ## REQ-314
 
-もとになった課題は #42 である。
+もとになった課題は #116 である。
 
-作業ブランチ名の取得はSDD スキルは `bun src/cli.ts branch <番号>` を実行し、標準出力の末尾改行を除いた文字列を名前として使うである。
+作業ブランチ名の取得はSDD スキルは `sdd-cur branch <番号>` を実行し、標準出力の末尾改行を除いた文字列を名前として使うである。
 
 ## REQ-315
 
@@ -1069,9 +1069,9 @@ sdd-cur の要件と設計の手順は、作業ブランチ名を、このサブ
 
 ## REQ-327
 
-もとになった課題は #45 である。
+もとになった課題は #116 である。
 
-比較は `src/conventions.ts` の `reviewNext` が行う。親は `bun src/cli.ts review-next` の戻り値に従う。`parseReview` の読み方は変えない。
+比較は `src/conventions.ts` の `reviewNext` が行う。親は `sdd-cur review-next` の戻り値に従う。`parseReview` の読み方は変えない。
 
 ## REQ-328
 
@@ -1471,9 +1471,9 @@ frontmatter とスキルが書く機械向けの ID は、括弧付きの `grok-
 
 ## REQ-394
 
-もとになった課題は #53 である。
+もとになった課題は #116 である。
 
-作成と修正の起動では、引き続き `model` を渡さない。frontmatter の `model` を使う。レビューの 1 回目と 2 回目も `model` を渡さない。3 回目から親が `model` に `grok-4.7-high` を渡す。
+作成と修正の起動では、引き続き `model` を渡さない。frontmatter の `model` を使う。要求レビューでは、親は Task に `model` を渡さない。返った `model` が空文字なら `sdd-cur-req-reviewer` を、空でないなら `sdd-cur-req-reviewer-high` を起動する。設計レビューと実装レビューの 1 回目と 2 回目は `model` を渡さない。3 回目から親が `model` に `grok-4.7-high` を渡す。
 
 ## REQ-395
 
@@ -1501,9 +1501,9 @@ frontmatter とスキルが書く機械向けの ID は、括弧付きの `grok-
 
 ## REQ-399
 
-もとになった課題は #55 である。
+もとになった課題は #116 である。
 
-3 回目から渡す `model` の文字列は、`review-next` が返す `model` である。値は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。1 回目と 2 回目の `model` は空文字である。合格まで、空文字には戻さない。`skills/sdd-cur/SKILL.md` は、この文字列をレビューの分岐の散文として書かない。返った `model` に従う。
+`review-next` が返す `model` は変えない。1 回目と 2 回目は空文字である。3 回目以降は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。合格まで、空文字には戻さない。要求レビューでは、親は Task に `model` を渡さない。返った `model` が空文字なら `sdd-cur-req-reviewer` を、空でないなら `sdd-cur-req-reviewer-high` を起動する。`skills/sdd-cur/SKILL.md` は、この文字列を要求レビューの分岐の散文として書かない。設計レビューと実装レビューでは、返った `model` が空でないとき、その文字列をレビュー役の model に渡す。
 
 ## REQ-400
 
@@ -1807,9 +1807,9 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 
 ## REQ-450
 
-もとになった課題は #69 である。
+もとになった課題は #116 である。
 
-すでに main で満たされていると、課題番号、ファイル、行を根拠として示せるときは、Cursor の質問機能で、閉じるか閉じないかの二択を出す。閉じるを選んだときだけ、判断と根拠を課題のコメントに書き、課題を閉じる。そのとき SDD スキルは `bun src/cli.ts close <番号>` を使う。標準入力は、印のない判断と根拠である。
+すでに main で満たされていると、課題番号、ファイル、行を根拠として示せるときは、Cursor の質問機能で、閉じるか閉じないかの二択を出す。閉じるを選んだときだけ、判断と根拠を課題のコメントに書き、課題を閉じる。そのとき SDD スキルは `sdd-cur close <番号>` を使う。標準入力は、印のない判断と根拠である。
 
 ## REQ-451
 
@@ -1849,9 +1849,9 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 
 ## REQ-457
 
-もとになった課題は #69 である。
+もとになった課題は #116 である。
 
-閉じるは判断と根拠を本文とする通常のコメントを課題に書き、コメントを書けたときだけ課題を閉じる。SDD スキルは `bun src/cli.ts close <番号>` を使う。標準入力は印のない判断と根拠である。設計に進める旨と、実装依頼に進める旨は伝えないである。
+閉じるは判断と根拠を本文とする通常のコメントを課題に書き、コメントを書けたときだけ課題を閉じる。SDD スキルは `sdd-cur close <番号>` を使う。標準入力は印のない判断と根拠である。設計に進める旨と、実装依頼に進める旨は伝えないである。
 
 ## REQ-458
 
@@ -2095,9 +2095,9 @@ installは直下のディレクトリをコピーする今の手順のまま、�
 
 ## REQ-755
 
-もとになった課題は #90 である。
+もとになった課題は #116 である。
 
-調べるだけの段では、`bun src/cli.ts show <番号>` を実行する。終了コードが 0 であり、`state` が `open` であり、業務ラベルが無いときだけ、サブエージェントを一つ起動する。起動する名前は `sdd-cur-explore` である。`model` は渡さない。frontmatter の `model` を使う。起動するときに、課題番号と、人が依頼した調査の内容と、`show` が返した課題本文とコメントを渡す。
+調べるだけの段では、`sdd-cur show <番号>` を実行する。終了コードが 0 であり、`state` が `open` であり、業務ラベルが無いときだけ、サブエージェントを一つ起動する。起動する名前は `sdd-cur-explore` である。`model` は渡さない。frontmatter の `model` を使う。起動するときに、課題番号と、人が依頼した調査の内容と、`show` が返した課題本文とコメントを渡す。
 
 ## REQ-756
 
@@ -2125,9 +2125,39 @@ installは直下のディレクトリをコピーする今の手順のまま、�
 
 ## REQ-760
 
-もとになった課題は #90 である。
+もとになった課題は #116 である。
 
-`bun src/cli.ts show <番号>` の終了コードが 0 以外のときは、サブエージェントを起動しない。このときは止まる。
+`sdd-cur show <番号>` の終了コードが 0 以外のときは、サブエージェントを起動しない。このときは止まる。
+
+## REQ-804
+
+もとになった課題は #116 である。
+
+`skills/` と `agents/` の本文に `bun src/cli.ts` は無い。CLI を呼ぶ文のコマンドは `sdd-cur` である。サブコマンドがある呼び出しは、`sdd-cur` のあとに空白一つと、そのサブコマンドを続ける。引数がある呼び出しは、その引数を続ける。サブコマンドも引数も無い呼び出しは、`sdd-cur` である。
+
+## REQ-805
+
+もとになった課題は #116 である。
+
+`skills/sdd-cur-create-issue/SKILL.md` は、「`sdd-cur` では課題を作らない。」と書く。
+
+## REQ-806
+
+もとになった課題は #116 である。
+
+このリポジトリ以外の git リポジトリでも、`sdd-cur` にパスが通っていれば、着手、要件、設計、確認、回答、完了、quick の各段は、CLI を `sdd-cur` で呼ぶ。
+
+## REQ-807
+
+もとになった課題は #116 である。
+
+CLI を実行するスキルは、`skills/sdd-cur/SKILL.md`、`skills/sdd-cur-quick/SKILL.md`、`skills/sdd-cur-complete/SKILL.md`、`skills/sdd-cur-implement/SKILL.md` である。`sdd-cur` が見つからないときは、`bun add -g @paterapatera/sdd-cur` を含む一行を伝える。伝えたあと、スキルは止まる。止まったあと、`sdd-cur` を実行しない。
+
+## REQ-810
+
+もとになった課題は #116 である。
+
+要求レビューの中級のファイルは `agents/sdd-cur-req-reviewer.md` である。frontmatter の `name` は `sdd-cur-req-reviewer` である。frontmatter の `model` は `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である。要求レビューの上級のファイルは `agents/sdd-cur-req-reviewer-high.md` である。frontmatter の `name` は `sdd-cur-req-reviewer-high` である。frontmatter の `model` は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` であり、`reviewModelFromRound3` と一文字も違わない。上級のレビューの見方は、中級と同じである。違うのは、frontmatter の `name` と `model` と、上級であることの表示である。上級であることの表示は、frontmatter の description の先頭の `上級である。` と、本文の最初の文 `あなたは sdd-cur の上級の要求レビュー役である。` である。上級の frontmatter の `readonly` は `true` であり、中級と同じである。
 
 ## REQ-761
 

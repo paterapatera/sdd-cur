@@ -8,9 +8,10 @@ const skillPath = path.join(root, "skills/sdd-cur/SKILL.md")
 const explorePath = path.join(root, "agents/sdd-cur-explore.md")
 const readmePath = path.join(root, "README.md")
 
-const expectedFirstNine = [
+const expectedSubagentFileNames = [
   "sdd-cur-req-author.md",
   "sdd-cur-req-reviewer.md",
+  "sdd-cur-req-reviewer-high.md",
   "sdd-cur-req-fixer.md",
   "sdd-cur-design-author.md",
   "sdd-cur-design-reviewer.md",
@@ -18,6 +19,7 @@ const expectedFirstNine = [
   "sdd-cur-implement-author.md",
   "sdd-cur-implement-reviewer.md",
   "sdd-cur-implement-fixer.md",
+  "sdd-cur-explore.md",
 ] as const
 
 function sectionBetween(text: string, startHeading: string, endHeading: string): string {
@@ -55,7 +57,7 @@ describe("課題 90", () => {
       "人が調査を依頼したときだけ",
       "人が調査を依頼していないときは",
       "課題番号が無いときは",
-      "bun src/cli.ts show <番号>",
+      "sdd-cur show <番号>",
       "終了コードが 0 以外のときは",
       "サブエージェントを起動しない",
       "`state` が `open` でないとき",
@@ -96,12 +98,12 @@ describe("課題 90", () => {
       expect(explore).toContain(phrase)
     }
 
-    expect(subagentFileNames).toHaveLength(10)
-    expect(subagentFileNames[9]).toBe("sdd-cur-explore.md")
-    expect([...subagentFileNames.slice(0, 9)]).toEqual([...expectedFirstNine])
+    expect(subagentFileNames).toHaveLength(11)
+    expect(subagentFileNames[10]).toBe("sdd-cur-explore.md")
+    expect([...subagentFileNames]).toEqual([...expectedSubagentFileNames])
 
     expect(readme).toContain("調べるだけの段")
     expect(readme).toContain("sdd-cur-explore")
-    expect(readme).toContain("十個をコピーする")
+    expect(readme).toContain("十一個をコピーする")
   })
 })

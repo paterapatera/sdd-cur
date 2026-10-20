@@ -1033,7 +1033,7 @@ describe("課題 91", () => {
 
   describe("スキル契約", () => {
     const commonPhrases = [
-      "bun src/cli.ts review-next",
+      "sdd-cur review-next",
       "`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries`",
       "返った一行 JSON の `action`、`model`、`kind` に従う",
       "`reason`、`resultLine`、`rewriteProcedure`",

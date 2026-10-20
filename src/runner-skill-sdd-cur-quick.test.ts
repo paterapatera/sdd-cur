@@ -68,6 +68,16 @@ disable-model-invocation: true
       expect(text).toContain(phrase)
     }
     expect(text).not.toContain("sdd-cur-implement-author")
+    const requirementsStart = text.indexOf("## 要件")
+    const designStart = text.indexOf("## 設計")
+    const requirementsSlice = text.slice(requirementsStart, designStart)
+    for (const phrase of [
+      "初回の起動が `sdd-cur-req-reviewer` である",
+      "返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する",
+      "要求レビュー役の起動で model を渡さない",
+    ]) {
+      expect(requirementsSlice).toContain(phrase)
+    }
   })
 
   test("install が sdd-cur-quick をコピーする", async () => {

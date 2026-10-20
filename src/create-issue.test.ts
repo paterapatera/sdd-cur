@@ -37,7 +37,7 @@ disable-model-invocation: true
       "チャット",
       "課題を閉じない",
       "依頼が無いとき",
-      "`bun src/cli.ts` では課題を作らない",
+      "`sdd-cur` では課題を作らない",
     ]) {
       expect(text).toContain(phrase)
     }

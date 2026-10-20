@@ -6,7 +6,9 @@ disable-model-invocation: true
 
 # sdd-cur
 
-リポジトリのルートで `bun src/cli.ts` を使う。
+リポジトリのルートで `sdd-cur` を使う。
+`sdd-cur` が見つからないときは、`bun add -g @paterapatera/sdd-cur` を含む一行を伝えて止まる。
+止まったあとは、`sdd-cur` を実行しない。
 作業の前に `docs/conventions.md` を読む。
 仕様へ書く挙動は、対象課題にあるものだけである。
 
@@ -16,12 +18,12 @@ disable-model-invocation: true
 
 ## 着手
 
-`bun src/cli.ts candidates` を実行する。
+`sdd-cur candidates` を実行する。
 空なら、着手できる課題は無いと伝え、課題は作らない。
 空でないときは番号、題、URL を見せ、決めるのは人である。
 人が番号を決めるまで、要件も設計も始めない。
 
-人が番号を決めたあとは `bun src/cli.ts show <番号>` を実行する。
+人が番号を決めたあとは `sdd-cur show <番号>` を実行する。
 `state` が `open` でないときは、課題は閉じていると伝えて止まる。
 業務ラベルが一つでもあるときは、実装のラベルが付いていると伝えて止まる。
 この二つのときはファイルを変えず、`confirm` も `reflect` も実行しない。
@@ -32,7 +34,7 @@ disable-model-invocation: true
 人が調査を依頼していないときは、調べるだけの段を行わない。
 人が課題番号を決めたあとだけ行う。
 課題番号が無いときは、調べるだけの段を行わない。
-この段では `bun src/cli.ts show <番号>` を実行する。
+この段では `sdd-cur show <番号>` を実行する。
 終了コードが 0 以外のときは、サブエージェントを起動しない。
 このときは止まる。
 終了コードが 0 のあと、`state` が `open` でないとき、業務ラベルが一つでもあるときは、ファイルを変えず、サブエージェントも起動しない。
@@ -50,7 +52,7 @@ frontmatter の `model` を使う。
 ## 要件
 
 人が要件を依頼したときだけ、次の手順で `docs/specs/<番号>/requirements.md` を扱う。
-先に `bun src/cli.ts show <番号>` を実行する。
+先に `sdd-cur show <番号>` を実行する。
 `state` が `open` でないとき、および業務ラベルが一つでもあるときは、ファイルを変えず、サブエージェントも起動しない。
 作業ブランチも用意しない。
 `specs.requirements` が `invalid` のときは上書きしない。
@@ -61,7 +63,7 @@ frontmatter の `model` を使う。
 親は要求ファイルを自分では書かない。
 
 課題が開いていて業務ラベルが無く、要件の状態が `invalid` でないときは、要求作成役を起動する前に作業ブランチを用意する。
-作業ブランチの名前は、`implementationBranch` の戻り値ではなく、`bun src/cli.ts branch <番号>` の標準出力から得る。
+作業ブランチの名前は、`implementationBranch` の戻り値ではなく、`sdd-cur branch <番号>` の標準出力から得る。
 末尾改行は除く。
 用意は、この手順の中で行う。
 実装のランナーは、この用意をしない。
@@ -87,12 +89,12 @@ rebase はしない。
 履歴を書き換えない。
 
 用意したとき、Project A の作業ツリーはその作業ブランチである。
-用意のあと、作業ブランチ名を `bun src/cli.ts branch <番号>` で得て、今のブランチと比べる。
+用意のあと、作業ブランチ名を `sdd-cur branch <番号>` で得て、今のブランチと比べる。
 今のブランチが作業ブランチ名と違うときは、ファイルを変えず、サブエージェントも起動しない。
 要求ファイルは、この作業ツリーに書く。
 デフォルトブランチには書かない。
 
-サブエージェントは `sdd-cur-req-author`、`sdd-cur-req-reviewer`、`sdd-cur-req-fixer` の名前で起動する。
+サブエージェントは `sdd-cur-req-author`、`sdd-cur-req-reviewer`、`sdd-cur-req-reviewer-high`、`sdd-cur-req-fixer` の名前で起動する。
 作成と修正に model は渡さない。
 frontmatter の `model` を使う。
 
@@ -132,7 +134,7 @@ frontmatter の `model` を使う。
 
 人が `課題のコメントで確認する` を選んだあとは、その点を決定として書かない。
 確認の手順に入る前に `show` を改めて実行する。
-確認の節に従い、payload を人に見せ、人がその本文を承認したあとだけ `bun src/cli.ts confirm <番号>` を実行する。
+確認の節に従い、payload を人に見せ、人がその本文を承認したあとだけ `sdd-cur confirm <番号>` を実行する。
 印の行は入れない。
 人が直したときは、確認の節のとおり、直した文字列を改めて見せ、その文字列の承認があるまで `confirm` を実行しない。
 
@@ -145,7 +147,7 @@ frontmatter の `model` を使う。
 判断に迷ったときは保留し、決めず、質問もしない。
 
 質問する未記載が無く、ファイルを書いていないときは止まる。
-ファイルを書いていれば、`docs/specs/<番号>/requirements.md` があるとき、要求のレビュー役 `sdd-cur-req-reviewer` を起動する直前に `bun src/cli.ts validate <番号>` を実行する。
+ファイルを書いていれば、`docs/specs/<番号>/requirements.md` があるとき、要求のレビュー役 `sdd-cur-req-reviewer` を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときは `sdd-cur-req-reviewer` を起動しない。
 標準エラーの全文を `sdd-cur-req-fixer` に渡す。
@@ -160,13 +162,15 @@ frontmatter の `model` を使う。
 段の開始時、`consecutiveFailures` は 0、`previousFindings` は空文字、`brokenStampRetries` は 0 である。
 ファイルにも課題コメントにも残さない。
 
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `bun src/cli.ts review-next requirements <番号>` の標準入力へ、JSON 一行で渡す。
+レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next requirements <番号>` の標準入力へ、JSON 一行で渡す。
 返った一行 JSON の `action`、`model`、`kind` に従う。
 その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
 次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
 `response` は、その呼び出しで判定するレビュー応答の全文である。
-`model` が空文字のときは、レビュー役に model を渡さない。
-空でないときは、その文字列をレビュー役の model に渡す。
+要求レビュー役の初回の起動が `sdd-cur-req-reviewer` である。
+`review-next` のあと、返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する。
+要求レビュー役を起動するとき model を渡さない。
+要求レビュー役の起動で model を渡さない。
 修正役と作成役には、model を渡さない。
 
 `action` が `修正` のとき、修正役を起動する。差分だけを渡す。作成役は起動しない。修正のあと、レビューに戻る。
@@ -176,7 +180,9 @@ frontmatter の `model` を使う。
 
 `validate` の失敗は、この標準入力へ渡さない。
 
-`kind` が `stopWaitConfirm` のとき、列挙された点を人に見せる。修正を起動しない。確認コメントは投稿しない。人が答えるまで、その部分は要求へ書かない。人が答えたあとは、返った `model` でレビューを再び起動する。この再起動は回数を増やさない。モデルは、`確認: あり` を返したそのレビューと同じである。
+`kind` が `stopWaitConfirm` のとき、列挙された点を人に見せる。修正を起動しない。確認コメントは投稿しない。人が答えるまで、その部分は要求へ書かない。人が答えたあとに要求レビュー役を再び起動するとき、返った `model` が空文字なら `sdd-cur-req-reviewer` である。
+返った `model` が空でないなら `sdd-cur-req-reviewer-high` である。
+この再起動は回数を増やさない。
 `kind` が `stopBrokenStampTwice`、`stopSameFindingTwice`、`stopMissingConfirmLine` のときは、レスポンスを人に見せて止まる。修正を起動しない。レビューにも修正にも戻らない。
 `action` が `修正` のとき、レビューに入る前に人が選んだ通常の回答を、人が決めた条件として渡す。要求作成役は起動しない。
 「作成から合格まで 1 回」および high の作成 1 回は、レビューに入る前の初回の成果物作成（grok-4.7[context=256k,reasoning_effort=high,fast=false]）を指す。
@@ -193,7 +199,7 @@ frontmatter の `model` を使う。
 ## 設計
 
 人が設計を依頼したときだけ、次の手順で `docs/specs/<番号>/design.md` を扱う。
-先に `bun src/cli.ts show <番号>` を実行する。
+先に `sdd-cur show <番号>` を実行する。
 `state` が `open` でないとき、および業務ラベルが一つでもあるときは、ファイルを変えず、サブエージェントも起動しない。
 
 `unanswered` が空でないときは、未回答の確認があるため、設計には進まない、と伝えて止まる。
@@ -218,7 +224,7 @@ frontmatter の `model` を使う。
 作成と修正に model は渡さない。
 frontmatter の `model` を使う。
 
-設計作成役を起動する前に、作業ブランチ名を `bun src/cli.ts branch <番号>` の標準出力から得る。
+設計作成役を起動する前に、作業ブランチ名を `sdd-cur branch <番号>` の標準出力から得る。
 末尾改行は除く。
 今のブランチと比べる。
 今のブランチが作業ブランチ名と違うときは、ファイルを変えず、設計のサブエージェントも起動しない。
@@ -240,7 +246,7 @@ frontmatter の `model` を使う。
 設計作成役がファイルを書いたあとも同じである。
 
 列挙が空のとき、ファイルを変えなかったときは止まる。
-列挙が空でファイルを書いたあと、`docs/specs/<番号>/design.md` があるとき、設計のレビュー役 `sdd-cur-design-reviewer` を起動する直前に `bun src/cli.ts validate <番号>` を実行する。
+列挙が空でファイルを書いたあと、`docs/specs/<番号>/design.md` があるとき、設計のレビュー役 `sdd-cur-design-reviewer` を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときは `sdd-cur-design-reviewer` を起動しない。
 標準エラーの全文を `sdd-cur-design-fixer` に渡す。
@@ -258,7 +264,7 @@ frontmatter の `model` を使う。
 要件の段の三つとは別である。
 ファイルにも課題コメントにも残さない。
 
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `bun src/cli.ts review-next requirements <番号>` の標準入力へ、JSON 一行で渡す。
+レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next requirements <番号>` の標準入力へ、JSON 一行で渡す。
 返った一行 JSON の `action`、`model`、`kind` に従う。
 その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
 次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
@@ -309,7 +315,7 @@ push するのは、要求と設計を含む作業ブランチである。
 `show` の `nextAnswer` が `null` でないときは投稿しない。
 `unanswered` が空でないときは、いちばん古い未回答の payload を見せ、未回答の確認があるあいだ、次の確認は投稿しない。
 まだ要求または設計へ反映していない回答があるあいだも、次の確認は投稿しない。
-どちらのゲートも通過したときだけ、payload を人に見せ、人がその本文を承認したあとだけ `bun src/cli.ts confirm <番号>` を実行する。
+どちらのゲートも通過したときだけ、payload を人に見せ、人がその本文を承認したあとだけ `sdd-cur confirm <番号>` を実行する。
 人が直したときは、直した文字列を改めて見せ、その文字列の承認があるまで `confirm` を実行しない。
 標準入力は承認された payload だけであり、印の行は入れない。
 決められない点が複数あるときは、一点ずつ payload を分け、上の手順を繰り返す。
@@ -322,7 +328,7 @@ push するのは、要求と設計を含む作業ブランチである。
 `null` でないときは、未反映の回答があるとき、人が取り込み先を決めるまでファイルは変えない。
 人が `requirements` か `design` かを決めたあとも、reflect が成功するまでディスク上のファイルは変えない。
 
-書き込む全文は、人が取り込み先を選んだあと、`bun src/cli.ts reflect <番号> <requirements|design>` の標準入力へ渡す、決定を書いた全文である。
+書き込む全文は、人が取り込み先を選んだあと、`sdd-cur reflect <番号> <requirements|design>` の標準入力へ渡す、決定を書いた全文である。
 書き込む全文を人に見せる。
 人がその全文を承認したあとだけ、`reflect` を実行する。
 人が書き込む全文を直したときは、直した文字列を改めて見せる。
@@ -341,13 +347,13 @@ push するのは、要求と設計を含む作業ブランチである。
 実装依頼に進める旨を伝えない。
 
 `reflect` が成功したあと、反映した側の既存のレビューを起動する。
-側が `requirements` のとき、`docs/specs/<番号>/requirements.md` があるなら、要求のレビュー役を起動する直前に `bun src/cli.ts validate <番号>` を実行する。
+側が `requirements` のとき、`docs/specs/<番号>/requirements.md` があるなら、要求のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときはレビュー役を起動せず、標準エラーの全文を `sdd-cur-req-fixer` に渡す。
 設計の作成も設計の修正も続けない。
 この失敗は連続不合格に数えない。
 修正役が戻ったあとは、同じコマンドを再び実行する。
-側が `design` のとき、`docs/specs/<番号>/design.md` があるなら、設計のレビュー役を起動する直前に `bun src/cli.ts validate <番号>` を実行する。
+側が `design` のとき、`docs/specs/<番号>/design.md` があるなら、設計のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときはレビュー役を起動せず、標準エラーの全文を `sdd-cur-design-fixer` に渡す。
 設計の作成手順も設計の修正手順も続けない。
@@ -380,7 +386,7 @@ push するのは、要求と設計を含む作業ブランチである。
 
 側が `design` のとき、第1引数は `reflect-design` である。
 設計のレビュー役を起動する。
-反映後のレビューは、`bun src/cli.ts review-next reflect-design <番号>` に従う。
+反映後のレビューは、`sdd-cur review-next reflect-design <番号>` に従う。
 設計の節にある `review-next requirements` は、この段では使わない。
 `課題全体が大きすぎる` の止まりと、返った `action` の扱いは、設計の節と同じである。
 `reflect-design` で `action` が `止まる` のとき、レスポンスを人に見せ、設計の修正役は起動しない。
@@ -437,7 +443,7 @@ push するのは、要求と設計を含む作業ブランチである。
 設計の手順は、人が設計を依頼したときだけ始める。
 人が設計の完了を伝えたときの push と「実装依頼」は、今どおり人が行う。
 
-`閉じる` を選んだときは、`bun src/cli.ts close <番号>` を実行する。
+`閉じる` を選んだときは、`sdd-cur close <番号>` を実行する。
 標準入力は、判断と根拠を書いた本文だけである。
 印の行は入れない。
 `confirm` は使わない。

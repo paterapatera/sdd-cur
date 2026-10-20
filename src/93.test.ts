@@ -61,7 +61,7 @@ describe("課題 93", () => {
     }
 
     expect(skill).toContain("印が壊れている")
-    expect(skill).toContain("bun src/cli.ts review-next")
+    expect(skill).toContain("sdd-cur review-next")
     for (const phrase of [
       "実装レビューが不合格のまま10回に達した",
       "レビューの判定がありません",

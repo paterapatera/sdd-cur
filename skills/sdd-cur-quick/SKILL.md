@@ -15,7 +15,10 @@ disable-model-invocation: true
 親は仕様ファイルを自分では書かない。
 書くのは、要求と設計の作成役と修正役だけである。
 
-先に `bun src/cli.ts show <番号>` を実行する。
+`sdd-cur` が見つからないときは、`bun add -g @paterapatera/sdd-cur` を含む一行を伝えて止まる。
+止まったあとは、`sdd-cur` を実行しない。
+
+先に `sdd-cur show <番号>` を実行する。
 `gh` は直接起動しない。
 
 `unanswered` が空でないとき、および `nextAnswer` が `null` でないときは、結果ファイルの最初の非空行を `決められない` にし、分かっている点を 2 行目以降に書き、成功で終える。
@@ -49,7 +52,7 @@ Project A は使わない。
 - ファイルを書かず、上の止まりでもないときは、成功で終えない。
 理由は `要求を書いていません` である。
 
-`docs/specs/<番号>/requirements.md` があるとき、要求のレビュー役を起動する直前に `bun src/cli.ts validate <番号>` を実行する。
+`docs/specs/<番号>/requirements.md` があるとき、要求のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときは `sdd-cur-req-reviewer` を起動せず、標準エラーの全文を `sdd-cur-req-fixer` に渡す。
 この失敗は連続不合格に数えない。
@@ -61,13 +64,15 @@ Project A は使わない。
 設計の段の三つとは別である。
 要求の段の三つを設計の段へ渡さない。
 
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `bun src/cli.ts review-next quick <番号>` の標準入力へ、JSON 一行で渡す。
+レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next quick <番号>` の標準入力へ、JSON 一行で渡す。
 返った一行 JSON の `action`、`model`、`kind` に従う。
 その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
 次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
 `response` は、その呼び出しで判定するレビュー応答の全文である。
-`model` が空文字のときは、レビュー役に model を渡さない。
-空でないときは、その文字列をレビュー役の model に渡す。
+要求レビュー役の初回の起動が `sdd-cur-req-reviewer` である。
+`review-next` のあと、返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する。
+要求レビュー役を起動するとき model を渡さない。
+要求レビュー役の起動で model を渡さない。
 修正役と作成役には、model を渡さない。
 
 `action` が `修正` のとき、修正役を起動する。差分だけを渡す。作成役は起動しない。修正のあと、レビューに戻る。
@@ -113,7 +118,7 @@ Project A は使わない。
 段の開始時、`consecutiveFailures` は 0、`previousFindings` は空文字、`brokenStampRetries` は 0 である。
 要求の段の三つを設計の段へ渡さない。
 
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `bun src/cli.ts review-next quick <番号>` の標準入力へ、JSON 一行で渡す。
+レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next quick <番号>` の標準入力へ、JSON 一行で渡す。
 返った一行 JSON の `action`、`model`、`kind` に従う。
 その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
 次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
@@ -139,7 +144,7 @@ Project A は使わない。
 「実装依頼」は付けない。
 push しない。
 
-`docs/specs/<番号>/design.md` があるとき、設計のレビュー役を起動する直前に `bun src/cli.ts validate <番号>` を実行する。
+`docs/specs/<番号>/design.md` があるとき、設計のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときは `sdd-cur-design-reviewer` を起動せず、標準エラーの全文を `sdd-cur-design-fixer` に渡す。
 この失敗は連続不合格に数えない。
