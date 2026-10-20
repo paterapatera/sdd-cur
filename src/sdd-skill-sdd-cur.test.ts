@@ -45,7 +45,7 @@ disable-model-invocation: true
       "## 確認",
       "## 回答",
       "## 禁止",
-      "bun src/cli.ts",
+      "sdd-cur",
       "docs/conventions.md",
       "決めるのは人",
       "着手できる課題は無い",
@@ -57,7 +57,7 @@ disable-model-invocation: true
       "閉じない",
       "通常のコメント",
       "承認前の内容へ戻さない",
-      "bun src/cli.ts close",
+      "sdd-cur close",
       "issue close",
       "ラベルは変えない",
       "実装依頼は人が付ける",
@@ -99,7 +99,7 @@ disable-model-invocation: true
       "判定が合格なら実装依頼に進むことができる",
       "作業ブランチを用意する",
       "implementationBranch",
-      "bun src/cli.ts branch",
+      "sdd-cur branch",
       "要求作成役を起動する前に",
       "設計作成役を起動する前に",
       "実装のランナーは、この用意をしない",
@@ -152,7 +152,7 @@ disable-model-invocation: true
       "実装依頼に進める旨を伝えない",
       "未反映が無いことだけでは",
       "確認: なしでも、設計の修正役は起動しない",
-      "bun src/cli.ts validate <番号>",
+      "sdd-cur validate <番号>",
       "sdd-cur-req-reviewer` を起動しない",
       "sdd-cur-req-fixer` に渡す",
       "連続不合格に数えない",
@@ -168,11 +168,11 @@ disable-model-invocation: true
     const requirementsStart = text.indexOf("## 要件")
     const designStart = text.indexOf("## 設計")
     expect(text.slice(requirementsStart, designStart)).toContain(
-      "bun src/cli.ts validate <番号>",
+      "sdd-cur validate <番号>",
     )
     const confirmStart = text.indexOf("## 確認")
     expect(text.slice(designStart, confirmStart)).toContain(
-      "bun src/cli.ts validate <番号>",
+      "sdd-cur validate <番号>",
     )
     const requirementsSlice = text.slice(requirementsStart, designStart)
     const designSlice = text.slice(designStart, confirmStart)
@@ -194,6 +194,13 @@ disable-model-invocation: true
     expect(requirementsSlice).toContain(
       "要求作成役の返信から仕様の全文を読まない",
     )
+    for (const phrase of [
+      "初回の起動が `sdd-cur-req-reviewer` である",
+      "返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する",
+      "要求レビュー役の起動で model を渡さない",
+    ]) {
+      expect(requirementsSlice).toContain(phrase)
+    }
     expect(designSlice).toContain(
       "設計作成役の返信から仕様の全文を読まない",
     )

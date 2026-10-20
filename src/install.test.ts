@@ -21,7 +21,7 @@ describe("subagentFileNames", () => {
     ]) {
       expect(subagentFileNames).not.toContain(name)
     }
-    expect(subagentFileNames).toHaveLength(10)
+    expect(subagentFileNames).toHaveLength(11)
   })
 })
 
@@ -245,7 +245,7 @@ describe("installAll", () => {
     expect(content).toBe(`# ${subagentFileNames[0]}\n`)
   })
 
-  test("十個のいずれかが無いときは失敗し、スキルの宛先もサブエージェントの宛先も作られない", async () => {
+  test("十一個のいずれかが無いときは失敗し、スキルの宛先もサブエージェントの宛先も作られない", async () => {
     const incomplete = path.join(tempRoot, "agents-incomplete")
     await mkdir(incomplete, { recursive: true })
     await writeFile(path.join(incomplete, subagentFileNames[0]), "x")

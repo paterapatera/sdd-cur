@@ -655,7 +655,7 @@ disable-model-invocation: true
       "# sdd-cur-complete",
       "## 完了",
       "## 禁止",
-      "bun src/cli.ts complete",
+      "sdd-cur complete",
       "課題を作らない",
       "課題を閉じない",
       "コメントを投稿しない",

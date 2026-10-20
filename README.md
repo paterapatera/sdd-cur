@@ -35,7 +35,7 @@ bun test
 
 | コマンド | すること |
 |---|---|
-| `install` | `skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の十個をコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents` |
+| `install` | `skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の十一個をコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents` |
 | `run` | SIGINT または SIGTERM まで、「実装依頼」を探して「実装完了」まで行う。「動作確認OK」の完了処理も行う。処理のあいだは次の課題を取らない。間隔の既定は 1 分 |
 | `labels` | 作業ツリーのリポジトリに、六つの業務ラベルと `quick 対象` ラベルを、無いものだけ作る |
 | `candidates` | 着手候補の課題を JSON で一行出力する |

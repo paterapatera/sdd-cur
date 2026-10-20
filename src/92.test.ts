@@ -34,7 +34,7 @@ describe("課題 92", () => {
 
     const reviewSection = sectionBetween(text, "## レビュー", "## 禁止")
     for (const phrase of [
-      "bun src/cli.ts review-next",
+      "sdd-cur review-next",
       "`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries`",
       "返った一行 JSON の `action`、`model`、`kind` に従う",
       "`reason` があるとき、その文字列を失敗の理由にする",

@@ -198,19 +198,19 @@ createLabel(input: {
 
 使い方は `bun src/cli.ts restore <番号>` である。`<番号>` は課題番号である。
 
-## REQ-808
+## REQ-824
 
 もとになった課題は #132 である。
 
 `src/labels.ts` に `quickTargetLabel` を置く。形は `{ name: string; description: string; color: string }` であり、`workflowLabels` の各要素と同じ三フィールドである。名前は `quick 対象`、説明は `軽微な修正として quick で進める`、色は `0075CA` である。`quickTargetLabel` は `workflowLabels` に含めない。
 
-## REQ-809
+## REQ-825
 
 もとになった課題は #132 である。
 
 名前が `quick 対象` のラベルは業務ラベルではない。`workflowLabels` の `name` から作る業務ラベルの集合に含めない。
 
-## REQ-810
+## REQ-826
 
 もとになった課題は #132 である。
 

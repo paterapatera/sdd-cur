@@ -159,7 +159,10 @@ agent は失敗で終える。
 ファイルにも課題コメントにも書かない。
 ランナーが `implement` を再試行しても、回数は引き継がない。
 
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `bun src/cli.ts review-next implement <番号>` の標準入力へ、JSON 一行で渡す。
+`sdd-cur` が見つからないときは、`bun add -g @paterapatera/sdd-cur` を含む一行を伝えて止まる。
+止まったあとは、`sdd-cur` を実行しない。
+
+レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next implement <番号>` の標準入力へ、JSON 一行で渡す。
 返った一行 JSON の `action`、`model`、`kind` に従う。
 その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
 次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
