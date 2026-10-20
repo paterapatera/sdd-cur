@@ -119,3 +119,33 @@ README の「開発中の起動」の例の行は `bun src/cli.ts request <番�
 もとになった課題は #94 である。
 
 README のコマンドの表は `request` を含む。
+
+## REQ-815
+
+もとになった課題は #122 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、サブコマンド `spec-check` を含む。
+
+## REQ-816
+
+もとになった課題は #122 である。
+
+`docs/policy.md` の構成の表に `src/spec.ts` の行がある。この行は、`docs/spec/` 直下の要求について、近い本文、壊れた文末、空の本文、識別子の重複を検査する、と書く。
+
+## REQ-817
+
+もとになった課題は #122 である。
+
+`AGENTS.md` の「コマンド」の例に、`bun src/cli.ts spec-check` の行がある。
+
+## REQ-818
+
+もとになった課題は #122 である。
+
+README の「開発中の起動」の例に、`bun src/cli.ts spec-check` の行がある。
+
+## REQ-819
+
+もとになった課題は #122 である。
+
+README のコマンドの表は `spec-check` を含む。

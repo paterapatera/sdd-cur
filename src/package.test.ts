@@ -42,7 +42,8 @@ const usageText =
   "sdd-cur close <番号>\n" +
   "sdd-cur reflect <番号> <requirements|design>\n" +
   "sdd-cur validate <番号>\n" +
-  "sdd-cur complete <番号>\n"
+  "sdd-cur complete <番号>\n" +
+  "sdd-cur spec-check\n"
 
 async function listFilesRecursive(root: string): Promise<string[]> {
   const out: string[] = []
