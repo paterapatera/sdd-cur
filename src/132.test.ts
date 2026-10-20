@@ -180,7 +180,7 @@ describe("課題 132", () => {
 
   test("README の labels 行と src/sdd.ts の import", async () => {
     const readme = await readFile(path.join(root, "README.md"), "utf8")
-    expect(readme).toContain(
+    expect(readme).not.toContain(
       "| `labels` | 作業ツリーのリポジトリに、六つの業務ラベルと `quick 対象` ラベルを、無いものだけ作る |",
     )
 

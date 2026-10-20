@@ -14,15 +14,15 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 
 ## REQ-709
 
-もとになった課題は #83 である。
+もとになった課題は #115 である。
 
-`AGENTS.md` の構成の表にあるサブコマンドの列挙、`AGENTS.md` の「コマンド」にある `bun src/cli.ts` の例、README の「開発中の起動」にある `bun src/cli.ts` の例、README のそのあとのコマンドの表は、それぞれ `src/cli.ts` のサブコマンドをすべて含む。`branch` を含む。README のこの例と表は `close` も含む。
+`AGENTS.md` の構成の表にあるサブコマンドの列挙と、`AGENTS.md` の「コマンド」にある `bun src/cli.ts` の例は、それぞれ `src/cli.ts` のサブコマンドをすべて含む。`branch` を含む。README の「開発中の起動」のコマンド例と、そのあとのスキル呼び出し分の表は、`src/cli.ts` のサブコマンドをすべて含む対象から外す。
 
 ## REQ-710
 
-もとになった課題は #83 である。
+もとになった課題は #115 である。
 
-これらの一覧に並ぶ `src/cli.ts` のサブコマンド名と、`src/cli.ts` のサブコマンドがずれたとき、`bun test` が失敗する。`bun test` は、このサブコマンド名に数えない。
+`AGENTS.md` の構成の表にあるサブコマンドの列挙と、`AGENTS.md` の「コマンド」にある `bun src/cli.ts` の例に並ぶサブコマンド名が、`src/cli.ts` のサブコマンドとずれたとき、`bun test` が失敗する。README の一覧が `src/cli.ts` のサブコマンド全体と一致することは、この失敗の条件に含めない。`src/docs.test.ts` は、README の「開発中の起動」を `bun src/cli.ts` の全サブコマンドとして `src/cli.ts` と比べない。`bun test` は、このサブコマンド名に数えない。
 
 ## REQ-711
 
@@ -92,9 +92,9 @@ README の SDD スキルの役割に、調べるだけの段を書く。README �
 
 ## REQ-779
 
-もとになった課題は #94 である。
+もとになった課題は #115 である。
 
-README は、人が `bun src/cli.ts request <番号>` で作業ブランチを push してから「実装依頼」を付ける、と書く。
+README は、人が `sdd-cur request <番号>` で作業ブランチを push してから「実装依頼」を付ける、と書く。この文に `bun src/cli.ts` は無い。
 
 ## REQ-780
 
@@ -110,15 +110,15 @@ README は、人が `bun src/cli.ts request <番号>` で作業ブランチを p
 
 ## REQ-782
 
-もとになった課題は #94 である。
+もとになった課題は #115 である。
 
-README の「開発中の起動」の例の行は `bun src/cli.ts request <番号>` である。
+README の「開発中の起動」の例に `bun src/cli.ts request <番号>` は無い。`request` はスキル呼び出し分の例に無い。
 
 ## REQ-783
 
-もとになった課題は #94 である。
+もとになった課題は #115 である。
 
-README のコマンドの表は `request` を含む。
+README のスキル呼び出し分の表に `request` は無い。
 
 ## REQ-815
 
@@ -140,12 +140,42 @@ README のコマンドの表は `request` を含む。
 
 ## REQ-818
 
-もとになった課題は #122 である。
+もとになった課題は #115 である。
 
-README の「開発中の起動」の例に、`bun src/cli.ts spec-check` の行がある。
+README の「開発中の起動」の例に `bun src/cli.ts spec-check` は無い。`spec-check` はスキル呼び出し分の例に無い。
 
 ## REQ-819
 
-もとになった課題は #122 である。
+もとになった課題は #115 である。
 
-README のコマンドの表は `spec-check` を含む。
+README のスキル呼び出し分の表に `spec-check` は無い。
+
+## REQ-827
+
+もとになった課題は #115 である。
+
+README のコマンド例に `bun src/cli.ts` は無い。「開発中の起動」のコードフェンスにも無い。使い方の文は `sdd-cur --help` と `bunx @paterapatera/sdd-cur --help` であり、その文に `bun src/cli.ts` は無い。
+
+## REQ-828
+
+もとになった課題は #115 である。
+
+スキル呼び出し分の `bunx @paterapatera/sdd-cur` の例は、`bunx @paterapatera/sdd-cur candidates`、`bunx @paterapatera/sdd-cur show <番号>`、`bunx @paterapatera/sdd-cur branch <番号>`、`bunx @paterapatera/sdd-cur validate <番号>`、`bunx @paterapatera/sdd-cur confirm <番号>`、`bunx @paterapatera/sdd-cur reflect <番号> <requirements|design>`、`bunx @paterapatera/sdd-cur review-next requirements <番号>`、`bunx @paterapatera/sdd-cur review-next reflect-design <番号>`、`bunx @paterapatera/sdd-cur review-next quick <番号>`、`bunx @paterapatera/sdd-cur review-next implement <番号>`、`bunx @paterapatera/sdd-cur complete <番号>`、`bunx @paterapatera/sdd-cur close <番号>` である。スキル呼び出し分の `sdd-cur` の例は、`sdd-cur candidates`、`sdd-cur show <番号>`、`sdd-cur branch <番号>`、`sdd-cur validate <番号>`、`sdd-cur confirm <番号>`、`sdd-cur reflect <番号> <requirements|design>`、`sdd-cur review-next requirements <番号>`、`sdd-cur review-next reflect-design <番号>`、`sdd-cur review-next quick <番号>`、`sdd-cur review-next implement <番号>`、`sdd-cur complete <番号>`、`sdd-cur close <番号>` である。「開発中の起動」のコードフェンスは、この二つの例の少なくとも一方を含む。そのフェンスの、`bun test` 以外のコマンド行は、`sdd-cur` または `bunx @paterapatera/sdd-cur` で始まる。
+
+## REQ-829
+
+もとになった課題は #115 である。
+
+スキル呼び出し分の表のサブコマンド名は、`bun test` を除いて、`candidates`、`show`、`branch`、`validate`、`confirm`、`reflect`、`review-next`、`complete`、`close` である。スキル呼び出し分の例と表に、`install`、`run`、`labels`、`restore`、`spec-check`、`request` は無い。`bun test` は、README の例と表に残す。スキル呼び出し分のサブコマンド名には数えない。
+
+## REQ-830
+
+もとになった課題は #115 である。
+
+`request`、`install`、`run` を書くときは、スキル呼び出し分の例および表とは別の節に置く。「役割」は `sdd-cur request <番号>` と書く。この文に `bun src/cli.ts` は無い。「公開後の起動」は `bunx @paterapatera/sdd-cur install` と `bunx @paterapatera/sdd-cur run` と、パスが通ったあとの `sdd-cur install` と `sdd-cur run` を書く。入れ方は `bun add -g @paterapatera/sdd-cur` と書く。README は、スキルが CLI を `sdd-cur` コマンドで呼ぶ、と書く。その `sdd-cur` コマンドによる呼び出しは、このリポジトリ以外のプロジェクトでも動く、と書く。
+
+## REQ-831
+
+もとになった課題は #115 である。
+
+この課題で README のコマンド表記を確かめるテストは `src/115.test.ts` に書く。`src/docs.test.ts` は、README の「開発中の起動」を `bun src/cli.ts` の全サブコマンドとして `src/cli.ts` と比べない。
