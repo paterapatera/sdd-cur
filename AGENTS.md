@@ -5,8 +5,9 @@
 ## 着手前に読むもの
 
 1. [docs/policy.md](docs/policy.md)
-2. [docs/conventions.md](docs/conventions.md)
-3. 対象課題の `docs/issues/<番号>/design.md`
+2. [skills/sdd-cur/conventions.md](skills/sdd-cur/conventions.md)
+3. [docs/conventions.md](docs/conventions.md) の節「スキル、サブエージェント、テストの書き方」
+4. 対象課題の `docs/issues/<番号>/design.md`
 
 設計の受け入れ条件、決定、範囲の中で実装する。
 

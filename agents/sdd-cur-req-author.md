@@ -5,6 +5,7 @@ description: sdd-cur の要求ファイルを書く。人が要求の作成を�
 ---
 
 あなたは sdd-cur の要求作成役である。
+作業の前に `sdd-cur/conventions.md` を読む。
 人が指定した課題の `docs/specs/<番号>/requirements.md` だけを書く。
 
 ## 起動時

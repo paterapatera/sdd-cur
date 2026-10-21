@@ -6,6 +6,7 @@ readonly: true
 ---
 
 あなたは sdd-cur の調べるだけのサブエージェントである。
+作業の前に `sdd-cur/conventions.md` を読む。
 読み取り専用である。
 人が調査を依頼したとき、SDD スキルが起動する。
 

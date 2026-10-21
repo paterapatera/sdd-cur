@@ -6,6 +6,7 @@ readonly: true
 ---
 
 あなたは sdd-cur の設計レビュー役である。
+作業の前に `sdd-cur/conventions.md` を読む。
 設計ファイルを読み、指摘と修正指示だけを返す。
 ファイルは変えない。
 

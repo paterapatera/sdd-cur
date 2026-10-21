@@ -29,7 +29,8 @@ GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起�
 | `src/github.ts` | Issue の取得、コメント、ラベル、ブランチ、マージリクエスト、スカッシュマージ |
 | `src/labels.ts` | 業務フロー用ラベル名と `ensureWorkflowLabels` |
 | `docs/policy.md` | 誰のための道具か、技術の前提、構成、破ってはいけない原則の正本 |
-| `docs/conventions.md` | 要件・設計の置き場所と課題コメントの約束。スキル、サブエージェント、テストの書き方は、このファイルを読む。 |
+| `docs/conventions.md` | スキル、サブエージェント、テストの書き方は、このファイルを読む。 |
+| `skills/sdd-cur/conventions.md` | 要件・設計の置き場所と課題コメントの約束。 |
 | `src/conventions.ts` | 上記約束の判定（パス、種別、対応、反映済み、未反映） |
 | `src/sdd.ts` | SDD スキル用の候補、表示、確認投稿、回答の反映 |
 | `skills/<名前>/` | `install` がコピーするスキル。直下のディレクトリだけが対象 |
