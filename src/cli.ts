@@ -11,7 +11,6 @@ import {
   type ReviewNextSuccess,
   type ReviewStage,
 } from "./conventions.ts"
-import { defaultGitRunner } from "./git.ts"
 import {
   assertDirectoryExists,
   defaultAgentsSourceDir,
@@ -27,7 +26,7 @@ import {
 } from "./github.ts"
 import { ensureWorkflowLabels } from "./labels.ts"
 import { createAgent, defaultAgentRunner } from "./agent.ts"
-import { createGit, defaultGitRunner } from "./git.ts"
+import { createGit, defaultGitRunner, prepareBranch } from "./git.ts"
 import { parseRunArgs, runLoop } from "./run.ts"
 import { restoreIssue } from "./restore.ts"
 import { requestImplementation } from "./request.ts"
@@ -62,6 +61,7 @@ export function printUsage(): void {
   console.error("sdd-cur candidates")
   console.error("sdd-cur show <番号>")
   console.error("sdd-cur branch <番号>")
+  console.error("sdd-cur prepare-branch <番号>")
   console.error("sdd-cur confirm <番号>")
   console.error("sdd-cur close <番号>")
   console.error("sdd-cur reflect <番号> <requirements|design>")
@@ -222,6 +222,28 @@ async function cmdBranch(args: string[]): Promise<number> {
   try {
     const issueNumber = parseIssueNumberString(args[0])
     console.log(implementationBranch(issueNumber))
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
+async function cmdPrepareBranch(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  try {
+    const issueNumber = parseIssueNumberString(args[0])
+    const branch = implementationBranch(issueNumber)
+    await prepareBranch({
+      git: defaultGitRunner,
+      cwd: process.cwd(),
+      branch,
+    })
+    console.log(branch)
     return 0
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
@@ -649,6 +671,8 @@ async function main(): Promise<number> {
       return await cmdShow(rest)
     case "branch":
       return await cmdBranch(rest)
+    case "prepare-branch":
+      return await cmdPrepareBranch(rest)
     case "confirm":
       return await cmdConfirm(rest)
     case "close":

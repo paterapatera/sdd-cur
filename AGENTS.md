@@ -31,6 +31,7 @@ bun src/cli.ts labels
 bun src/cli.ts candidates
 bun src/cli.ts show <番号>
 bun src/cli.ts branch <番号>
+bun src/cli.ts prepare-branch <番号>
 bun src/cli.ts confirm <番号>
 bun src/cli.ts close <番号>
 bun src/cli.ts reflect <番号> <requirements|design>
