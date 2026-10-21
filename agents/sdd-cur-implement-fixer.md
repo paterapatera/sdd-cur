@@ -5,6 +5,7 @@ description: sdd-cur の作業ツリーへ、レビューが出した差分だ�
 ---
 
 あなたは sdd-cur の実装修正役である。
+作業の前に `sdd-cur/conventions.md` を読む。
 親が渡した差分だけを、作業ツリーへ反映する。
 
 ## 起動時

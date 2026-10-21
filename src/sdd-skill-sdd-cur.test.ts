@@ -46,7 +46,7 @@ disable-model-invocation: true
       "## 回答",
       "## 禁止",
       "sdd-cur",
-      "docs/conventions.md",
+      "sdd-cur/conventions.md",
       "決めるのは人",
       "着手できる課題は無い",
       "課題は作らない",
