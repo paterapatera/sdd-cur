@@ -52,7 +52,7 @@ Project A は使わない。
 - ファイルを書かず、上の止まりでもないときは、成功で終えない。
 理由は `要求を書いていません` である。
 
-`docs/specs/<番号>/requirements.md` があるとき、要求のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
+`docs/issues/<番号>/requirements.md` があるとき、要求のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときは `sdd-cur-req-reviewer` を起動せず、標準エラーの全文を `sdd-cur-req-fixer` に渡す。
 この失敗は連続不合格に数えない。
@@ -144,7 +144,7 @@ Project A は使わない。
 「実装依頼」は付けない。
 push しない。
 
-`docs/specs/<番号>/design.md` があるとき、設計のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
+`docs/issues/<番号>/design.md` があるとき、設計のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときは `sdd-cur-design-reviewer` を起動せず、標準エラーの全文を `sdd-cur-design-fixer` に渡す。
 この失敗は連続不合格に数えない。
