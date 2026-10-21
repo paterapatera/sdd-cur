@@ -18,7 +18,7 @@ GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起�
 
 | 場所 | 役割 |
 |---|---|
-| `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`、`spec-check` |
+| `src/cli.ts` | 入口。サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`、`spec-check` |
 | `src/spec.ts` | `docs/canonical/` 直下の要求について、近い本文、壊れた文末、空の本文、識別子の重複を検査する |
 | `src/install.ts` | `skills/<名前>/` を `~/.cursor/skills` または `<project>/.cursor/skills` へ、`agents/<名前>.md` を `~/.cursor/agents` または `<project>/.cursor/agents` へコピーする |
 | `src/run.ts` | 停止まで `poll` と `process` を繰り返す。処理のあいだは次の `poll` を呼ばない |
@@ -29,7 +29,8 @@ GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起�
 | `src/github.ts` | Issue の取得、コメント、ラベル、ブランチ、マージリクエスト、スカッシュマージ |
 | `src/labels.ts` | 業務フロー用ラベル名と `ensureWorkflowLabels` |
 | `docs/policy.md` | 誰のための道具か、技術の前提、構成、破ってはいけない原則の正本 |
-| `docs/conventions.md` | 要件・設計の置き場所と課題コメントの約束。スキル、サブエージェント、テストの書き方は、このファイルを読む。 |
+| `docs/conventions.md` | スキル、サブエージェント、テストの書き方は、このファイルを読む。 |
+| `skills/sdd-cur/conventions.md` | 要件・設計の置き場所と課題コメントの約束。 |
 | `src/conventions.ts` | 上記約束の判定（パス、種別、対応、反映済み、未反映） |
 | `src/sdd.ts` | SDD スキル用の候補、表示、確認投稿、回答の反映 |
 | `skills/<名前>/` | `install` がコピーするスキル。直下のディレクトリだけが対象 |

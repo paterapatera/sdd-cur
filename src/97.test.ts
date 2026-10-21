@@ -135,6 +135,9 @@ describe("issue 97 conventions and layout", () => {
     const text = await readFile(path.join(root, "AGENTS.md"), "utf8")
     const policy = await readFile(path.join(root, "docs/policy.md"), "utf8")
     expect(text).toContain("[docs/conventions.md](docs/conventions.md)")
+    expect(text).toContain(
+      "[skills/sdd-cur/conventions.md](skills/sdd-cur/conventions.md)",
+    )
     expect(text).not.toContain("一文を一行")
     expect(text).not.toContain(
       "スキル、サブエージェント、テストの書き方は、このファイルを読む。",

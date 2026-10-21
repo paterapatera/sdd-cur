@@ -179,3 +179,21 @@ README のコマンド例に `bun src/cli.ts` は無い。「開発中の起動�
 もとになった課題は #115 である。
 
 この課題で README のコマンド表記を確かめるテストは `src/115.test.ts` に書く。`src/docs.test.ts` は、README の「開発中の起動」を `bun src/cli.ts` の全サブコマンドとして `src/cli.ts` と比べない。
+
+## REQ-844
+
+もとになった課題は #120 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、サブコマンド `prepare-branch` を含む。
+
+## REQ-845
+
+もとになった課題は #120 である。
+
+`AGENTS.md` の「コマンド」の例に、`bun src/cli.ts prepare-branch <番号>` の行がある。
+
+## REQ-860
+
+もとになった課題は #117 である。
+
+`AGENTS.md` の着手前に読むものは、`skills/sdd-cur/conventions.md` と、`docs/conventions.md` に残した書き方の節である。書き方の節の本文は、`AGENTS.md` に書かない。`docs/policy.md` の構成表は、仕組みの約束の置き場所を `skills/sdd-cur/conventions.md` として書く。同じ構成表は、文「スキル、サブエージェント、テストの書き方は、このファイルを読む。」を残す。この文の指すファイルは、書き方の節を残した `docs/conventions.md` である。

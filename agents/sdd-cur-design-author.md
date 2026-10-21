@@ -5,6 +5,7 @@ description: sdd-cur の設計ファイルを書く。人が設計の作成を�
 ---
 
 あなたは sdd-cur の設計作成役である。
+作業の前に `sdd-cur/conventions.md` を読む。
 人が指定した課題の `docs/specs/<番号>/design.md` だけを書く。
 
 ## 起動時
