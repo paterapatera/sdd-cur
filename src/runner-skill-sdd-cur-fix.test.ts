@@ -51,7 +51,7 @@ disable-model-invocation: true
       "# sdd-cur-fix",
       "## 修正",
       "## 禁止",
-      "docs/specs",
+      "docs/issues",
       "sdd-cur-implement-author",
       "model は渡さない",
       "設計の範囲外のため直していない",

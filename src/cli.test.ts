@@ -169,7 +169,7 @@ describe("cli subprocess", () => {
     expect(stderr.trim()).toBe("確認の本文に印を含めない")
   })
 
-  test("reflect 5 design は要件が無いとき docs/specs/5 を作らない", async () => {
+  test("reflect 5 design は要件が無いとき docs/issues/5 を作らない", async () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-reflect-"))
     try {
       const proc = Bun.spawn([bunExe, cliPath, "reflect", "5", "design"], {
@@ -182,7 +182,7 @@ describe("cli subprocess", () => {
       expect(await proc.exited).toBe(1)
       const stderr = await new Response(proc.stderr).text()
       expect(stderr.trim()).toBe("要件がありません")
-      await expect(stat(path.join(temp, "docs", "specs", "5"))).rejects.toThrow()
+      await expect(stat(path.join(temp, "docs", "issues", "5"))).rejects.toThrow()
     } finally {
       await rm(temp, { recursive: true, force: true })
     }
@@ -202,7 +202,7 @@ describe("cli subprocess", () => {
       const stderr = await new Response(proc.stderr).text()
       expect(stderr.trim()).toBe("見出しが不正です")
       await expect(
-        stat(path.join(temp, "docs", "specs", "5", "requirements.md")),
+        stat(path.join(temp, "docs", "issues", "5", "requirements.md")),
       ).rejects.toThrow()
     } finally {
       await rm(temp, { recursive: true, force: true })
@@ -395,7 +395,7 @@ describe("cli subprocess", () => {
   test("show 5 は反映済みが二つあるとき gh を呼ばない", async () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-show-"))
     try {
-      const specDir = path.join(temp, "docs", "specs", "5")
+      const specDir = path.join(temp, "docs", "issues", "5")
       await mkdir(specDir, { recursive: true })
       await writeFile(
         path.join(specDir, "requirements.md"),
@@ -455,7 +455,7 @@ describe("cli subprocess", () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cli-val-"))
     const form = "<!-- sdd-cur:form -->"
     try {
-      const specDir = path.join(temp, "docs", "specs", "9")
+      const specDir = path.join(temp, "docs", "issues", "9")
       await mkdir(specDir, { recursive: true })
       const okReq = `# 9 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n`
       const okDesign = `# 9 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n## 範囲外\n\n## 決定\n\n## 作業の一覧\n- 1. 実装する。[1]\n## テスト\n- [1]\n`
@@ -481,7 +481,7 @@ describe("cli subprocess", () => {
       expect(await reqOnly.exited).toBe(1)
       const reqErr = await new Response(reqOnly.stderr).text()
       expect(reqErr).toMatch(
-        /^docs\/specs\/9\/requirements\.md: /m,
+        /^docs\/issues\/9\/requirements\.md: /m,
       )
       expect(await new Response(reqOnly.stdout).text()).toBe("")
 
@@ -498,7 +498,7 @@ describe("cli subprocess", () => {
       })
       expect(await designOnly.exited).toBe(1)
       expect(await new Response(designOnly.stderr).text()).toMatch(
-        /^docs\/specs\/9\/design\.md: /m,
+        /^docs\/issues\/9\/design\.md: /m,
       )
 
       await writeFile(path.join(specDir, "requirements.md"), badReq)
@@ -512,8 +512,8 @@ describe("cli subprocess", () => {
       expect(await both.exited).toBe(1)
       const bothErr = await new Response(both.stderr).text()
       const lines = bothErr.trimEnd().split("\n")
-      expect(lines[0]).toMatch(/^docs\/specs\/9\/requirements\.md: /)
-      expect(lines.some((l) => l.startsWith("docs/specs/9/design.md: "))).toBe(
+      expect(lines[0]).toMatch(/^docs\/issues\/9\/requirements\.md: /)
+      expect(lines.some((l) => l.startsWith("docs/issues/9/design.md: "))).toBe(
         true,
       )
 

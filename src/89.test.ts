@@ -226,7 +226,7 @@ describe("課題 89", () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-89-val-"))
     const form = formMarkerLine
     try {
-      const specDir = path.join(temp, "docs", "specs", "89")
+      const specDir = path.join(temp, "docs", "issues", "89")
       await mkdir(specDir, { recursive: true })
       const okReq = `# 89 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n`
       const okDesign = `# 89 題\n${form}\n## 受け入れ条件\n- 1. 条件: c 主体: s 結果: r\n## 範囲外\n\n## 決定\n\n## 作業の一覧\n- 1. 実装。[1]\n## テスト\n- [1]\n`
@@ -258,7 +258,7 @@ describe("課題 89", () => {
       })
       expect(await proc.exited).toBe(1)
       expect(await new Response(proc.stderr).text()).toBe(
-        "docs/specs/89/requirements.md: 根拠のファイルが main にありません: src/missing.ts\n",
+        "docs/issues/89/requirements.md: 根拠のファイルが main にありません: src/missing.ts\n",
       )
 
       await writeFile(
@@ -274,7 +274,7 @@ describe("課題 89", () => {
       expect(await proc.exited).toBe(1)
       const err = await new Response(proc.stderr).text()
       expect(err).toContain(
-        "docs/specs/89/design.md: 変えるファイルのパスが不正です: ../x",
+        "docs/issues/89/design.md: 変えるファイルのパスが不正です: ../x",
       )
 
       const logPath = path.join(temp, "git-log.json")

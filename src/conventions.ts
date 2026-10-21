@@ -94,7 +94,7 @@ export function specPaths(issueNumber: number): {
   design: string
 } {
   assertIssueNumber(issueNumber)
-  const dir = `docs/specs/${issueNumber}`
+  const dir = `docs/issues/${issueNumber}`
   return {
     dir,
     requirements: `${dir}/requirements.md`,
@@ -1495,7 +1495,7 @@ export function canonicalIdsFromMarkdown(markdown: string): string[] {
 }
 
 export async function readCanonicalIds(root: string): Promise<string[]> {
-  const specDir = join(root, "docs/spec")
+  const specDir = join(root, "docs/canonical")
   let entries: Awaited<ReturnType<typeof readdir>>
   try {
     entries = await readdir(specDir, { withFileTypes: true })

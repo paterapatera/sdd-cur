@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
-const specDir = join(root, "docs/spec")
+const specDir = join(root, "docs/canonical")
 
 function parseRequirements(text: string): { id: string; body: string }[] {
   const reqs: { id: string; body: string }[] = []
@@ -28,7 +28,7 @@ function parseRequirements(text: string): { id: string; body: string }[] {
   return reqs
 }
 
-describe("docs/spec/", () => {
+describe("docs/canonical/", () => {
   test("領域ファイルの見出し", () => {
     for (const name of readdirSync(specDir).filter((f) => f.endsWith(".md"))) {
       const text = readFileSync(join(specDir, name), "utf8")
@@ -59,12 +59,12 @@ describe("docs/spec/", () => {
     for (const name of readdirSync(specDir).filter((f) => f.endsWith(".md"))) {
       all += readFileSync(join(specDir, name), "utf8")
     }
-    expect(all).toContain("もとになった課題は #87 である。")
+    expect(all).toContain("もとになった課題は #113 である。")
     expect(all).toContain(
-      "要求レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、`docs/spec/` の正本と、対象課題の `docs/specs/<番号>/requirements.md` の「関係する課題」に挙げた課題の仕様だけである。",
+      "要求レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、`docs/canonical/` の正本と、対象課題の `docs/issues/<番号>/requirements.md` の「関係する課題」に挙げた課題の仕様だけである。",
     )
     expect(all).toContain(
-      "設計レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、`docs/spec/` の正本と、対象課題の `docs/specs/<番号>/design.md` の「関係する課題」に挙げた課題の仕様だけである。",
+      "設計レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、`docs/canonical/` の正本と、対象課題の `docs/issues/<番号>/design.md` の「関係する課題」に挙げた課題の仕様だけである。",
     )
     expect(all).toContain("履歴として残す")
     expect(all).toContain(
@@ -74,13 +74,13 @@ describe("docs/spec/", () => {
     expect(all).not.toContain("既定の `poll` は常に `null` を返す")
   })
 
-  test("docs/specs の履歴", () => {
-    const d37 = readFileSync(join(root, "docs/specs/37/design.md"), "utf8")
+  test("docs/issues の履歴", () => {
+    const d37 = readFileSync(join(root, "docs/issues/37/design.md"), "utf8")
     expect(d37).toContain(
-      "`docs/specs/` にある既存の `requirements.md` と `design.md` を読む",
+      "`docs/issues/` にある既存の `requirements.md` と `design.md` を読む",
     )
     const r20 = readFileSync(
-      join(root, "docs/specs/20/requirements.md"),
+      join(root, "docs/issues/20/requirements.md"),
       "utf8",
     )
     expect(r20).toContain("下の表の四つ")

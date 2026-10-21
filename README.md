@@ -114,7 +114,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 構成の正本は [docs/policy.md](docs/policy.md) の「構成」にある。正本の表にあるパスは、ここには繰り返さない。
 
 ```
-docs/specs/<番号>/    課題ごとの要件と設計
+docs/issues/<番号>/    課題ごとの要件と設計
 package.json
 agents/               install がコピーするサブエージェント。要求・設計・実装の作成、レビュー、修正と、調べるだけの sdd-cur-explore
 src/*.test.ts
@@ -126,4 +126,4 @@ skills/sdd-cur-implement/     install がコピーする実装スキル
 skills/sdd-cur-quick/         install がコピーする quick のスキル
 ```
 
-設計は `docs/specs/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/specs/1/design.md)、[GitHub 接続](docs/specs/2/design.md)、[業務ラベル](docs/specs/3/design.md)、[specs とコメント種別](docs/specs/4/design.md)、[SDD スキル](docs/specs/5/design.md)、[課題ランナー](docs/specs/6/design.md)、[完了処理](docs/specs/7/design.md) である。
+設計は `docs/issues/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/issues/1/design.md)、[GitHub 接続](docs/issues/2/design.md)、[業務ラベル](docs/issues/3/design.md)、[specs とコメント種別](docs/issues/4/design.md)、[SDD スキル](docs/issues/5/design.md)、[課題ランナー](docs/issues/6/design.md)、[完了処理](docs/issues/7/design.md) である。

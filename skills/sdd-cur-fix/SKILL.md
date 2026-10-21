@@ -13,7 +13,7 @@ disable-model-invocation: true
 要素は `id` と `payload` であり、この順を変えない。
 プロンプトがこの形でないときは、`不具合の指定を解釈できません` で失敗する。
 
-`docs/specs/<番号>/requirements.md` と `docs/specs/<番号>/design.md` を読む。
+`docs/issues/<番号>/requirements.md` と `docs/issues/<番号>/design.md` を読む。
 直してよいのは、その設計の受け入れ条件、決定、範囲の中だけである。
 設計に無い挙動は足さない。
 

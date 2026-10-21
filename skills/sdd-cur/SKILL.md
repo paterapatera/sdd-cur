@@ -51,7 +51,7 @@ frontmatter の `model` を使う。
 
 ## 要件
 
-人が要件を依頼したときだけ、次の手順で `docs/specs/<番号>/requirements.md` を扱う。
+人が要件を依頼したときだけ、次の手順で `docs/issues/<番号>/requirements.md` を扱う。
 先に `sdd-cur show <番号>` を実行する。
 `state` が `open` でないとき、および業務ラベルが一つでもあるときは、ファイルを変えず、サブエージェントも起動しない。
 作業ブランチも用意しない。
@@ -147,7 +147,7 @@ frontmatter の `model` を使う。
 判断に迷ったときは保留し、決めず、質問もしない。
 
 質問する未記載が無く、ファイルを書いていないときは止まる。
-ファイルを書いていれば、`docs/specs/<番号>/requirements.md` があるとき、要求のレビュー役 `sdd-cur-req-reviewer` を起動する直前に `sdd-cur validate <番号>` を実行する。
+ファイルを書いていれば、`docs/issues/<番号>/requirements.md` があるとき、要求のレビュー役 `sdd-cur-req-reviewer` を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときは `sdd-cur-req-reviewer` を起動しない。
 標準エラーの全文を `sdd-cur-req-fixer` に渡す。
@@ -198,7 +198,7 @@ frontmatter の `model` を使う。
 
 ## 設計
 
-人が設計を依頼したときだけ、次の手順で `docs/specs/<番号>/design.md` を扱う。
+人が設計を依頼したときだけ、次の手順で `docs/issues/<番号>/design.md` を扱う。
 先に `sdd-cur show <番号>` を実行する。
 `state` が `open` でないとき、および業務ラベルが一つでもあるときは、ファイルを変えず、サブエージェントも起動しない。
 
@@ -246,7 +246,7 @@ frontmatter の `model` を使う。
 設計作成役がファイルを書いたあとも同じである。
 
 列挙が空のとき、ファイルを変えなかったときは止まる。
-列挙が空でファイルを書いたあと、`docs/specs/<番号>/design.md` があるとき、設計のレビュー役 `sdd-cur-design-reviewer` を起動する直前に `sdd-cur validate <番号>` を実行する。
+列挙が空でファイルを書いたあと、`docs/issues/<番号>/design.md` があるとき、設計のレビュー役 `sdd-cur-design-reviewer` を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときは `sdd-cur-design-reviewer` を起動しない。
 標準エラーの全文を `sdd-cur-design-fixer` に渡す。
@@ -347,13 +347,13 @@ push するのは、要求と設計を含む作業ブランチである。
 実装依頼に進める旨を伝えない。
 
 `reflect` が成功したあと、反映した側の既存のレビューを起動する。
-側が `requirements` のとき、`docs/specs/<番号>/requirements.md` があるなら、要求のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
+側が `requirements` のとき、`docs/issues/<番号>/requirements.md` があるなら、要求のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときはレビュー役を起動せず、標準エラーの全文を `sdd-cur-req-fixer` に渡す。
 設計の作成も設計の修正も続けない。
 この失敗は連続不合格に数えない。
 修正役が戻ったあとは、同じコマンドを再び実行する。
-側が `design` のとき、`docs/specs/<番号>/design.md` があるなら、設計のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
+側が `design` のとき、`docs/issues/<番号>/design.md` があるなら、設計のレビュー役を起動する直前に `sdd-cur validate <番号>` を実行する。
 ファイルが無いときは実行しない。
 終了コードが 0 以外のときはレビュー役を起動せず、標準エラーの全文を `sdd-cur-design-fixer` に渡す。
 設計の作成手順も設計の修正手順も続けない。
@@ -471,5 +471,5 @@ push は人が行う。
 完了処理は行わない。
 gh は直接起動しない。
 
-書いてよいのは、`docs/specs/<番号>/requirements.md` と `docs/specs/<番号>/design.md` だけである。
+書いてよいのは、`docs/issues/<番号>/requirements.md` と `docs/issues/<番号>/design.md` だけである。
 作業ツリーの実装は書かない。

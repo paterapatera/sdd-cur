@@ -28,7 +28,7 @@ async function withTempDir(
   fn: (temp: string, specDir: string) => Promise<void>,
 ): Promise<void> {
   const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cur-122-"))
-  const specDir = path.join(temp, "docs/spec")
+  const specDir = path.join(temp, "docs/canonical")
   try {
     await fn(temp, specDir)
   } finally {
@@ -74,7 +74,7 @@ describe("課題 122 spec-check", () => {
     })
   })
 
-  test("docs/spec/ が無いとき 0", async () => {
+  test("docs/canonical/ が無いとき 0", async () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cur-122-"))
     try {
       const { exitCode, stdout, stderr } = await runSpecCheck(temp)
@@ -86,11 +86,11 @@ describe("課題 122 spec-check", () => {
     }
   })
 
-  test("docs/spec がファイルのとき正本を読めません", async () => {
+  test("docs/canonical がファイルのとき正本を読めません", async () => {
     const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-cur-122-"))
     try {
       await mkdir(path.join(temp, "docs"), { recursive: true })
-      await writeFile(path.join(temp, "docs/spec"), "not a dir", "utf8")
+      await writeFile(path.join(temp, "docs/canonical"), "not a dir", "utf8")
       const { exitCode, stdout, stderr } = await runSpecCheck(temp)
       expect(exitCode).toBe(1)
       expect(stdout).toBe("")
@@ -110,7 +110,7 @@ describe("課題 122 spec-check", () => {
       const { exitCode, stdout, stderr } = await runSpecCheck(temp)
       expect(exitCode).toBe(1)
       expect(stdout).toBe("")
-      expect(stderr).toBe("本文が近いです: docs/spec/a.md REQ-1 REQ-2\n")
+      expect(stderr).toBe("本文が近いです: docs/canonical/a.md REQ-1 REQ-2\n")
     })
   })
 
@@ -140,8 +140,8 @@ describe("課題 122 spec-check", () => {
       expect(stdout).toBe("")
       const lines = stderr.trimEnd().split("\n")
       expect(lines).toEqual([
-        "壊れた文末です: docs/spec/a.md 2 REQ-1",
-        "壊れた文末です: docs/spec/a.md 3 REQ-1",
+        "壊れた文末です: docs/canonical/a.md 2 REQ-1",
+        "壊れた文末です: docs/canonical/a.md 3 REQ-1",
       ])
     })
   })
@@ -178,12 +178,12 @@ describe("課題 122 spec-check", () => {
       )
       const { exitCode, stdout, stderr } = await runSpecCheck(temp)
       expect(exitCode).toBe(1)
-      expect(stderr).toBe("本文が空です: docs/spec/a.md REQ-1\n")
+      expect(stderr).toBe("本文が空です: docs/canonical/a.md REQ-1\n")
       expect(stdout).toBe("")
 
       await writeSpec(specDir, "a.md", "## REQ-1\n\u3000\n## REQ-2\nあ\n")
       const again = await runSpecCheck(temp)
-      expect(again.stderr).toBe("本文が空です: docs/spec/a.md REQ-1\n")
+      expect(again.stderr).toBe("本文が空です: docs/canonical/a.md REQ-1\n")
     })
   })
 
@@ -207,7 +207,7 @@ describe("課題 122 spec-check", () => {
       const { exitCode, stderr } = await runSpecCheck(temp)
       expect(exitCode).toBe(1)
       expect(stderr).toBe(
-        "識別子が重複しています: REQ-1 docs/spec/a.md docs/spec/b.md\n",
+        "識別子が重複しています: REQ-1 docs/canonical/a.md docs/canonical/b.md\n",
       )
     })
   })
@@ -219,7 +219,7 @@ describe("課題 122 spec-check", () => {
       const { exitCode, stderr } = await runSpecCheck(temp)
       expect(exitCode).toBe(1)
       expect(stderr).toBe(
-        "識別子が重複しています: REQ-1 docs/spec/a.md docs/spec/a.md docs/spec/b.md\n",
+        "識別子が重複しています: REQ-1 docs/canonical/a.md docs/canonical/a.md docs/canonical/b.md\n",
       )
     })
   })
@@ -260,11 +260,11 @@ describe("課題 122 spec-check", () => {
       expect(stdout).toBe("")
       expect(stderr).toBe(
         [
-          "識別子が重複しています: REQ-4 docs/spec/a.md docs/spec/a.md",
-          "本文が空です: docs/spec/a.md REQ-9",
-          "壊れた文末です: docs/spec/a.md 6 REQ-4",
-          "壊れた文末です: docs/spec/a.md 7 REQ-4",
-          "本文が近いです: docs/spec/b.md REQ-8 REQ-7",
+          "識別子が重複しています: REQ-4 docs/canonical/a.md docs/canonical/a.md",
+          "本文が空です: docs/canonical/a.md REQ-9",
+          "壊れた文末です: docs/canonical/a.md 6 REQ-4",
+          "壊れた文末です: docs/canonical/a.md 7 REQ-4",
+          "本文が近いです: docs/canonical/b.md REQ-8 REQ-7",
         ].join("\n") + "\n",
       )
     })
@@ -289,7 +289,7 @@ describe("課題 122 spec-check", () => {
       const near = await runSpecCheck(temp)
       expect(near.exitCode).toBe(1)
       expect(near.stdout).toBe("")
-      expect(near.stderr).toBe("本文が近いです: docs/spec/a.md REQ-1 REQ-2\n")
+      expect(near.stderr).toBe("本文が近いです: docs/canonical/a.md REQ-1 REQ-2\n")
 
       await writeSpec(
         specDir,

@@ -177,13 +177,13 @@ function isEmptyBody(bodyLines: BodyLine[]): boolean {
 }
 
 function specPath(fileName: string): string {
-  return `docs/spec/${fileName}`
+  return `docs/canonical/${fileName}`
 }
 
 type IdOccurrence = { fileName: string; lineNum: number }
 
 export async function checkSpec(root: string): Promise<string[]> {
-  const specDir = join(root, "docs/spec")
+  const specDir = join(root, "docs/canonical")
   let entries: Awaited<ReturnType<typeof readdir>>
   try {
     entries = await readdir(specDir, { withFileTypes: true })

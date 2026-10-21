@@ -52,9 +52,9 @@ describe("specPaths", () => {
 
   test("課題 4 のパス", () => {
     expect(specPaths(4)).toEqual({
-      dir: "docs/specs/4",
-      requirements: "docs/specs/4/requirements.md",
-      design: "docs/specs/4/design.md",
+      dir: "docs/issues/4",
+      requirements: "docs/issues/4/requirements.md",
+      design: "docs/issues/4/design.md",
     })
   })
 })
@@ -71,7 +71,7 @@ describe("isSpecHeading", () => {
   test("課題 1〜3 の design.md", () => {
     for (const n of [1, 2, 3]) {
       const md = readFileSync(
-        join(root, `docs/specs/${n}/design.md`),
+        join(root, `docs/issues/${n}/design.md`),
         "utf8",
       )
       expect(isSpecHeading(md, n)).toBe(true)
@@ -582,7 +582,7 @@ describe("validateCanonicalDelta", () => {
 })
 
 describe("readCanonicalIds", () => {
-  test("docs/spec が無いとき空", async () => {
+  test("docs/canonical が無いとき空", async () => {
     const temp = await mkdtemp(join(tmpdir(), "sdd-canonical-"))
     try {
       expect(await readCanonicalIds(temp)).toEqual([])
@@ -594,7 +594,7 @@ describe("readCanonicalIds", () => {
   test("ファイル名昇順で .md だけ読む", async () => {
     const temp = await mkdtemp(join(tmpdir(), "sdd-canonical-"))
     try {
-      const specDir = join(temp, "docs/spec")
+      const specDir = join(temp, "docs/canonical")
       await mkdir(specDir, { recursive: true })
       await writeFile(join(specDir, "spec.md"), "## REQ-1\nx\n", "utf8")
       await writeFile(join(specDir, "a.md"), "## REQ-2\ny\n", "utf8")
@@ -871,13 +871,13 @@ describe("文書", () => {
     expect(text).toContain("sdd-cur:reflected")
     expect(text).toContain("requirements.md")
     expect(text).toContain("design.md")
-    expect(text).toContain("docs/spec/<領域>.md")
+    expect(text).toContain("docs/canonical/<領域>.md")
     expect(text).toContain("## レビューが読む範囲")
     expect(text).toContain(
-      "要求レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、#86 で作る正本と、対象課題の `docs/specs/<番号>/requirements.md` の「関係する課題」に挙げた課題の仕様だけである。",
+      "要求レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、#86 で作る正本と、対象課題の `docs/issues/<番号>/requirements.md` の「関係する課題」に挙げた課題の仕様だけである。",
     )
     expect(text).toContain(
-      "設計レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、#86 で作る正本と、対象課題の `docs/specs/<番号>/design.md` の「関係する課題」に挙げた課題の仕様だけである。",
+      "設計レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、#86 で作る正本と、対象課題の `docs/issues/<番号>/design.md` の「関係する課題」に挙げた課題の仕様だけである。",
     )
     expect(text).toContain("履歴として残す")
     expect(text).toContain("## 正本への差分")
@@ -953,8 +953,8 @@ describe("文書", () => {
     )
   })
 
-  test("docs/specs の design.md 見出し置換 [20]", () => {
-    const specsRoot = join(root, "docs/specs")
+  test("docs/issues の design.md 見出し置換 [20]", () => {
+    const specsRoot = join(root, "docs/issues")
     const oldHeading = "## 実装の順序"
     const newHeading = "## 作業の一覧"
     for (const ent of readdirSync(specsRoot, { withFileTypes: true })) {
@@ -966,11 +966,11 @@ describe("文書", () => {
         expect(line).not.toBe(oldHeading)
       }
     }
-    const d23 = readFileSync(join(root, "docs/specs/23/design.md"), "utf8")
+    const d23 = readFileSync(join(root, "docs/issues/23/design.md"), "utf8")
     for (const line of d23.split("\n")) {
       expect(line).not.toBe(newHeading)
     }
-    const d42 = readFileSync(join(root, "docs/specs/42/design.md"), "utf8")
+    const d42 = readFileSync(join(root, "docs/issues/42/design.md"), "utf8")
     const workIdx = d42.indexOf(`${newHeading}\n`)
     expect(workIdx).toBeGreaterThanOrEqual(0)
     const afterHeading = d42.slice(workIdx + newHeading.length + 1)
