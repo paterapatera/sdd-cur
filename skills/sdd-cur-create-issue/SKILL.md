@@ -4,6 +4,7 @@ description: 人が内容を渡して明示して起動したときだけ、起�
 disable-model-invocation: true
 ---
 
+作業の前に `sdd-cur/conventions.md` を読む。
 # sdd-cur-create-issue
 
 ## 作成

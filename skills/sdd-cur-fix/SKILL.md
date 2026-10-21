@@ -4,6 +4,7 @@ description: クローンの作業ツリーで、指定された課題の不具�
 disable-model-invocation: true
 ---
 
+作業の前に `sdd-cur/conventions.md` を読む。
 # sdd-cur-fix
 
 ## 修正

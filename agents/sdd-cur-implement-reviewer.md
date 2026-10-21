@@ -6,6 +6,7 @@ readonly: true
 ---
 
 本文は日本語である。
+作業の前に `sdd-cur/conventions.md` を読む。
 課題を作らない。
 課題を閉じない。
 ラベルを変えない。

@@ -2206,3 +2206,9 @@ CLI を実行するスキルは、`skills/sdd-cur/SKILL.md`、`skills/sdd-cur-qu
 もとになった課題は #89 である。
 
 設計レビュー役は、`## 変えるファイル` と一文字も違わない見出しが無い設計を指摘する。
+
+## REQ-834
+
+もとになった課題は #117 である。
+
+`skills/sdd-cur/SKILL.md` は、作業の前に `sdd-cur/conventions.md` を読む、と書く。ほかのスキルとサブエージェントの本文も、`sdd-cur/conventions.md` を読む、と書く。仕組みの約束の参照先は `sdd-cur/conventions.md` である。導入先のプロジェクトに `docs/conventions.md` が無くても、スキルとサブエージェントは、コピーされた `sdd-cur/conventions.md` で仕組みの約束を読める。
