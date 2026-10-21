@@ -22,7 +22,8 @@ const usageText =
   "sdd-cur reflect <番号> <requirements|design>\n" +
   "sdd-cur validate <番号>\n" +
   "sdd-cur complete <番号>\n" +
-  "sdd-cur spec-check\n"
+  "sdd-cur spec-check\n" +
+  "sdd-cur tasks <番号>\n"
 
 describe("cli subprocess", () => {
   test("install が <temp>/.cursor/skills を作る", async () => {

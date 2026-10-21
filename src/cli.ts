@@ -4,7 +4,11 @@ import process from "node:process"
 import {
   collectChangeFilePathViolations,
   collectEvidenceViolationsAsync,
+  extractTestRefs,
+  firstSectionBody,
+  isWorkListItemLine,
   reviewNext,
+  sectionBodies,
   specPaths,
   validateSpecForm,
   type ReviewNextInput,
@@ -68,6 +72,140 @@ export function printUsage(): void {
   console.error("sdd-cur validate <番号>")
   console.error("sdd-cur complete <番号>")
   console.error("sdd-cur spec-check")
+  console.error("sdd-cur tasks <番号>")
+}
+
+const NO_WORK_LIST_SECTION = "設計に作業の一覧がありません"
+const NO_WORK_LIST_ITEMS = "作業の一覧に作業がありません"
+
+function isFenceDelimiterLine(line: string): boolean {
+  const trimmed = line.trimStart()
+  return /^`{3,}/.test(trimmed)
+}
+
+function pushInlineBacktickCommands(line: string, commands: string[]): void {
+  let i = 0
+  while (i < line.length) {
+    if (line[i] !== "`") {
+      i += 1
+      continue
+    }
+    let run = 0
+    let j = i
+    while (j < line.length && line[j] === "`") {
+      run += 1
+      j += 1
+    }
+    if (run !== 1) {
+      i = j
+      continue
+    }
+    const close = line.indexOf("`", j)
+    if (close < 0) {
+      break
+    }
+    const content = line.slice(j, close)
+    if (/[ \t]/.test(content)) {
+      commands.push(content)
+    }
+    i = close + 1
+  }
+}
+
+function extractTestCommandLines(sectionBody: string): string[] {
+  const commands: string[] = []
+  let inFence = false
+  for (const line of sectionBody.split("\n")) {
+    if (isFenceDelimiterLine(line)) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence) {
+      if (line.trim().length === 0) {
+        continue
+      }
+      commands.push(line)
+      continue
+    }
+    if (line.startsWith("- ")) {
+      continue
+    }
+    pushInlineBacktickCommands(line, commands)
+  }
+  return commands
+}
+
+function collectTestCommands(markdown: string): string[] {
+  const commands: string[] = []
+  for (const body of sectionBodies(markdown, "テスト")) {
+    commands.push(...extractTestCommandLines(body))
+  }
+  return commands
+}
+
+type TaskItem = {
+  number: number
+  line: string
+  refs: number[]
+}
+
+function collectTasks(markdown: string): TaskItem[] | { error: string } {
+  const workListBody = firstSectionBody(markdown, "作業の一覧")
+  if (workListBody === null) {
+    return { error: NO_WORK_LIST_SECTION }
+  }
+  const tasks: TaskItem[] = []
+  for (const line of workListBody.split("\n")) {
+    if (!isWorkListItemLine(line)) {
+      continue
+    }
+    const afterDash = line.slice(2)
+    const dotIdx = afterDash.indexOf(". ")
+    const numStr = afterDash.slice(0, dotIdx)
+    tasks.push({
+      number: Number(numStr),
+      line,
+      refs: extractTestRefs(line),
+    })
+  }
+  if (tasks.length === 0) {
+    return { error: NO_WORK_LIST_ITEMS }
+  }
+  return tasks
+}
+
+async function cmdTasks(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const paths = specPaths(issueNumber)
+  let designFile: Awaited<ReturnType<typeof readSpecFile>>
+  try {
+    designFile = await readSpecFile(paths.design)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const collected = collectTasks(designFile.markdown)
+  if ("error" in collected) {
+    console.error(collected.error)
+    return 1
+  }
+
+  const testCommands = collectTestCommands(designFile.markdown)
+  console.log(JSON.stringify({ tasks: collected, testCommands }))
+  return 0
 }
 
 function wantsHelp(argv: string[]): boolean {
@@ -691,6 +829,8 @@ async function main(): Promise<number> {
       return await cmdRequest(rest)
     case "spec-check":
       return await cmdSpecCheck(argv.slice(1))
+    case "tasks":
+      return await cmdTasks(rest)
     default:
       printUsage()
       return 1
