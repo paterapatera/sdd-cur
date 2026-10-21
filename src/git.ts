@@ -157,6 +157,124 @@ export function createGit(
   }
 }
 
+function parseDefaultBranchFromSymref(stdout: string): string | null {
+  const prefix = "ref: refs/heads/"
+  for (const line of stdout.split(/\r?\n/)) {
+    if (!line.startsWith(prefix)) {
+      continue
+    }
+    const rest = line.slice(prefix.length)
+    const match = rest.match(/^([^\s\t]+)/)
+    if (match === null || match[1].length === 0) {
+      return null
+    }
+    return match[1]
+  }
+  return null
+}
+
+function remoteExistsOnHeads(stdout: string, branch: string): boolean {
+  const target = `refs/heads/${branch}`
+  for (const line of stdout.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (trimmed.length === 0) {
+      continue
+    }
+    const parts = trimmed.split(/\t/)
+    const ref = parts[parts.length - 1]
+    if (ref === target) {
+      return true
+    }
+  }
+  return false
+}
+
+export async function prepareBranch(options: {
+  git: GitRunner
+  cwd: string
+  branch: string
+}): Promise<void> {
+  const { git, cwd, branch } = options
+
+  async function run(args: string[]): Promise<GitResult> {
+    try {
+      return await git.run(args, { cwd })
+    } catch {
+      reject("git を実行できません")
+    }
+  }
+
+  const remoteResult = await run(["remote"])
+  if (remoteResult.exitCode !== 0) {
+    reject(failReason(remoteResult))
+  }
+  const remoteNames = remoteResult.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+  if (remoteNames.length !== 1) {
+    reject("リモートを特定できません")
+  }
+  const remote = remoteNames[0]
+
+  const showRefResult = await run([
+    "show-ref",
+    "--verify",
+    "--quiet",
+    `refs/heads/${branch}`,
+  ])
+  if (showRefResult.exitCode === 0) {
+    const checkoutResult = await run(["checkout", branch])
+    assertGitOk(checkoutResult)
+  } else if (showRefResult.exitCode === 1) {
+    const lsHeadsResult = await run(["ls-remote", "--heads", remote, branch])
+    if (lsHeadsResult.exitCode !== 0) {
+      reject(failReason(lsHeadsResult))
+    }
+    if (remoteExistsOnHeads(lsHeadsResult.stdout, branch)) {
+      const fetchResult = await run(["fetch", remote, branch])
+      assertGitOk(fetchResult)
+      const checkoutBResult = await run([
+        "checkout",
+        "-B",
+        branch,
+        "FETCH_HEAD",
+      ])
+      assertGitOk(checkoutBResult)
+    } else {
+      const symrefResult = await run(["ls-remote", "--symref", remote, "HEAD"])
+      if (symrefResult.exitCode !== 0) {
+        reject(failReason(symrefResult))
+      }
+      const defaultBranch = parseDefaultBranchFromSymref(symrefResult.stdout)
+      if (defaultBranch === null) {
+        reject("デフォルトブランチを特定できません")
+      }
+      const fetchDefaultResult = await run(["fetch", remote, defaultBranch])
+      assertGitOk(fetchDefaultResult)
+      const checkoutBResult = await run([
+        "checkout",
+        "-b",
+        branch,
+        "FETCH_HEAD",
+      ])
+      assertGitOk(checkoutBResult)
+    }
+  } else {
+    reject(failReason(showRefResult))
+  }
+
+  const headResult = await run(["rev-parse", "--abbrev-ref", "HEAD"])
+  assertGitOk(headResult)
+  const current = firstNonemptyLine(headResult.stdout)
+  if (current === null) {
+    reject("git が失敗しました")
+  }
+  if (current !== branch) {
+    reject("今のブランチが作業ブランチと違います")
+  }
+}
+
 export const defaultGitRunner: GitRunner = {
   async run(args, options) {
     try {

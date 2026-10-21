@@ -180,7 +180,19 @@ README のコマンド例に `bun src/cli.ts` は無い。「開発中の起動�
 
 この課題で README のコマンド表記を確かめるテストは `src/115.test.ts` に書く。`src/docs.test.ts` は、README の「開発中の起動」を `bun src/cli.ts` の全サブコマンドとして `src/cli.ts` と比べない。
 
-## REQ-835
+## REQ-844
+
+もとになった課題は #120 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、サブコマンド `prepare-branch` を含む。
+
+## REQ-845
+
+もとになった課題は #120 である。
+
+`AGENTS.md` の「コマンド」の例に、`bun src/cli.ts prepare-branch <番号>` の行がある。
+
+## REQ-860
 
 もとになった課題は #117 である。
 

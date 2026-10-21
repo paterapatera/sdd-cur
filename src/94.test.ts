@@ -18,6 +18,7 @@ const usageText =
   "sdd-cur candidates\n" +
   "sdd-cur show <番号>\n" +
   "sdd-cur branch <番号>\n" +
+  "sdd-cur prepare-branch <番号>\n" +
   "sdd-cur confirm <番号>\n" +
   "sdd-cur close <番号>\n" +
   "sdd-cur reflect <番号> <requirements|design>\n" +
@@ -380,7 +381,7 @@ describe("課題 94", () => {
   test("ドキュメントとスキル、runner、printUsage", async () => {
     const policy = await readFile(path.join(root, "docs/policy.md"), "utf8")
     expect(policy).toContain(
-      "サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`",
+      "サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`",
     )
 
     const agents = await readFile(path.join(root, "AGENTS.md"), "utf8")
