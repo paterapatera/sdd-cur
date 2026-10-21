@@ -1170,27 +1170,47 @@ function hasExactSectionHeading(markdown: string, name: string): boolean {
   return false
 }
 
-function firstSectionBody(markdown: string, name: string): string | null {
+function isMarkdownFenceLine(line: string): boolean {
+  return /^`{3,}/.test(line.trimStart())
+}
+
+export function sectionBodies(markdown: string, name: string): string[] {
   const heading = `## ${name}`
   const lines = normalizeNewlines(markdown).split("\n")
-  let start = -1
-  for (let i = 0; i < lines.length; i += 1) {
-    if (lines[i] === heading) {
-      start = i + 1
-      break
+  const bodies: string[] = []
+  let i = 0
+  let inFence = false
+  while (i < lines.length) {
+    const line = lines[i]
+    if (isMarkdownFenceLine(line)) {
+      inFence = !inFence
+      i += 1
+      continue
+    }
+    if (!inFence && line === heading) {
+      const bodyLines: string[] = []
+      let j = i + 1
+      for (; j < lines.length; j += 1) {
+        if (lines[j].startsWith("## ")) {
+          break
+        }
+        bodyLines.push(lines[j])
+      }
+      bodies.push(bodyLines.join("\n"))
+      i = j
+    } else {
+      i += 1
     }
   }
-  if (start < 0) {
+  return bodies
+}
+
+export function firstSectionBody(markdown: string, name: string): string | null {
+  const bodies = sectionBodies(markdown, name)
+  if (bodies.length === 0) {
     return null
   }
-  const bodyLines: string[] = []
-  for (let i = start; i < lines.length; i += 1) {
-    if (lines[i].startsWith("## ")) {
-      break
-    }
-    bodyLines.push(lines[i])
-  }
-  return bodyLines.join("\n")
+  return bodies[0]
 }
 
 type ParsedAcceptanceItem = {
@@ -1282,7 +1302,7 @@ function duplicateNumberViolations(numbers: readonly number[]): string[] {
   return dups.map((n) => `受け入れ条件の番号が重複しています: ${n}`)
 }
 
-function extractTestRefs(line: string): number[] {
+export function extractTestRefs(line: string): number[] {
   const refs: number[] = []
   const re = /\[([1-9]\d*)\]/g
   let m: RegExpExecArray | null
@@ -1341,7 +1361,7 @@ function collectTestReferenceViolations(
   return violations
 }
 
-function isWorkListItemLine(line: string): boolean {
+export function isWorkListItemLine(line: string): boolean {
   if (!line.startsWith("- ")) {
     return false
   }

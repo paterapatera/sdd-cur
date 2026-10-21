@@ -858,7 +858,10 @@ describe("validateSpecForm", () => {
 
 describe("文書", () => {
   test("docs/conventions.md", () => {
-    const text = readFileSync(join(root, "docs/conventions.md"), "utf8")
+    const text = readFileSync(
+      join(root, "skills/sdd-cur/conventions.md"),
+      "utf8",
+    )
     expect(text).toContain(commentMarkers.confirm)
     expect(text).toContain(commentMarkers.answer)
     expect(text).toContain(commentMarkers.acceptance)
@@ -985,6 +988,9 @@ describe("文書", () => {
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8")
     expect(readme).toContain("docs/conventions.md")
     expect(agents).toContain("docs/conventions.md")
+    expect(agents).toContain(
+      "[skills/sdd-cur/conventions.md](skills/sdd-cur/conventions.md)",
+    )
     const policy = readFileSync(join(root, "docs/policy.md"), "utf8")
     expect(readme).toContain("docs/policy.md")
     expect(agents).toContain("docs/policy.md")

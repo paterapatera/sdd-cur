@@ -5,8 +5,9 @@
 ## 着手前に読むもの
 
 1. [docs/policy.md](docs/policy.md)
-2. [docs/conventions.md](docs/conventions.md)
-3. 対象課題の `docs/issues/<番号>/design.md`
+2. [skills/sdd-cur/conventions.md](skills/sdd-cur/conventions.md)
+3. [docs/conventions.md](docs/conventions.md) の節「スキル、サブエージェント、テストの書き方」
+4. 対象課題の `docs/issues/<番号>/design.md`
 
 設計の受け入れ条件、決定、範囲の中で実装する。
 
@@ -30,6 +31,7 @@ bun src/cli.ts labels
 bun src/cli.ts candidates
 bun src/cli.ts show <番号>
 bun src/cli.ts branch <番号>
+bun src/cli.ts prepare-branch <番号>
 bun src/cli.ts confirm <番号>
 bun src/cli.ts close <番号>
 bun src/cli.ts reflect <番号> <requirements|design>
@@ -39,6 +41,7 @@ bun src/cli.ts restore <番号>
 bun src/cli.ts request <番号>
 bun src/cli.ts review-next <requirements|reflect-design|quick|implement> <番号>
 bun src/cli.ts spec-check
+bun src/cli.ts tasks <番号>
 bun test
 ```
 
