@@ -197,3 +197,15 @@ README のコマンド例に `bun src/cli.ts` は無い。「開発中の起動�
 もとになった課題は #117 である。
 
 `AGENTS.md` の着手前に読むものは、`skills/sdd-cur/conventions.md` と、`docs/conventions.md` に残した書き方の節である。書き方の節の本文は、`AGENTS.md` に書かない。`docs/policy.md` の構成表は、仕組みの約束の置き場所を `skills/sdd-cur/conventions.md` として書く。同じ構成表は、文「スキル、サブエージェント、テストの書き方は、このファイルを読む。」を残す。この文の指すファイルは、書き方の節を残した `docs/conventions.md` である。
+
+## REQ-873
+
+もとになった課題は #121 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `tasks` を含む。
+
+## REQ-874
+
+もとになった課題は #121 である。
+
+`AGENTS.md` の「コマンド」の例に、`bun src/cli.ts tasks <番号>` の行がある。
