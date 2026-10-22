@@ -131,3 +131,9 @@
 もとになった課題は #117 である。
 
 `install` は、スキルのディレクトリを、今どおり中身ごとコピーする。`skills/sdd-cur/conventions.md` は、導入先の `sdd-cur/conventions.md` になる。書き方の節は、コピーしたファイルに無い。`sdd-cur conventions` サブコマンドは、足さない。
+
+## REQ-885
+
+もとになった課題は #118 である。
+
+`install` を実行しても、`docs/policy.md` を作らない。

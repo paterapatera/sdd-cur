@@ -33,6 +33,7 @@ const expectedPackageJson = {
 
 const usageText =
   "sdd-cur install [project-root]\n" +
+  "sdd-cur init [project-root]\n" +
   "sdd-cur run [--interval-min <1 以上 1440 以下の整数>]\n" +
   "sdd-cur labels\n" +
   "sdd-cur candidates\n" +
@@ -45,7 +46,8 @@ const usageText =
   "sdd-cur validate <番号>\n" +
   "sdd-cur complete <番号>\n" +
   "sdd-cur spec-check\n" +
-  "sdd-cur tasks <番号>\n"
+  "sdd-cur tasks <番号>\n" +
+  "sdd-cur spec-diff <番号>\n"
 
 async function listFilesRecursive(root: string): Promise<string[]> {
   const out: string[] = []
