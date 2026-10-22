@@ -143,6 +143,19 @@ export function createGit(
       return result.stdout.trim().length > 0
     },
 
+    async statusPorcelain() {
+      const result = await run(["status", "--porcelain"])
+      assertGitOk(result)
+      return result.stdout
+    },
+
+    async commitPaths(message, paths) {
+      const addResult = await run(["add", paths[0], paths[1]])
+      assertGitOk(addResult)
+      const commitResult = await run(["commit", "-m", message])
+      assertGitOk(commitResult)
+    },
+
     async commitAll(message) {
       const addResult = await run(["add", "-A"])
       assertGitOk(addResult)
