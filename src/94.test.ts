@@ -76,6 +76,8 @@ function issue(partial: Partial<Issue> & Pick<Issue, "number">): Issue {
 type RequestCalls = {
   currentBranch: number
   hasChanges: number
+  statusPorcelain: number
+  commitPaths: { message: string; paths: readonly [string, string] }[]
   openGitHub: number
   getIssue: number
   readSpecs: number[]
@@ -89,7 +91,8 @@ type RequestCalls = {
 
 function makeRequestDeps(options: {
   branch?: string
-  hasChanges?: boolean
+  hasChanges?: boolean | boolean[]
+  porcelain?: string
   issue?: Issue
   requirements?: { exists: boolean; markdown: string }
   design?: { exists: boolean; markdown: string }
@@ -97,9 +100,18 @@ function makeRequestDeps(options: {
   push?: Error
   editLabels?: Error
 }) {
+  const hasChangesQueue =
+    options.hasChanges === undefined
+      ? [false]
+      : Array.isArray(options.hasChanges)
+        ? options.hasChanges
+        : [options.hasChanges]
+
   const calls: RequestCalls = {
     currentBranch: 0,
     hasChanges: 0,
+    statusPorcelain: 0,
+    commitPaths: [],
     openGitHub: 0,
     getIssue: 0,
     readSpecs: [],
@@ -116,7 +128,18 @@ function makeRequestDeps(options: {
       },
       async hasChanges() {
         calls.hasChanges += 1
-        return options.hasChanges ?? false
+        const index = calls.hasChanges - 1
+        return hasChangesQueue[index] ?? hasChangesQueue.at(-1) ?? false
+      },
+      async statusPorcelain() {
+        calls.statusPorcelain += 1
+        return options.porcelain ?? "?? other.txt\n"
+      },
+      async commitPaths(
+        message: string,
+        paths: readonly [string, string],
+      ) {
+        calls.commitPaths.push({ message, paths })
       },
       async remoteName() {
         calls.remoteName += 1
@@ -214,15 +237,20 @@ describe("課題 94", () => {
     })
 
     test("未コミットの変更があるときは openGitHub 以降を呼ばない", async () => {
-      const { deps, calls } = makeRequestDeps({ hasChanges: true })
+      const { deps, calls } = makeRequestDeps({
+        hasChanges: true,
+        porcelain: "?? other.txt\n",
+      })
       await expect(requestImplementation(deps, ISSUE)).rejects.toThrow(
         "未コミットの変更があります",
       )
       expect(calls.hasChanges).toBe(1)
+      expect(calls.statusPorcelain).toBe(1)
       expect(calls.openGitHub).toBe(0)
       expect(calls.readSpecs).toHaveLength(0)
       expect(calls.push).toHaveLength(0)
       expect(calls.editLabels).toHaveLength(0)
+      expect(calls.commitPaths).toHaveLength(0)
     })
 
     test("課題が closed のときは readSpecs 以降を呼ばない", async () => {

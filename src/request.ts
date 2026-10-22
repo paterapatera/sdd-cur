@@ -1,3 +1,4 @@
+import { specPaths } from "./conventions.ts"
 import type { GitHubClient } from "./github.ts"
 import { workflowLabels } from "./labels.ts"
 import { implementationBranch } from "./runner.ts"
@@ -20,11 +21,52 @@ function reject(message: string): never {
   throw new Error(message)
 }
 
+export function pathsFromPorcelain(porcelain: string): Set<string> {
+  const paths = new Set<string>()
+  for (const line of porcelain.split(/\r?\n/)) {
+    if (line.trim().length === 0) {
+      continue
+    }
+    const rest = line.length <= 3 ? "" : line.slice(3).trim()
+    if (rest.length === 0) {
+      continue
+    }
+    const arrow = rest.indexOf(" -> ")
+    const path = arrow === -1 ? rest : rest.slice(arrow + 4).trim()
+    if (path.length > 0) {
+      paths.add(path)
+    }
+  }
+  return paths
+}
+
+export function changedPathsOnlySpecFiles(
+  porcelain: string,
+  requirementsPath: string,
+  designPath: string,
+): boolean {
+  const paths = pathsFromPorcelain(porcelain)
+  if (paths.size === 0) {
+    return false
+  }
+  for (const path of paths) {
+    if (path !== requirementsPath && path !== designPath) {
+      return false
+    }
+  }
+  return true
+}
+
 export async function requestImplementation(
   deps: {
     git: {
       currentBranch(): Promise<string>
       hasChanges(): Promise<boolean>
+      statusPorcelain(): Promise<string>
+      commitPaths(
+        message: string,
+        paths: readonly [string, string],
+      ): Promise<void>
       remoteName(): Promise<string>
       push(remote: string, branch: string): Promise<void>
     }
@@ -50,8 +92,21 @@ export async function requestImplementation(
     reject(WRONG_BRANCH)
   }
 
-  if (await deps.git.hasChanges()) {
-    reject(HAS_CHANGES)
+  const hasChangesInitial = await deps.git.hasChanges()
+  let porcelain = ""
+
+  if (hasChangesInitial) {
+    porcelain = await deps.git.statusPorcelain()
+    const spec = specPaths(issueNumber)
+    if (
+      !changedPathsOnlySpecFiles(
+        porcelain,
+        spec.requirements,
+        spec.design,
+      )
+    ) {
+      reject(HAS_CHANGES)
+    }
   }
 
   const github = await deps.openGitHub()
@@ -70,23 +125,43 @@ export async function requestImplementation(
     specs.requirements.markdown,
     issueNumber,
   )
-  if (reqStatus === "missing") {
-    reject(NO_REQUIREMENTS)
-  }
-  if (reqStatus === "invalid") {
-    reject(BAD_REQ_HEADING)
-  }
-
   const desStatus = specStatus(
     specs.design.exists,
     specs.design.markdown,
     issueNumber,
   )
-  if (desStatus === "missing") {
-    reject(NO_DESIGN)
-  }
-  if (desStatus === "invalid") {
-    reject(BAD_DES_HEADING)
+
+  if (hasChangesInitial) {
+    if (reqStatus !== "ready" || desStatus !== "ready") {
+      reject(HAS_CHANGES)
+    }
+
+    const changed = pathsFromPorcelain(porcelain)
+    if (changed.size > 0) {
+      const spec = specPaths(issueNumber)
+      const message = `docs: 課題 ${issueNumber} の要件と設計`
+      await deps.git.commitPaths(message, [
+        spec.requirements,
+        spec.design,
+      ])
+    }
+
+    if (await deps.git.hasChanges()) {
+      reject(HAS_CHANGES)
+    }
+  } else {
+    if (reqStatus === "missing") {
+      reject(NO_REQUIREMENTS)
+    }
+    if (reqStatus === "invalid") {
+      reject(BAD_REQ_HEADING)
+    }
+    if (desStatus === "missing") {
+      reject(NO_DESIGN)
+    }
+    if (desStatus === "invalid") {
+      reject(BAD_DES_HEADING)
+    }
   }
 
   const remote = await deps.git.remoteName()
