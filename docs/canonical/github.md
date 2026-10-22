@@ -22,7 +22,7 @@
 
 もとになった課題は #2 である。
 
-置き場所は`src/github.ts`。`src/cli.ts` と `src/runner.ts` は変えないである。
+置き場所は`src/github.ts`。`src/cli.ts` と `src/runner.ts` は変えない。
 
 ## REQ-34
 
@@ -34,25 +34,25 @@
 
 もとになった課題は #2 である。
 
-対話は標準入力を渡す操作は、その文字列をパイプへ書き、書き終えたら閉じる。渡さない操作は `stdin` を付けない。`defaultGhRunner` は、`stdin` が無いとき空のパイプを閉じて子へ渡す。標準出力と標準エラーは集め、端末へは流さないである。
+対話は標準入力を渡す操作は、その文字列をパイプへ書き、書き終えたら閉じる。渡さない操作は `stdin` を付けない。`defaultGhRunner` は、`stdin` が無いとき空のパイプを閉じて子へ渡す。標準出力と標準エラーは集め、端末へは流さない。
 
 ## REQ-36
 
 もとになった課題は #2 である。
 
-失敗は終了コードが 0 以外のときは拒否する。理由は標準エラーの先頭の非空行、それが無ければ標準出力の先頭の非空行、それも無ければ `gh が失敗しました`。再試行はしないである。
+失敗は終了コードが 0 以外のときは拒否する。理由は標準エラーの先頭の非空行、それが無ければ標準出力の先頭の非空行、それも無ければ `gh が失敗しました`。再試行はしない。
 
 ## REQ-37
 
 もとになった課題は #2 である。
 
-起動不能は`gh` を起動できないときは `gh を実行できません` で拒否するである。
+起動不能は`gh` を起動できないときは `gh を実行できません` で拒否する。
 
 ## REQ-38
 
 もとになった課題は #2 である。
 
-応答はJSON を期待する操作で解釈できないときは `gh の応答を解釈できません` で拒否するである。
+応答はJSON を期待する操作で解釈できないときは `gh の応答を解釈できません` で拒否する。
 
 ## REQ-39
 
@@ -64,13 +64,13 @@
 
 もとになった課題は #2 である。
 
-マージは`pr merge <番号> --repo <repo> --squash` だけを付ける。`--delete-branch`、`--merge`、`--rebase`、`--admin`、`--auto` は付けないである。
+`squashMerge` がスカッシュマージで付けるのは、`--delete-branch` と `--subject` である。`--merge`、`--rebase`、`--admin`、`--auto` は、この呼び出しに含めない。
 
 ## REQ-41
 
 もとになった課題は #2 である。
 
-`squashMerge` の成功は`pr merge` が終了コード 0 で戻ったあと、`getPullRequest` と同じ取得を行う。`merged` が true のときだけ成功とする。false のときは `マージリクエストはマージされていません` で拒否する。取得が拒否されたときは、その理由で拒否する。`pr merge` が 0 以外のときは、取得を呼ばないである。
+`squashMerge` の成功は`pr merge` が終了コード 0 で戻ったあと、`getPullRequest` と同じ取得を行う。`merged` が true のときだけ成功とする。false のときは `マージリクエストはマージされていません` で拒否する。取得が拒否されたときは、その理由で拒否する。`pr merge` が 0 以外のときは、取得を呼ばない。
 
 ## REQ-42
 
@@ -109,7 +109,7 @@ const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
 
 もとになった課題は #18 である。
 
-削除する主体は`completeIssue` が呼ぶ `squashMerge` だけが、スカッシュマージするときにヘッドを削除する。ランナーも `complete` サブコマンドも `squashMerge` を直接呼ばない。`deleteBranch` は作らないである。
+ヘッドを消すのは、スカッシュマージのときに限り、呼び元は `completeIssue` が使う `squashMerge` だけである。課題ランナーと `complete` サブコマンドは、その関数を直接起動しない。名前が `deleteBranch` の関数は置かない。
 
 ## REQ-48
 
@@ -121,13 +121,13 @@ const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
 
 もとになった課題は #18 である。
 
-操作は`pr merge <番号> --repo <repo> --squash --delete-branch`。`squashMerge` の成否判定は設計 2 のままである
+`completeIssue` がマージするときの操作は、`pr merge` に番号、`--repo`、`--squash`、`--delete-branch`、`--subject` を続けたものである。成否の見分けは、設計 2 が書いたままである。
 
 ## REQ-50
 
 もとになった課題は #18 である。
 
-ブランチ名は設計 2 の規則。`head` に `owner:branch` は使わないである。
+ブランチ名は設計 2 の規則。`head` に `owner:branch` は使わない。
 
 ## REQ-51
 
@@ -145,19 +145,19 @@ const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
 
 もとになった課題は #73 である。
 
-`createPullRequest` の `title` は課題の題のままである。このプレフィックスを付けるのは、`squashMerge` の `--subject` に渡す件名だけである。
+`createPullRequest` に渡す `title` は、課題の題から変えない。プレフィックスを付ける対象は、`squashMerge` の `--subject` 用の件名だけに限る。
 
 ## REQ-54
 
 もとになった課題は #73 である。
 
-件名を残す主体は`completeIssue` が呼ぶ `squashMerge` だけが、スカッシュマージのコミット件名を渡す。ランナーも `complete` サブコマンドも `squashMerge` を直接呼ばないである。
+コミット件名を渡すのは、`completeIssue` から呼ばれる `squashMerge` だけである。課題ランナーと `complete` サブコマンドは、`squashMerge` を直接呼ばない。
 
 ## REQ-55
 
 もとになった課題は #73 である。
 
-番号は件名に含める番号は、`completeIssue` に渡した課題番号である。十進で、先頭の零は付けない。マージリクエスト番号は、課題番号の代わりに使わないである。
+番号は件名に含める番号は、`completeIssue` に渡した課題番号である。十進で、先頭の零は付けない。マージリクエスト番号は、課題番号の代わりに使わない。
 
 ## REQ-56
 
@@ -169,28 +169,28 @@ const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
 
 もとになった課題は #73 である。
 
-操作は`pr merge <マージリクエスト番号> --repo <repo> --squash --delete-branch --subject <件名>`。成否判定は設計 2 のままである。`--delete-branch` は設計 18 のままである
+`squashMerge` が `gh` へ渡す並びは、`pr`、`merge`、マージリクエスト番号、`--repo`、リポジトリ、`--squash`、`--delete-branch`、`--subject`、件名である。成功と失敗の見分けは設計 2 のままにする。ヘッドを消す指定は設計 18 のままにする。
 
 ## REQ-58
 
 もとになった課題は #73 である。
 
-件名の渡し方は`squashMerge` の第二引数を、変えずに `--subject` の次の一つの引数にする。空白で分割しない。`squashMerge` は件名へプレフィックスを足さないである。
+件名の渡し方は`squashMerge` の第二引数を、変えずに `--subject` の次の一つの引数にする。空白で分割しない。`squashMerge` は件名へプレフィックスを足さない。
 
 ## REQ-59
 
 もとになった課題は #73 である。
 
-本文は渡さない。`--body` と `--body-file` は付けないである。
+本文は渡さない。`--body` と `--body-file` は付けない。
 
 ## REQ-60
 
 もとになった課題は #73 である。
 
-題は`createPullRequest` の `title` は課題の題のままである。プレフィックスは付けない。上の形にするのは、`squashMerge` の `--subject` に渡すときだけである。実装と不具合修正のコミットメッセージも変えないである。
+プルリクエストの題は、課題の題のままにし、プレフィックスは足さない。件名を上の形にするのは、`--subject` 引数へ渡す場合だけである。実装コミットと不具合修正コミットのメッセージは、この形へ書き換えない。
 
 ## REQ-61
 
 もとになった課題は #73 である。
 
-再マージしないは設計 7 のままである。`merged` が true のときは `squashMerge` を呼ばない。件名は渡さないである。
+再マージしないは設計 7 のままである。`merged` が true のときは `squashMerge` を呼ばない。件名は渡さない。

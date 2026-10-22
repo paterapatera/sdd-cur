@@ -16,13 +16,13 @@
 
 もとになった課題は #1 である。
 
-実行はTypeScript を Bun が直接実行する。依存パッケージは置かないである。
+実行はTypeScript を Bun が直接実行する。依存パッケージは置かない。
 
 ## REQ-14
 
 もとになった課題は #1 である。
 
-開発時の起動は`bun src/cli.ts <subcommand>`。`package.json` の script 名は `install` にしないである。
+開発時の起動は`bun src/cli.ts <subcommand>`。`package.json` の script 名は `install` にしない。
 
 ## REQ-15
 
@@ -34,13 +34,13 @@
 
 もとになった課題は #1 である。
 
-スキルが無いときは`skills/` が空でも `install` は成功する。宛先ディレクトリは作るである。
+スキルが無いときは`skills/` が空でも `install` は成功する。宛先ディレクトリは作る。
 
 ## REQ-17
 
 もとになった課題は #1 である。
 
-間隔は既定は 1 分。`--interval-min` で 1 以上 1440 以下の整数分に変える。範囲外や整数でない値は終了コード 1 とする。待機は終了シグナルで中断するである。
+間隔は既定は 1 分。`--interval-min` で 1 以上 1440 以下の整数分に変える。範囲外や整数でない値は終了コード 1 とする。待機は終了シグナルで中断する。
 
 ## REQ-18
 
@@ -52,25 +52,25 @@
 
 もとになった課題は #75 である。
 
-公開物には、リポジトリの `skills/` が含まれる。
+パッケージとして公開する収録物は、リポジトリにある `skills/` を含む。
 
 ## REQ-20
 
 もとになった課題は #75 である。
 
-公開物には、リポジトリの `agents/` が含まれる。
+`agents/` は、公開するパッケージへ入れるディレクトリである。
 
 ## REQ-21
 
 もとになった課題は #75 である。
 
-公開したパッケージの `install` は、その公開物の `skills/` をコピーする。
+公開済みのパッケージで `install` が写すのは、そのパッケージに入っている `skills/` である。
 
 ## REQ-22
 
 もとになった課題は #75 である。
 
-公開したパッケージの `install` は、その公開物の `agents/` をコピーする。
+公開済みパッケージ側の `agents/` を、`install` がコピー先へ写す。
 
 ## REQ-23
 
@@ -82,13 +82,13 @@
 
 もとになった課題は #75 である。
 
-レジストリへの送信は実装の作業に含めない。実装は公開できる形（`package.json` の変更と pack のテスト）までである。`bun publish` は人が別途行うである。
+レジストリへの送信は実装の作業に含めない。実装は公開できる形（`package.json` の変更と pack のテスト）までである。`bun publish` は人が別途行う。
 
 ## REQ-25
 
 もとになった課題は #75 である。
 
-`private`は`false`。`true` のときは `bun publish` が失敗するである。
+`private`は`false`。`true` のときは `bun publish` が失敗する。
 
 ## REQ-26
 
@@ -100,13 +100,13 @@
 
 もとになった課題は #75 である。
 
-開発時の起動は`bun src/cli.ts`。`scripts.sdd-cur` は `bun src/cli.ts`。`scripts.test` は `bun test`。script 名 `install` は置かないである。
+開発時の起動は`bun src/cli.ts`。`scripts.sdd-cur` は `bun src/cli.ts`。`scripts.test` は `bun test`。script 名 `install` は置かない。
 
 ## REQ-28
 
 もとになった課題は #75 である。
 
-公開物の位置はリポジトリと同じ相対位置で `src/`、`skills/`、`agents/` を含める。`files` は足さない。`skills/` または `agents/` を除く無視ファイルは足さないである。
+公開物の位置はリポジトリと同じ相対位置で `src/`、`skills/`、`agents/` を含める。`files` は足さない。`skills/` または `agents/` を除く無視ファイルは足さない。
 
 ## REQ-29
 

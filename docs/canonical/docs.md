@@ -34,25 +34,25 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 
 もとになった課題は #83 である。
 
-スキルとサブエージェントが、同じモデルを別の表記で書いたとき、`bun test` が失敗する。上げたあとのモデルでは、`grok-4.7-high` と `grok-4.7[context=256k,reasoning_effort=high,fast=false]` が別の表記である。
+同じモデルをスキルとサブエージェントが別の字面で書くと、`bun test` は失敗する。上げたあとのモデルでは、`grok-4.7-high` と `grok-4.7[context=256k,reasoning_effort=high,fast=false]` は、別の字面である。
 
 ## REQ-713
 
 もとになった課題は #83 である。
 
-サブコマンドの正は `src/cli.ts` の `main` にある `switch (sub)` の `case "..."` である。`default` は含めない。順は `install`、`run`、`labels`、`candidates`、`show`、`branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next` である。
+サブコマンドの正は `src/cli.ts` の `main` にある `switch (sub)` の `case "..."` である。`default` は含めない。順は `install`、`run`、`labels`、`candidates`、`show`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`、`spec-check`、`tasks` である。
 
 ## REQ-714
 
 もとになった課題は #83 である。
 
-文書に書く順は上の switch の順。テストが見るのは名前の集合であり、並びの一致は見ないである。
+文書に書く順は上の switch の順。テストが見るのは名前の集合であり、並びの一致は見ない。
 
 ## REQ-715
 
 もとになった課題は #83 である。
 
-`bun test`は開発用のコマンドとして、いま書いてある例と README の表に残す。サブコマンド名には数えないである。
+`bun test`は開発用のコマンドとして、いま書いてある例と README の表に残す。サブコマンド名には数えない。
 
 ## REQ-716
 
@@ -70,13 +70,13 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 
 もとになった課題は #83 である。
 
-上げたあとのモデルは`grok-4.7[context=256k,reasoning_effort=high,fast=false]`。`grok-4.7-high` は、このモデルの別の表記であり、スキルとサブエージェントには書かないである。
+モデルを上げたあとに本文へ書く識別子は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。`grok-4.7-high` は別表記なので、スキルとサブエージェントの本文へは置かない。
 
 ## REQ-719
 
 もとになった課題は #83 である。
 
-テストは`src/docs.test.ts`。`bun:test` の `describe` と `test`。`gh` は起動しない。ホームディレクトリは使わない。読むだけで、一時ディレクトリは作らないである。
+テストは`src/docs.test.ts`。`bun:test` の `describe` と `test`。`gh` は起動しない。ホームディレクトリは使わない。読むだけで、一時ディレクトリは作らない。
 
 ## REQ-720
 
@@ -100,31 +100,31 @@ README は、人が `sdd-cur request <番号>` で作業ブランチを push し
 
 もとになった課題は #94 である。
 
-`docs/policy.md` の構成の表の `src/cli.ts` の行は、サブコマンド `request` を含む。
+`docs/policy.md` の構成表で、`src/cli.ts` を説明する行に、サブコマンド名 `request` がある。
 
 ## REQ-781
 
 もとになった課題は #94 である。
 
-`AGENTS.md` の「コマンド」の例の行は `bun src/cli.ts request <番号>` である。
+`AGENTS.md` のコマンド例には、`bun src/cli.ts request <番号>` という一行がある。
 
 ## REQ-782
 
 もとになった課題は #115 である。
 
-README の「開発中の起動」の例に `bun src/cli.ts request <番号>` は無い。`request` はスキル呼び出し分の例に無い。
+README の「開発中の起動」の例は、`bun src/cli.ts request <番号>` を含まない。スキル呼び出しの例も、`request` を含まない。
 
 ## REQ-783
 
 もとになった課題は #115 である。
 
-README のスキル呼び出し分の表に `request` は無い。
+README でスキル呼び出しをまとめた表は、`request` の行を持たない。
 
 ## REQ-815
 
 もとになった課題は #122 である。
 
-`docs/policy.md` の構成の表の `src/cli.ts` の行は、サブコマンド `spec-check` を含む。
+方針の構成表は、`src/cli.ts` の入口の説明へ `spec-check` を書く。
 
 ## REQ-816
 
@@ -136,19 +136,19 @@ README のスキル呼び出し分の表に `request` は無い。
 
 もとになった課題は #122 である。
 
-`AGENTS.md` の「コマンド」の例に、`bun src/cli.ts spec-check` の行がある。
+開発者向けの `AGENTS.md` は、`spec-check` を `bun src/cli.ts spec-check` としてコマンドの例に載せる。
 
 ## REQ-818
 
 もとになった課題は #115 である。
 
-README の「開発中の起動」の例に `bun src/cli.ts spec-check` は無い。`spec-check` はスキル呼び出し分の例に無い。
+`bun src/cli.ts spec-check` は、README の開発中の起動例に置かない。スキルを呼び出す側の例にも、このサブコマンド名は置かない。
 
 ## REQ-819
 
 もとになった課題は #115 である。
 
-README のスキル呼び出し分の表に `spec-check` は無い。
+スキル呼び出しの表に、`spec-check` という名前は出さない。
 
 ## REQ-827
 
@@ -184,13 +184,13 @@ README のコマンド例に `bun src/cli.ts` は無い。「開発中の起動�
 
 もとになった課題は #120 である。
 
-`docs/policy.md` の構成の表の `src/cli.ts` の行は、サブコマンド `prepare-branch` を含む。
+方針ファイルの構成にある `src/cli.ts` の行へ、`prepare-branch` というサブコマンド名が入っている。
 
 ## REQ-845
 
 もとになった課題は #120 である。
 
-`AGENTS.md` の「コマンド」の例に、`bun src/cli.ts prepare-branch <番号>` の行がある。
+`prepare-branch` の起動例 `bun src/cli.ts prepare-branch <番号>` は、`AGENTS.md` のコマンドの節にある。
 
 ## REQ-860
 
@@ -202,13 +202,13 @@ README のコマンド例に `bun src/cli.ts` は無い。「開発中の起動�
 
 もとになった課題は #121 である。
 
-`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `tasks` を含む。
+表は `docs/policy.md` にあり、`tasks` が `src/cli.ts` の説明行へ載る。
 
 ## REQ-874
 
 もとになった課題は #121 である。
 
-`AGENTS.md` の「コマンド」の例に、`bun src/cli.ts tasks <番号>` の行がある。
+`AGENTS.md` がコマンドの例として示すものの一つが、`bun src/cli.ts tasks <番号>` である。
 
 ## REQ-888
 
@@ -238,7 +238,7 @@ README の「開発中の起動」のコードフェンスと、そのあとの�
 
 もとになった課題は #123 である。
 
-`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `spec-diff` を含む。
+`spec-diff` という名前は、方針の構成表で CLI 入口の行にバッククォートで出る。方針は `docs/policy.md`。
 
 ## REQ-886
 
