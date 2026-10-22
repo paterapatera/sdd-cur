@@ -61,10 +61,10 @@ describe("docs/canonical/", () => {
     }
     expect(all).toContain("もとになった課題は #113 である。")
     expect(all).toContain(
-      "要求レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、`docs/canonical/` の正本と、対象課題の `docs/issues/<番号>/requirements.md` の「関係する課題」に挙げた課題の仕様だけである。",
+      "要求レビュー役が食い違いと巻き戻りを探すとき、比べる文書は `docs/canonical/` の正本と、対象課題の要件ファイルが「関係する課題」に挙げた課題の要件ファイルと設計ファイルだけである。",
     )
     expect(all).toContain(
-      "設計レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、`docs/canonical/` の正本と、対象課題の `docs/issues/<番号>/design.md` の「関係する課題」に挙げた課題の仕様だけである。",
+      "設計をレビューする役が、食い違いと巻き戻りを見る範囲は、正本のディレクトリと、対象の設計が関係課題として書いた番号の、要件と設計の二つのファイルに限る。",
     )
     expect(all).toContain("履歴として残す")
     expect(all).toContain(

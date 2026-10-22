@@ -22,37 +22,37 @@
 
 もとになった課題は #3 である。
 
-名前の置き場所は`src/labels.ts` の `workflowLabels`。説明は計画の「意味」と同じ文字列にするである。
+名前の置き場所は`src/labels.ts` の `workflowLabels`。説明は計画の「意味」と同じ文字列にする。
 
 ## REQ-66
 
 もとになった課題は #132 である。
 
-作成は`GitHubClient` に `getLabel` と `createLabel` を足す。`ensureWorkflowLabels` が業務ラベル六件を順に、続けて名前が `quick 対象` のラベル一件を、無いものだけ作るである。
+作成は`GitHubClient` に `getLabel` と `createLabel` を足す。`ensureWorkflowLabels` が業務ラベル六件を順に、続けて名前が `quick 対象` のラベル一件を、無いものだけ作る。
 
 ## REQ-67
 
 もとになった課題は #3 である。
 
-既存は同名があるときは色も説明も変えない。`created` にせず `existing` とするである。
+既存は同名があるときは色も説明も変えない。`created` にせず `existing` とする。
 
 ## REQ-68
 
 もとになった課題は #3 である。
 
-実行は`gh` の `api`。認証は `gh` のログインに任せる。トークンも環境変数も読まないである。
+実行は`gh` の `api`。認証は `gh` のログインに任せる。トークンも環境変数も読まない。
 
 ## REQ-69
 
 もとになった課題は #3 である。
 
-入口はサブコマンド `labels`。引数は取らない。`install` と `run` の動作は変えないである。
+入口はサブコマンド `labels`。引数は取らない。`install` と `run` の動作は変えない。
 
 ## REQ-70
 
 もとになった課題は #3 である。
 
-リポジトリは`resolveRepo` で作業ツリーの `cwd` から得る。`api` はパスにリポジトリを含めるである。
+リポジトリは`resolveRepo` で作業ツリーの `cwd` から得る。`api` はパスにリポジトリを含める。
 
 ## REQ-71
 
@@ -114,23 +114,11 @@ createLabel(input: {
 
 `ensureWorkflowLabels` は、先に `workflowLabels` の順に `getLabel` を呼ぶ。`null` のときだけ `createLabel` を呼び、`status` を `"created"` にする。名前が返ったときは `createLabel` を呼ばず `"existing"` にする。そのあと、名前が `quick 対象` のラベルについて、同じ規則で `getLabel` と `createLabel` を一回だけ行う。戻り値は七件で、並びは `workflowLabels` と同じ六件のあと、名前が `quick 対象` のラベル一件である。
 
-## REQ-78
-
-もとになった課題は #95 である。
-
-`process` が失敗したとき、ランナーは失敗の理由の日本語一行を標準エラーに書く。`処理を開始します` を書いたあとであるときは、その直後に、かかった時間と起動回数の括弧だけの一行を標準エラーに書く。
-
 ## REQ-79
 
 もとになった課題は #82 である。
 
 そのサブコマンド名は `restore` である。
-
-## REQ-80
-
-もとになった課題は #82 である。
-
-使い方は `bun src/cli.ts restore <番号>` である。
 
 ## REQ-81
 
@@ -160,13 +148,13 @@ createLabel(input: {
 
 もとになった課題は #82 である。
 
-マージリクエストは失敗理由では `addPullRequestComment` を呼ばないである。
+マージリクエストは失敗理由では `addPullRequestComment` を呼ばない。
 
 ## REQ-86
 
 もとになった課題は #82 である。
 
-失敗時のラベルは`editLabels` を呼ばない。着手で付いた「実装中」は残るである。
+失敗時のラベルは`editLabels` を呼ばない。着手で付いた「実装中」は残る。
 
 ## REQ-87
 
@@ -184,7 +172,7 @@ createLabel(input: {
 
 もとになった課題は #82 である。
 
-`restore` の呼び出しは`createGitHub` だけを使う。ランナー、スキル、`agent`、`git` は呼ばない。課題コメントは書かない。課題は閉じないである。
+`restore` の呼び出しは`createGitHub` だけを使う。ランナー、スキル、`agent`、`git` は呼ばない。課題コメントは書かない。課題は閉じない。
 
 ## REQ-90
 

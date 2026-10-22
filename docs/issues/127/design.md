@@ -748,8 +748,20 @@ README でスキル呼び出しをまとめた表は、`request` の行を持た
 
 `prepare-branch` の起動例 `bun src/cli.ts prepare-branch <番号>` は、`AGENTS.md` のコマンドの節にある。
 
+### 変更 docs REQ-873
+
+もとになった課題は #121 である。
+
+表は `docs/policy.md` にあり、`tasks` が `src/cli.ts` の説明行へ載る。
+
 ### 変更 docs REQ-874
 
 もとになった課題は #121 である。
 
 `AGENTS.md` がコマンドの例として示すものの一つが、`bun src/cli.ts tasks <番号>` である。
+
+### 変更 docs REQ-885
+
+もとになった課題は #123 である。
+
+`spec-diff` という名前は、方針の構成表で CLI 入口の行にバッククォートで出る。方針は `docs/policy.md`。
