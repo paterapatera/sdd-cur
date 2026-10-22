@@ -39,9 +39,9 @@ describe("docs/canonical/", () => {
   })
 
   test("REQ 識別子ともと課題行", () => {
-    const ids = new Set<string>()
     for (const name of readdirSync(specDir).filter((f) => f.endsWith(".md"))) {
       if (name === "spec.md") continue
+      const ids = new Set<string>()
       const text = readFileSync(join(specDir, name), "utf8")
       for (const { id, body } of parseRequirements(text)) {
         const num = Number(id.slice(4))

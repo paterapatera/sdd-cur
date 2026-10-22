@@ -10,6 +10,7 @@ import {
   isWorkListItemLine,
   reviewNext,
   sectionBodies,
+  specDiff,
   specPaths,
   validateSpecForm,
   type ReviewNextInput,
@@ -76,6 +77,7 @@ export function printUsage(): void {
   console.error("sdd-cur complete <番号>")
   console.error("sdd-cur spec-check")
   console.error("sdd-cur tasks <番号>")
+  console.error("sdd-cur spec-diff <番号>")
 }
 
 const NO_WORK_LIST_SECTION = "設計に作業の一覧がありません"
@@ -209,6 +211,37 @@ async function cmdTasks(args: string[]): Promise<number> {
   const testCommands = collectTestCommands(designFile.markdown)
   console.log(JSON.stringify({ tasks: collected, testCommands }))
   return 0
+}
+
+async function cmdSpecDiff(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const cwd = process.cwd()
+  try {
+    const lines = await specDiff({
+      cwd,
+      issueNumber,
+      git: defaultGitRunner,
+    })
+    for (const line of lines) {
+      console.error(line)
+    }
+    return lines.length > 0 ? 1 : 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
 }
 
 function wantsHelp(argv: string[]): boolean {
@@ -871,6 +904,8 @@ async function main(): Promise<number> {
       return await cmdSpecCheck(argv.slice(1))
     case "tasks":
       return await cmdTasks(rest)
+    case "spec-diff":
+      return await cmdSpecDiff(rest)
     default:
       printUsage()
       return 1

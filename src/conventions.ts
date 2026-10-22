@@ -1,5 +1,6 @@
-import { readdir, readFile } from "node:fs/promises"
+import { readdir, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
+import type { GitRunner } from "./git.ts"
 import type { IssueComment } from "./github.ts"
 
 export const commentMarkers = {
@@ -1729,4 +1730,339 @@ export function collectChangeFilePathViolations(markdown: string): string[] {
     }
   }
   return violations
+}
+
+const SPEC_DIFF_CANT_READ = "仕様を読めません"
+const SPEC_DIFF_GIT_FAILED = "git を実行できません"
+const CANONICAL_DOMAIN =
+  /^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)$/
+
+function isBlankLine(line: string): boolean {
+  return line.trim().length === 0
+}
+
+function trimBodyEdges(bodyLines: readonly string[]): string {
+  let start = 0
+  let end = bodyLines.length
+  while (start < end && isBlankLine(bodyLines[start])) {
+    start += 1
+  }
+  while (end > start && isBlankLine(bodyLines[end - 1])) {
+    end -= 1
+  }
+  return bodyLines.slice(start, end).join("\n")
+}
+
+function canonicalReqBodiesFromMarkdown(markdown: string): Map<string, string> {
+  const lines = normalizeNewlines(markdown).split("\n")
+  const map = new Map<string, string>()
+  let i = 0
+  while (i < lines.length) {
+    const match = lines[i].match(CANONICAL_REQ_HEADING)
+    if (match) {
+      const id = `REQ-${match[1]}`
+      const bodyLines: string[] = []
+      i += 1
+      while (i < lines.length) {
+        if (lines[i].match(CANONICAL_REQ_HEADING)) {
+          break
+        }
+        bodyLines.push(lines[i])
+        i += 1
+      }
+      map.set(id, trimBodyEdges(bodyLines))
+      continue
+    }
+    i += 1
+  }
+  return map
+}
+
+function specDiffReqKey(domain: string, id: string): string {
+  return `${domain}\0${id}`
+}
+
+function parseDeltaItemHeadingWithDomain(
+  line: string,
+): { kind: DeltaItemKind; domain: string; id: string } | null {
+  let match = line.match(DELTA_ADD_HEADING)
+  if (match) {
+    return { kind: "add", domain: match[1], id: match[2] }
+  }
+  match = line.match(DELTA_CHANGE_HEADING)
+  if (match) {
+    return { kind: "change", domain: match[1], id: match[2] }
+  }
+  match = line.match(DELTA_REMOVE_HEADING)
+  if (match) {
+    return { kind: "remove", domain: match[1], id: match[2] }
+  }
+  return null
+}
+
+type DeltaItemWithBody = {
+  kind: DeltaItemKind
+  domain: string
+  id: string
+  body: string
+}
+
+function parseDeltaItems(designMarkdown: string): DeltaItemWithBody[] {
+  const lines = normalizeNewlines(designMarkdown).split("\n")
+  const sectionLines = extractDeltaSectionLines(lines)
+  if (sectionLines === null) {
+    return []
+  }
+  const items: DeltaItemWithBody[] = []
+  let i = 0
+  while (i < sectionLines.length) {
+    const heading = parseDeltaItemHeadingWithDomain(sectionLines[i])
+    if (!heading) {
+      i += 1
+      continue
+    }
+    const bodyLines: string[] = []
+    i += 1
+    while (i < sectionLines.length) {
+      if (parseDeltaItemHeadingWithDomain(sectionLines[i])) {
+        break
+      }
+      bodyLines.push(sectionLines[i])
+      i += 1
+    }
+    items.push({
+      kind: heading.kind,
+      domain: heading.domain,
+      id: heading.id,
+      body: trimBodyEdges(bodyLines),
+    })
+  }
+  return items
+}
+
+function applyDeltaToBaseline(
+  baseline: Map<string, string>,
+  items: readonly DeltaItemWithBody[],
+): Map<string, string> {
+  const result = new Map(baseline)
+  for (const item of items) {
+    const key = specDiffReqKey(item.domain, item.id)
+    if (item.kind === "remove") {
+      result.delete(key)
+    } else {
+      result.set(key, item.body)
+    }
+  }
+  return result
+}
+
+function firstNonemptyLineFromGitOutput(text: string): string | null {
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (trimmed.length > 0) {
+      return trimmed
+    }
+  }
+  return null
+}
+
+function domainFromLsTreePath(treePath: string): string | null {
+  const prefix = "docs/canonical/"
+  if (!treePath.startsWith(prefix) || !treePath.endsWith(".md")) {
+    return null
+  }
+  const domain = treePath.slice(prefix.length, -3)
+  if (!CANONICAL_DOMAIN.test(domain)) {
+    return null
+  }
+  return domain
+}
+
+async function runGitForSpecDiff(
+  git: GitRunner,
+  args: string[],
+  cwd: string,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  try {
+    return await git.run(args, { cwd })
+  } catch {
+    throw new Error(SPEC_DIFF_GIT_FAILED)
+  }
+}
+
+async function readBaselineCanonicalMap(
+  git: GitRunner,
+  cwd: string,
+): Promise<Map<string, string>> {
+  const remoteResult = await runGitForSpecDiff(git, ["remote"], cwd)
+  if (remoteResult.exitCode !== 0) {
+    throw new Error(SPEC_DIFF_GIT_FAILED)
+  }
+  const remote = firstNonemptyLineFromGitOutput(remoteResult.stdout)
+  if (!remote) {
+    throw new Error(SPEC_DIFF_GIT_FAILED)
+  }
+  const symResult = await runGitForSpecDiff(
+    git,
+    ["symbolic-ref", `refs/remotes/${remote}/HEAD`],
+    cwd,
+  )
+  if (symResult.exitCode !== 0) {
+    throw new Error(SPEC_DIFF_GIT_FAILED)
+  }
+  const ref = firstNonemptyLineFromGitOutput(symResult.stdout)
+  if (!ref) {
+    throw new Error(SPEC_DIFF_GIT_FAILED)
+  }
+  let listResult = await runGitForSpecDiff(
+    git,
+    ["ls-tree", "--name-only", ref, "docs/canonical"],
+    cwd,
+  )
+  if (listResult.exitCode !== 0) {
+    throw new Error(SPEC_DIFF_GIT_FAILED)
+  }
+  let treePaths = listResult.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+  if (!treePaths.some((line) => line.endsWith(".md"))) {
+    listResult = await runGitForSpecDiff(
+      git,
+      ["ls-tree", "--name-only", ref, "docs/canonical/"],
+      cwd,
+    )
+    if (listResult.exitCode !== 0) {
+      throw new Error(SPEC_DIFF_GIT_FAILED)
+    }
+    treePaths = listResult.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+  }
+  const baseline = new Map<string, string>()
+  for (const treePath of treePaths) {
+    const domain = domainFromLsTreePath(treePath)
+    if (!domain) {
+      continue
+    }
+    const showResult = await runGitForSpecDiff(
+      git,
+      ["show", `${ref}:${treePath}`],
+      cwd,
+    )
+    if (showResult.exitCode !== 0) {
+      continue
+    }
+    const bodies = canonicalReqBodiesFromMarkdown(showResult.stdout)
+    for (const [id, body] of bodies) {
+      baseline.set(specDiffReqKey(domain, id), body)
+    }
+  }
+  return baseline
+}
+
+async function readWorktreeCanonicalMap(
+  root: string,
+): Promise<Map<string, string>> {
+  const specDir = join(root, "docs/canonical")
+  let entries: Awaited<ReturnType<typeof readdir>>
+  try {
+    entries = await readdir(specDir, { withFileTypes: true })
+  } catch (err: unknown) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? (err as { code: string }).code
+        : ""
+    if (code === "ENOENT") {
+      return new Map()
+    }
+    throw err
+  }
+  const map = new Map<string, string>()
+  const mdFiles = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => entry.name)
+    .sort()
+  for (const name of mdFiles) {
+    const domain = name.slice(0, -3)
+    if (!CANONICAL_DOMAIN.test(domain)) {
+      continue
+    }
+    const content = await readFile(join(specDir, name), "utf8")
+    const bodies = canonicalReqBodiesFromMarkdown(content)
+    for (const [id, body] of bodies) {
+      map.set(specDiffReqKey(domain, id), body)
+    }
+  }
+  return map
+}
+
+function compareCanonicalMaps(
+  expected: Map<string, string>,
+  worktree: Map<string, string>,
+): string[] {
+  const lines: string[] = []
+  const keys = new Set([...expected.keys(), ...worktree.keys()])
+  for (const key of keys) {
+    const sep = key.indexOf("\0")
+    const domain = key.slice(0, sep)
+    const id = key.slice(sep + 1)
+    const inExpected = expected.has(key)
+    const inWorktree = worktree.has(key)
+    if (inExpected && inWorktree) {
+      if (expected.get(key) !== worktree.get(key)) {
+        lines.push(`正本が一致しません: ${domain} ${id} 本文が違います`)
+      }
+    } else if (inExpected && !inWorktree) {
+      lines.push(`正本が一致しません: ${domain} ${id} 作業ツリーにありません`)
+    } else if (!inExpected && inWorktree) {
+      lines.push(`正本が一致しません: ${domain} ${id} 作業ツリーにだけあります`)
+    }
+  }
+  return lines
+}
+
+async function readDesignForSpecDiff(
+  designPath: string,
+): Promise<{ exists: boolean; markdown: string }> {
+  try {
+    const info = await stat(designPath)
+    if (!info.isFile()) {
+      throw new Error(SPEC_DIFF_CANT_READ)
+    }
+    const markdown = await readFile(designPath, "utf8")
+    return { exists: true, markdown }
+  } catch (error) {
+    if (error instanceof Error && error.message === SPEC_DIFF_CANT_READ) {
+      throw error
+    }
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code: string }).code === "ENOENT"
+    ) {
+      return { exists: false, markdown: "" }
+    }
+    throw new Error(SPEC_DIFF_CANT_READ)
+  }
+}
+
+export async function specDiff(options: {
+  cwd: string
+  issueNumber: number
+  git: GitRunner
+}): Promise<string[]> {
+  const { cwd, issueNumber, git } = options
+  const paths = specPaths(issueNumber)
+  const designPath = join(cwd, paths.design)
+  const designFile = await readDesignForSpecDiff(designPath)
+  const deltaItems = designFile.exists
+    ? parseDeltaItems(designFile.markdown)
+    : []
+  const baseline = await readBaselineCanonicalMap(git, cwd)
+  const expected = applyDeltaToBaseline(baseline, deltaItems)
+  const worktree = await readWorktreeCanonicalMap(cwd)
+  return compareCanonicalMaps(expected, worktree)
 }

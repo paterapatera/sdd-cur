@@ -233,3 +233,15 @@ README の「開発中の起動」のコードフェンスと、そのあとの�
 もとになった課題は #118 である。
 
 `AGENTS.md` の「コマンド」のコードフェンスに、`bun src/cli.ts init [project-root]` の行がある。そのフェンスの `bun src/cli.ts` の行から取れるサブコマンド名の集合は、`src/cli.ts` の `switch` の `case` の名前の集合と一致する。
+
+## REQ-885
+
+もとになった課題は #123 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `spec-diff` を含む。
+
+## REQ-886
+
+もとになった課題は #123 である。
+
+`AGENTS.md` の「コマンド」の例に、行全体が `bun src/cli.ts spec-diff <番号>` である行がある。
