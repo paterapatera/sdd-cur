@@ -46,12 +46,20 @@ function gitLines(command: string): string[] {
 
 function gitCanonicalBasenames(): string[] {
   const fromCanonical = gitLines("git ls-tree --name-only HEAD:docs/canonical")
+  const names = new Set<string>()
   if (fromCanonical.length > 0) {
-    return fromCanonical.filter((name) => name.endsWith(".md")).sort()
+    for (const name of fromCanonical) {
+      if (name.endsWith(".md")) names.add(name)
+    }
+  } else {
+    for (const name of gitLines("git ls-tree --name-only HEAD:docs/spec")) {
+      if (name.endsWith(".md")) names.add(name)
+    }
   }
-  return gitLines("git ls-tree --name-only HEAD:docs/spec")
-    .filter((name) => name.endsWith(".md"))
-    .sort()
+  for (const tracked of gitLines("git ls-files 'docs/canonical/*.md'")) {
+    names.add(path.basename(tracked))
+  }
+  return [...names].sort()
 }
 
 function gitIssueRelativePaths(): string[] {
