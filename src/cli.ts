@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { homedir } from "node:os"
+import path from "node:path"
 import process from "node:process"
 import {
   collectChangeFilePathViolations,
@@ -22,6 +23,7 @@ import {
   installAll,
   parseInstallArgs,
 } from "./install.ts"
+import { initProject, parseInitArgs } from "./init.ts"
 import { completeIssue } from "./complete.ts"
 import {
   createGitHub,
@@ -60,6 +62,7 @@ import { checkSpec } from "./spec.ts"
 
 export function printUsage(): void {
   console.error("sdd-cur install [project-root]")
+  console.error("sdd-cur init [project-root]")
   console.error("sdd-cur run [--interval-min <1 以上 1440 以下の整数>]")
   console.error("sdd-cur labels")
   console.error("sdd-cur candidates")
@@ -252,6 +255,41 @@ async function cmdInstall(args: string[]): Promise<number> {
   console.log(result.destDir)
   if (result.skillNames.length === 0) {
     console.log("配置するスキルはありません")
+  }
+  return 0
+}
+
+async function cmdInit(args: string[]): Promise<number> {
+  const parsed = parseInitArgs(args)
+  if (!parsed.ok) {
+    console.error(parsed.message)
+    printUsage()
+    return 1
+  }
+
+  let root: string
+  if (parsed.projectRoot === undefined) {
+    root = process.cwd()
+  } else {
+    try {
+      await assertDirectoryExists(parsed.projectRoot)
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error))
+      return 1
+    }
+    root = path.resolve(parsed.projectRoot)
+  }
+
+  let created: string[]
+  try {
+    created = await initProject(root)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  for (const rel of created) {
+    console.log(rel)
   }
   return 0
 }
@@ -799,6 +837,8 @@ async function main(): Promise<number> {
   switch (sub) {
     case "install":
       return await cmdInstall(rest)
+    case "init":
+      return await cmdInit(rest)
     case "run":
       return await cmdRun(rest)
     case "labels":

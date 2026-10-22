@@ -2242,3 +2242,15 @@ CLI を実行するスキルは、`skills/sdd-cur/SKILL.md`、`skills/sdd-cur-qu
 もとになった課題は #121 である。
 
 テストは `src/121.test.ts` に書く。一時ディレクトリを作業ディレクトリにして `bun src/cli.ts tasks <番号>` を実行する。そのテストは `gh` を起動しない。
+
+## REQ-886
+
+もとになった課題は #118 である。
+
+`agents/sdd-cur-req-author.md`、`agents/sdd-cur-design-author.md`、`agents/sdd-cur-req-reviewer.md`、`agents/sdd-cur-req-reviewer-high.md`、`agents/sdd-cur-design-reviewer.md` は、`docs/policy.md` が無いとき、止まって、`sdd-cur init` を案内する、と書く。`docs/policy.md` があるとき、起動時に `docs/policy.md` を読む、と書く。
+
+## REQ-887
+
+もとになった課題は #118 である。
+
+`agents/sdd-cur-req-reviewer.md` と `agents/sdd-cur-req-reviewer-high.md` は、レビューしている要求のうち、`docs/policy.md` の「破ってはいけない原則」と食い違う記述を指摘する、と書く。`agents/sdd-cur-design-reviewer.md` は、レビューしている設計のうち、`docs/policy.md` の「破ってはいけない原則」と食い違う記述を指摘する、と書く。
