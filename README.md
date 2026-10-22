@@ -79,6 +79,8 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 パスへ入ったあとは `sdd-cur install` と `sdd-cur run` で同じ入口を呼ぶ。
 
+導入の順は `install`、`init`、`labels` である。
+
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-quick` である。
 
 `install` は、`skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の十一個をコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents`。

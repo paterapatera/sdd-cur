@@ -26,6 +26,7 @@ bun test
 
 ```sh
 bun src/cli.ts install [project-root]
+bun src/cli.ts init [project-root]
 bun src/cli.ts run [--interval-min <1 以上 1440 以下の整数>]
 bun src/cli.ts labels
 bun src/cli.ts candidates
@@ -42,6 +43,7 @@ bun src/cli.ts request <番号>
 bun src/cli.ts review-next <requirements|reflect-design|quick|implement> <番号>
 bun src/cli.ts spec-check
 bun src/cli.ts tasks <番号>
+bun src/cli.ts spec-diff <番号>
 bun test
 ```
 

@@ -209,3 +209,39 @@ README のコマンド例に `bun src/cli.ts` は無い。「開発中の起動�
 もとになった課題は #121 である。
 
 `AGENTS.md` の「コマンド」の例に、`bun src/cli.ts tasks <番号>` の行がある。
+
+## REQ-888
+
+もとになった課題は #118 である。
+
+README は、導入の順が `install`、`init`、`labels` である、と書く。
+
+## REQ-889
+
+もとになった課題は #118 である。
+
+README の「開発中の起動」のコードフェンスと、そのあとのスキル呼び出し分の表に、`init` は無い。
+
+## REQ-890
+
+もとになった課題は #118 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `init` を含む。その行のバッククォートで囲んだサブコマンド名の集合は、`src/cli.ts` の `switch` の `case` の名前の集合と一致する。
+
+## REQ-891
+
+もとになった課題は #118 である。
+
+`AGENTS.md` の「コマンド」のコードフェンスに、`bun src/cli.ts init [project-root]` の行がある。そのフェンスの `bun src/cli.ts` の行から取れるサブコマンド名の集合は、`src/cli.ts` の `switch` の `case` の名前の集合と一致する。
+
+## REQ-885
+
+もとになった課題は #123 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `spec-diff` を含む。
+
+## REQ-886
+
+もとになった課題は #123 である。
+
+`AGENTS.md` の「コマンド」の例に、行全体が `bun src/cli.ts spec-diff <番号>` である行がある。

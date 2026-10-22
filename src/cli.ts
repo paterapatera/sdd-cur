@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { homedir } from "node:os"
+import path from "node:path"
 import process from "node:process"
 import {
   collectChangeFilePathViolations,
@@ -9,6 +10,7 @@ import {
   isWorkListItemLine,
   reviewNext,
   sectionBodies,
+  specDiff,
   specPaths,
   validateSpecForm,
   type ReviewNextInput,
@@ -22,6 +24,7 @@ import {
   installAll,
   parseInstallArgs,
 } from "./install.ts"
+import { initProject, parseInitArgs } from "./init.ts"
 import { completeIssue } from "./complete.ts"
 import {
   createGitHub,
@@ -60,6 +63,7 @@ import { checkSpec } from "./spec.ts"
 
 export function printUsage(): void {
   console.error("sdd-cur install [project-root]")
+  console.error("sdd-cur init [project-root]")
   console.error("sdd-cur run [--interval-min <1 以上 1440 以下の整数>]")
   console.error("sdd-cur labels")
   console.error("sdd-cur candidates")
@@ -73,6 +77,7 @@ export function printUsage(): void {
   console.error("sdd-cur complete <番号>")
   console.error("sdd-cur spec-check")
   console.error("sdd-cur tasks <番号>")
+  console.error("sdd-cur spec-diff <番号>")
 }
 
 const NO_WORK_LIST_SECTION = "設計に作業の一覧がありません"
@@ -208,6 +213,37 @@ async function cmdTasks(args: string[]): Promise<number> {
   return 0
 }
 
+async function cmdSpecDiff(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const cwd = process.cwd()
+  try {
+    const lines = await specDiff({
+      cwd,
+      issueNumber,
+      git: defaultGitRunner,
+    })
+    for (const line of lines) {
+      console.error(line)
+    }
+    return lines.length > 0 ? 1 : 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
 function wantsHelp(argv: string[]): boolean {
   return argv.includes("--help") || argv.includes("-h")
 }
@@ -252,6 +288,41 @@ async function cmdInstall(args: string[]): Promise<number> {
   console.log(result.destDir)
   if (result.skillNames.length === 0) {
     console.log("配置するスキルはありません")
+  }
+  return 0
+}
+
+async function cmdInit(args: string[]): Promise<number> {
+  const parsed = parseInitArgs(args)
+  if (!parsed.ok) {
+    console.error(parsed.message)
+    printUsage()
+    return 1
+  }
+
+  let root: string
+  if (parsed.projectRoot === undefined) {
+    root = process.cwd()
+  } else {
+    try {
+      await assertDirectoryExists(parsed.projectRoot)
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error))
+      return 1
+    }
+    root = path.resolve(parsed.projectRoot)
+  }
+
+  let created: string[]
+  try {
+    created = await initProject(root)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  for (const rel of created) {
+    console.log(rel)
   }
   return 0
 }
@@ -799,6 +870,8 @@ async function main(): Promise<number> {
   switch (sub) {
     case "install":
       return await cmdInstall(rest)
+    case "init":
+      return await cmdInit(rest)
     case "run":
       return await cmdRun(rest)
     case "labels":
@@ -831,6 +904,8 @@ async function main(): Promise<number> {
       return await cmdSpecCheck(argv.slice(1))
     case "tasks":
       return await cmdTasks(rest)
+    case "spec-diff":
+      return await cmdSpecDiff(rest)
     default:
       printUsage()
       return 1

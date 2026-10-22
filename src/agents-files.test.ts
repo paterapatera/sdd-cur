@@ -221,7 +221,7 @@ const expected = [
       "reset",
       "checkout",
       "rebase",
-      "docs/spec/",
+      "docs/canonical/",
       "## 正本への差分",
     ],
   },

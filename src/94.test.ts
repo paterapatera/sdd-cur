@@ -13,6 +13,7 @@ const bunExe = process.execPath
 
 const usageText =
   "sdd-cur install [project-root]\n" +
+  "sdd-cur init [project-root]\n" +
   "sdd-cur run [--interval-min <1 以上 1440 以下の整数>]\n" +
   "sdd-cur labels\n" +
   "sdd-cur candidates\n" +
@@ -25,7 +26,8 @@ const usageText =
   "sdd-cur validate <番号>\n" +
   "sdd-cur complete <番号>\n" +
   "sdd-cur spec-check\n" +
-  "sdd-cur tasks <番号>\n"
+  "sdd-cur tasks <番号>\n" +
+  "sdd-cur spec-diff <番号>\n"
 
 const LABEL_REQUEST = workflowLabels[0].name
 const LABEL_IN_PROGRESS = workflowLabels[1].name
@@ -382,7 +384,7 @@ describe("課題 94", () => {
   test("ドキュメントとスキル、runner、printUsage", async () => {
     const policy = await readFile(path.join(root, "docs/policy.md"), "utf8")
     expect(policy).toContain(
-      "サブコマンドは `install`、`run`、`labels`、`candidates`、`show`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`",
+      "サブコマンドは `install`、`init`、`run`、`labels`、`candidates`、`show`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`",
     )
 
     const agents = await readFile(path.join(root, "AGENTS.md"), "utf8")
