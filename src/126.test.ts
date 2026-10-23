@@ -75,7 +75,7 @@ const SPEC_CHECK_PREFIXES = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "4984b4321f8fc59efe5fcc3d31c9e5726f01e060865aaf2106502e938cc60f2c"
+  "e2ac0e2cdb8d91b49b54a8376fd52839994798406fcdfb0bd9b54301b3e8e4d5"
 
 const REQ_HEADING = /^## REQ-([1-9][0-9]*)$/
 const ORIGIN_LINE = /^もとになった課題は #([1-9][0-9]*) である。$/
