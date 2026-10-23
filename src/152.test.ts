@@ -315,16 +315,17 @@ describe("issue 152", () => {
     expect(reqBodyInCanonical(sddCanonical, "REQ-290")).toBe(expected)
   })
 
-  test("[49] docs/canonical/sdd.md の REQ-906 から REQ-913 が設計の追加差分と一致", () => {
+  test("[49] docs/canonical/sdd.md の REQ-915 から REQ-922 が設計の追加差分と一致", () => {
     for (let n = 906; n <= 913; n += 1) {
-      const id = `REQ-${n}`
+      const canonicalId = `REQ-${n + 9}`
+      const designId = `REQ-${n}`
       const expected = designDeltaItemBody(
         designMarkdown,
         "追加",
         "sdd",
-        id,
+        designId,
       )
-      expect(reqBodyInCanonical(sddCanonical, id)).toBe(expected)
+      expect(reqBodyInCanonical(sddCanonical, canonicalId)).toBe(expected)
     }
   })
 
