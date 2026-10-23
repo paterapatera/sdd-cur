@@ -1465,6 +1465,10 @@ export function validateSpecForm(
 
   violations.push(...collectAmbiguousWordViolations(markdown))
 
+  if (kind === "design") {
+    violations.push(...collectScenarioViolations(markdown))
+  }
+
   return violations
 }
 
@@ -1586,6 +1590,89 @@ function extractDeltaSectionLines(lines: readonly string[]): string[] | null {
     sectionLines.push(lines[i])
   }
   return sectionLines
+}
+
+const SCENARIO_LINE_PREFIX = "- シナリオ: 条件: "
+const SCENARIO_SUBJECT_MARKER = " 主体: "
+const SCENARIO_RESULT_MARKER = " 結果: "
+
+function containsNonWhitespace(text: string): boolean {
+  for (const ch of text) {
+    if (
+      ch !== " " &&
+      ch !== "\t" &&
+      ch !== "\n" &&
+      ch !== "\r" &&
+      ch !== "\u3000"
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+function isScenarioLine(line: string): boolean {
+  if (!line.startsWith(SCENARIO_LINE_PREFIX)) {
+    return false
+  }
+  const rest = line.slice(SCENARIO_LINE_PREFIX.length)
+  const subjectIdx = rest.indexOf(SCENARIO_SUBJECT_MARKER)
+  if (subjectIdx < 0) {
+    return false
+  }
+  const condition = rest.slice(0, subjectIdx)
+  const afterSubject = rest.slice(subjectIdx + SCENARIO_SUBJECT_MARKER.length)
+  const resultIdx = afterSubject.indexOf(SCENARIO_RESULT_MARKER)
+  if (resultIdx < 0) {
+    return false
+  }
+  const subject = afterSubject.slice(0, resultIdx)
+  const result = afterSubject.slice(resultIdx + SCENARIO_RESULT_MARKER.length)
+  return (
+    containsNonWhitespace(condition) &&
+    containsNonWhitespace(subject) &&
+    containsNonWhitespace(result)
+  )
+}
+
+function collectScenarioViolations(designMarkdown: string): string[] {
+  const lines = normalizeNewlines(designMarkdown).split("\n")
+  const sectionLines = extractDeltaSectionLines(lines)
+  if (sectionLines === null) {
+    return []
+  }
+  const violations: string[] = []
+  let i = 0
+  while (i < sectionLines.length) {
+    const heading = parseDeltaItemHeading(sectionLines[i])
+    if (!heading) {
+      i += 1
+      continue
+    }
+    i += 1
+    const bodyLines: string[] = []
+    while (i < sectionLines.length) {
+      if (parseDeltaItemHeading(sectionLines[i])) {
+        break
+      }
+      bodyLines.push(sectionLines[i])
+      i += 1
+    }
+    if (heading.kind !== "add" && heading.kind !== "change") {
+      continue
+    }
+    let hasScenario = false
+    for (const line of bodyLines) {
+      if (isScenarioLine(line)) {
+        hasScenario = true
+        break
+      }
+    }
+    if (!hasScenario) {
+      violations.push(`シナリオがありません: ${heading.id}`)
+    }
+  }
+  return violations
 }
 
 export function validateCanonicalDelta(
