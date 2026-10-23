@@ -1155,13 +1155,13 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 もとになった課題は #46 である。
 
-コマンドで指定はCursor のチャットで、そのスキルを @ する、またはそのスキルのスキル呼び出しで明示して起動したときである。`bun src/cli.ts` のサブコマンドではないである。
+コマンドで指定はCursor のチャットで、そのスキルを @ する、またはそのスキルのスキル呼び出しで明示して起動したときである。`bun src/cli.ts` のサブコマンドではない。
 
 ## REQ-347
 
 もとになった課題は #46 である。
 
-通常の依頼は「要件を作って」など、そのスキルを明示しない依頼だけでは、コマンドで指定したとはみなさない。`sdd-cur-complete` を明示しない通常の依頼も、同様にみなさないである。
+通常の依頼は「要件を作って」など、そのスキルを明示しない依頼だけでは、コマンドで指定したとはみなさない。`sdd-cur-complete` を明示しない通常の依頼も、同様にみなさない。
 
 ## REQ-348
 
@@ -1173,31 +1173,31 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 もとになった課題は #46 である。
 
-`name` と `description`は変えないである。
+`name` と `description`は変えない。
 
 ## REQ-350
 
 もとになった課題は #46 である。
 
-設計 5は`skills/sdd-cur/SKILL.md` に `disable-model-invocation` が無い、という指定は、この課題が上書きする。設計 5 のファイルは書き換えないである。
+設計 5は`skills/sdd-cur/SKILL.md` に `disable-model-invocation` が無い、という指定は、この課題が上書きする。設計 5 のファイルは書き換えない。
 
 ## REQ-351
 
 もとになった課題は #46 である。
 
-設計 7は`skills/sdd-cur-complete/SKILL.md` に `disable-model-invocation` が無い、という指定は、この課題が上書きする。設計 7 のファイルは書き換えないである。
+設計 7は`skills/sdd-cur-complete/SKILL.md` に `disable-model-invocation` が無い、という指定は、この課題が上書きする。設計 7 のファイルは書き換えない。
 
 ## REQ-352
 
 もとになった課題は #46 である。
 
-設計 41はこの二ファイルの frontmatter を変えない、という指定は、この課題が上書きする。設計 41 の本文の文言は残す。設計 41 のファイルは書き換えないである。
+設計 41はこの二ファイルの frontmatter を変えない、という指定は、この課題が上書きする。設計 41 の本文の文言は残す。設計 41 のファイルは書き換えない。
 
 ## REQ-353
 
 もとになった課題は #46 である。
 
-実装スキルは`disable-model-invocation: true` は残す。外さないである。
+実装スキルは`disable-model-invocation: true` は残す。外さない。
 
 ## REQ-354
 
@@ -1257,7 +1257,7 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 もとになった課題は #47 である。
 
-節は仕様ファイルの `#` 見出しの直下にある、各 `##` 見出しと、その見出しから次の `##` 見出しの直前までの本文の塊である。変えた節は、その塊を、ファイルに書いた文言のまま、ファイルでの出現順で返す。差分の形式にはしない。変えていない節は返さない。消した節の旧本文は返さないである。
+節は仕様ファイルの `#` 見出しの直下にある、各 `##` 見出しと、その見出しから次の `##` 見出しの直前までの本文の塊である。変えた節は、その塊を、ファイルに書いた文言のまま、ファイルでの出現順で返す。差分の形式にはしない。変えていない節は返さない。消した節の旧本文は返さない。
 
 ## REQ-364
 
@@ -1269,25 +1269,25 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 もとになった課題は #47 である。
 
-実装作成は`agents/sdd-cur-implement-author.md` の `## 親への返信` は変えないである。
+実装作成は`agents/sdd-cur-implement-author.md` の `## 親への返信` は変えない。
 
 ## REQ-366
 
 もとになった課題は #47 である。
 
-reflectは「回答」の、書き込む全文を標準入力へ渡す手順は変えないである。
+reflectは「回答」の、書き込む全文を標準入力へ渡す手順は変えない。
 
 ## REQ-367
 
 もとになった課題は #47 である。
 
-設計 5は手順は `SKILL.md` に置く。分割しないである。
+設計 5は手順は `SKILL.md` に置く。分割しない。
 
 ## REQ-368
 
 もとになった課題は #47 である。
 
-それより前は二つの作成役ファイルの、`## 親への返信` より前は変えない。frontmatter の `name` と `model` は変えないである。
+それより前は二つの作成役ファイルの、`## 親への返信` より前は変えない。frontmatter の `name` と `model` は変えない。
 
 ## REQ-369
 
@@ -1311,7 +1311,7 @@ reflectは「回答」の、書き込む全文を標準入力へ渡す手順は�
 
 もとになった課題は #53 である。
 
-要求・設計の作成は grok-4.7-high である。実装の作成は composer-2.5 である。レビューは grok-4.7-medium で始める。数えたレビューの不合格が 2 回続いたあと 3 回目から grok-4.7-high である。合格まで high のままである。medium には戻さない。修正は composer-2.5 である。
+要求・設計の作成の frontmatter は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。実装の作成は `composer-2.5[fast=false]` である。レビューは `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` で始める。数えたレビューの不合格が 2 回続いたあと 3 回目から `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。合格まで high のままである。medium には戻さない。修正は `composer-2.5[fast=false]` である。
 
 ## REQ-373
 
@@ -1329,115 +1329,103 @@ reflectは「回答」の、書き込む全文を標準入力へ渡す手順は�
 
 もとになった課題は #53 である。
 
-要求作成と設計作成の frontmatter の `model` と、要求・設計のレビュー 3 回目以降に親が渡す `model` の文字列は、同じ `grok-4.7-high` である。実装作成の frontmatter は `composer-2.5[fast=false]` である。実装のレビュー 3 回目以降に親が渡す `model` は `grok-4.7-high` である。
+要求作成と設計作成の frontmatter の `model` と、要求・設計のレビュー 3 回目以降に親が渡す `model` の文字列は、同じ `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。実装作成の frontmatter は `composer-2.5[fast=false]` である。実装のレビュー 3 回目以降に親が渡す `model` は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。
 
 ## REQ-376
 
 もとになった課題は #53 である。
 
-`skills/sdd-cur/SKILL.md` の要件と設計の手順で、3 回目から渡す `model` の記述は `grok-4.7-high` である。1 回目と 2 回目は `model` を渡さない、合格まで渡す、medium には戻さない、など設計 30 の手順は変えない。
+`skills/sdd-cur/SKILL.md` の要件と設計の手順は、3 回目から渡す `model` を `grok-4.7-high` と書かない。3 回目以降の文字列は `review-next` の `model` であり、`grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。1 回目と 2 回目は `model` を渡さない。合格まで渡す。medium には戻さない。
 
 ## REQ-377
 
 もとになった課題は #53 である。
 
-`skills/sdd-cur-implement/SKILL.md` のレビュー手順で、3 回目から渡す `model` の記述は `grok-4.7-high` である。実装作成は `model` を渡さず、frontmatter の `composer-2.5[fast=false]` を使う。10 回打ち切りや `model` を渡さない回の扱いは設計 30 のとおりである。
+`skills/sdd-cur-implement/SKILL.md` のレビュー手順は、3 回目から渡す `model` を `grok-4.7-high` と書かない。空でないときに渡す文字列は `review-next` の `model` であり、`grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。実装作成は `model` を渡さず、frontmatter の `composer-2.5[fast=false]` を使う。10 回打ち切りや `model` を渡さない回の扱いは設計 30 のとおりである。
 
 ## REQ-378
 
 もとになった課題は #53 である。
 
-`src/agents.test.ts` は、九つの `model` 期待値が上の表と一致することを確かめる。本文の必須文言の確認は、設計 30 以降のまま維持する。
+`src/agents.test.ts` は無い。`src/agents-files.test.ts` が、九つの `model` 期待値を確かめる。要求作成と設計作成は `grok-4.7[context=256k,reasoning_effort=high,fast=false]`、レビューは `grok-4.7[context=256k,reasoning_effort=medium,fast=false]`、実装作成と修正は `composer-2.5[fast=false]` である。本文の必須文言の確認は、設計 30 以降のまま残す。
 
 ## REQ-379
 
 もとになった課題は #53 である。
 
-`src/sdd.test.ts` は、`skills/sdd-cur/SKILL.md` の必須文言のうち、3 回目から渡すモデルに関する部分を `grok-4.7-high` に合わせる。設計 26・27 の分と、設計 30 で残すその他の必須文言は維持する。旧形式 `grok-4.7[reasoning_effort=high,fast=false]` を必須にしない。
+`src/sdd.test.ts` は無い。`src/sdd-skill-sdd-cur.test.ts` が、`skills/sdd-cur/SKILL.md` の必須文言のうち、作成説明の括弧内を `grok-4.7[context=256k,reasoning_effort=high,fast=false]` として確かめる。`grok-4.7-high` は必須にしない。設計 26・27 の分と、設計 30 で残すその他の必須文言は維持する。
 
 ## REQ-380
 
 もとになった課題は #53 である。
 
-連続不合格は設計 30 のとおり。数えるレビューの最後の非空行が `判定: 不合格` のときに 1 増える。合格で流れは終わる。確認のための再起動では増えないである。
-
-## REQ-381
-
-もとになった課題は #53 である。
-
-レビューの 1 回目と 2 回目は`model` を渡さない。frontmatter の `model` は `grok-4.7-medium` である
+連続不合格は設計 30 のとおり。数えるレビューは、`parseReview` が下から見つけた判定行が `判定: 不合格` のときに 1 増える。その行は、最後の非空行でなくても判定行である。合格で流れは終わる。確認のための再起動では増えない。
 
 ## REQ-382
 
 もとになった課題は #53 である。
 
-レビューの 3 回目以降は1 回目と 2 回目が続けて不合格のとき、親が `model` に `grok-4.7-high` を渡す。合格まで渡す。medium には戻さないである。
+レビューの 3 回目以降は1 回目と 2 回目が続けて不合格のとき、親が `model` に `grok-4.7[context=256k,reasoning_effort=high,fast=false]` を渡す。合格まで渡す。medium には戻さない。
 
 ## REQ-383
 
 もとになった課題は #53 である。
 
-要求・設計の作成と 3 回目以降は要求作成と設計作成の frontmatter と、要求・設計のレビュー 3 回目以降に渡す文字列は、同じ `grok-4.7-high` である
+要求・設計の作成と 3 回目以降は要求作成と設計作成の frontmatter と、要求・設計のレビュー 3 回目以降に渡す文字列は、同じ `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である
 
 ## REQ-384
 
 もとになった課題は #53 である。
 
-実装の作成と 3 回目以降は実装作成の frontmatter は `composer-2.5[fast=false]` である。実装のレビュー 3 回目以降に渡す文字列は `grok-4.7-high` である。この二つは揃えないである。
-
-## REQ-385
-
-もとになった課題は #53 である。
-
-修正は三つの frontmatter は `composer-2.5[fast=false]` のままである
+実装の作成と 3 回目以降は実装作成の frontmatter は `composer-2.5[fast=false]` である。実装のレビュー 3 回目以降に渡す文字列は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。この二つは揃えない。
 
 ## REQ-386
 
 もとになった課題は #53 である。
 
-実装の打ち切りは設計 30 のとおり。数えた不合格が 10 のとき、修正も次のレビューも起動しない。10 回には medium のレビューと high のレビューの両方が入るである。
+実装の打ち切りは設計 30 のとおり。数えた不合格が 10 のとき、修正も次のレビューも起動しない。10 回には medium のレビューと high のレビューの両方が入る。
 
 ## REQ-387
 
 もとになった課題は #53 である。
 
-使う IDは`grok-4.7-high`、`grok-4.7-medium`、`composer-2.5[fast=false]`である。
+使う IDは`grok-4.7[context=256k,reasoning_effort=high,fast=false]`、`grok-4.7[context=256k,reasoning_effort=medium,fast=false]`、`composer-2.5[fast=false]`である。
 
 ## REQ-388
 
 もとになった課題は #53 である。
 
-使わない IDは`grok-4.7[` で始まる形式。`grok-4.7-high[fast=false]`、および high や medium に括弧付きオプションを足した形式である。
+使わない IDは`grok-4.7-high`、`grok-4.7-medium`、`grok-4.7-high[fast=false]`である。`grok-4.7[context=256k,reasoning_effort=high,fast=false]` と `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` は使う。
 
 ## REQ-389
 
 もとになった課題は #53 である。
 
-1 と 2はmedium。`model` は渡さない。frontmatter は `grok-4.7-medium`である。
+1 と 2はmedium。`model` は渡さない。frontmatter は `grok-4.7[context=256k,reasoning_effort=medium,fast=false]`である。
 
 ## REQ-390
 
 もとになった課題は #53 である。
 
-3 以降は親が `model` に `grok-4.7-high` を渡す。合格まで戻さないである。
+3 以降は親が `model` に `grok-4.7[context=256k,reasoning_effort=high,fast=false]` を渡す。合格まで戻さない。
 
 ## REQ-391
 
 もとになった課題は #53 である。
 
-人の言葉でのモデル名は、要求・設計の作成が grok-4.7-high、実装の作成が composer-2.5、レビューの開始が grok-4.7-medium、3 回目からのレビューが grok-4.7-high、修正が composer-2.5 である。機械向けの ID は、上の frontmatter の表である。
+人の言葉でのモデル名は、要求・設計の作成が grok-4.7-high、実装の作成が composer-2.5、レビューの開始が grok-4.7-medium、3 回目からのレビューが grok-4.7-high、修正が composer-2.5 である。機械向けの ID は、要求作成と設計作成が `grok-4.7[context=256k,reasoning_effort=high,fast=false]`、レビューが `grok-4.7[context=256k,reasoning_effort=medium,fast=false]`、実装作成と修正が `composer-2.5[fast=false]`、3 回目から渡す `model` が `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。
 
 ## REQ-392
 
 もとになった課題は #53 である。
 
-人が決めた条件として、実装作成のモデルは composer-2.5 である。要求・設計の作成は grok-4.7-high、レビューの開始は grok-4.7-medium、3 回目からのレビューは grok-4.7-high、修正は composer-2.5 である。
+人が決めた条件として、実装作成のモデルは `composer-2.5[fast=false]` である。要求・設計の作成は `grok-4.7[context=256k,reasoning_effort=high,fast=false]`、レビューの開始は `grok-4.7[context=256k,reasoning_effort=medium,fast=false]`、3 回目からのレビューは `grok-4.7[context=256k,reasoning_effort=high,fast=false]`、修正は `composer-2.5[fast=false]` である。
 
 ## REQ-393
 
 もとになった課題は #53 である。
 
-frontmatter とスキルが書く機械向けの ID は、括弧付きの `grok-4.7[…]` ではなく、受け入れ条件の表どおりである。実装作成は `composer-2.5[fast=false]` である。
+frontmatter の機械向けの ID は、`grok-4.7[context=256k,reasoning_effort=high,fast=false]` と `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である。スキルが書く機械向けの high は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。`grok-4.7-high` と `grok-4.7-medium` は書かない。実装作成は `composer-2.5[fast=false]` である。
 
 ## REQ-394
 
@@ -1455,7 +1443,7 @@ frontmatter とスキルが書く機械向けの ID は、括弧付きの `grok-
 
 もとになった課題は #55 である。
 
-作成と修正の起動は`model` を渡さない。frontmatter の `model` を使うである。
+作成と修正の起動は`model` を渡さない。frontmatter の `model` を使う。
 
 ## REQ-397
 
@@ -1505,29 +1493,11 @@ frontmatter とスキルが書く機械向けの ID は、括弧付きの `grok-
 
 `skills/sdd-cur-implement/SKILL.md` は、3 回目から渡すモデルの文字列を、分岐の散文に書かない。その文字列は `review-next` の `model` である。`grok-4.7-high` は書かない。失敗の理由の文字列は、スキルに書かず、`reason` で返す。
 
-## REQ-405
-
-もとになった課題は #55 である。
-
-レビューの 1 回目と 2 回目は`model` を渡さない。frontmatter の `model` は `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である
-
-## REQ-406
-
-もとになった課題は #55 である。
-
-レビューの 3 回目以降は1 回目と 2 回目が続けて不合格のとき、親が `model` に `grok-4.7[context=256k,reasoning_effort=high,fast=false]` を渡す。合格まで渡す。medium には戻さないである。
-
 ## REQ-407
 
 もとになった課題は #55 である。
 
 要求・設計の作成と 3 回目以降は要求作成 `agents/sdd-cur-req-author.md` と設計作成 `agents/sdd-cur-design-author.md` の frontmatter の `model` と、要求・設計のレビュー 3 回目以降に渡す文字列は、同じ `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である
-
-## REQ-408
-
-もとになった課題は #55 である。
-
-実装の作成と 3 回目以降は実装作成の frontmatter は `composer-2.5[fast=false]` である。実装のレビュー 3 回目以降に渡す文字列は `grok-4.7[context=256k,reasoning_effort=high,fast=false]` である。この二つは揃えないである。
 
 ## REQ-409
 
@@ -1545,7 +1515,7 @@ frontmatter とスキルが書く機械向けの ID は、括弧付きの `grok-
 
 もとになった課題は #55 である。
 
-機械向けの high 文字列は`grok-4.7[context=256k,reasoning_effort=high,fast=false]`。`grok-4.7-high` は、3 回目から渡す `model` や作成説明の括弧内では使わないである。
+機械向けの high 文字列は`grok-4.7[context=256k,reasoning_effort=high,fast=false]`。`grok-4.7-high` は、3 回目から渡す `model` や作成説明の括弧内では使わない。
 
 ## REQ-412
 
@@ -1605,55 +1575,55 @@ quick の着手では、「実装中」だけを付ける。「実装依頼」�
 
 もとになった課題は #56 である。
 
-明示は本文に `quick 対象` が連続してある、またはラベルの完全一致が `quick 対象` である。一方で足りる。題は見ないである。
+明示は本文に `quick 対象` が連続してある、またはラベルの完全一致が `quick 対象` である。一方で足りる。題は見ない。
 
 ## REQ-422
 
 もとになった課題は #56 である。
 
-業務ラベルは`workflowLabels` の五つの名前。`quick 対象` は業務ラベルではないである。
+業務ラベルは`workflowLabels` の五つの名前。`quick 対象` は業務ラベルではない。
 
 ## REQ-423
 
 もとになった課題は #56 である。
 
-主起動は`createRunner` の poll。人のスキル依頼は quick を始めないである。
+主起動は`createRunner` の poll。人のスキル依頼は quick を始めない。
 
 ## REQ-424
 
 もとになった課題は #56 である。
 
-優先は実装依頼、不具合修正、quick、動作確認OK。先の種類が一件あるときは、後の `listIssues` を呼ばないである。
+優先は実装依頼、不具合修正、quick、動作確認OK。先の種類が一件あるときは、後の `listIssues` を呼ばない。
 
 ## REQ-425
 
 もとになった課題は #56 である。
 
-アサインは実装依頼と同じ。`viewerLogin` の利用者が assignees に含まれるである。
+アサインは実装依頼と同じ。`viewerLogin` の利用者が assignees に含まれる。
 
 ## REQ-426
 
 もとになった課題は #56 である。
 
-着手ラベルは`editLabels` の `add` は「実装中」だけである。`remove` は渡さないである。
+着手ラベルは`editLabels` の `add` は「実装中」だけである。`remove` は渡さない。
 
 ## REQ-427
 
 もとになった課題は #56 である。
 
-場所はランナーのクローン。Project A は使わない。デフォルトブランチには書かないである。
+場所はランナーのクローン。Project A は使わない。デフォルトブランチには書かない。
 
 ## REQ-428
 
 もとになった課題は #56 である。
 
-ブランチは名前は `implementationBranch` の戻り値。デフォルトブランチを `fetch` し、その `FETCH_HEAD` を `checkoutFetched` する。`createBranch` は呼ばないである。
+ブランチは名前は `implementationBranch` の戻り値。デフォルトブランチを `fetch` し、その `FETCH_HEAD` を `checkoutFetched` する。`createBranch` は呼ばない。
 
 ## REQ-429
 
 もとになった課題は #56 である。
 
-実装の段は今の `sdd-cur-implement`。ランナーが、仕様の段のあとに起動するである。
+実装の段は今の `sdd-cur-implement`。ランナーが、仕様の段のあとに起動する。
 
 ## REQ-430
 
@@ -1665,7 +1635,7 @@ quick の着手では、「実装中」だけを付ける。「実装依頼」�
 
 もとになった課題は #56 である。
 
-止まりは軽微でない、または決められない点。どちらも push、マージリクエスト、受け入れ手順、「実装完了」をしない。着手で付けた「実装中」は外さないである。
+止まりは軽微でない、または決められない点。どちらも push、マージリクエスト、受け入れ手順、「実装完了」をしない。着手で付けた「実装中」は外さない。
 
 ## REQ-432
 
@@ -1727,12 +1697,6 @@ quick の作業は、ランナーのクローンだけで行う。
 
 要件、設計、実装、push は、同じクローンで行う。
 
-## REQ-442
-
-もとになった課題は #56 である。
-
-Project A は quick では使わない。
-
 ## REQ-443
 
 もとになった課題は #56 である。
@@ -1769,23 +1733,11 @@ Project A は、quick では使わない。
 
 quick の着手では、「実装中」だけを付ける。quick は「実装依頼」を使う方式を採用しない。
 
-## REQ-449
-
-もとになった課題は #69 である。
-
-要件の手順が合格し、設計に進めると人に伝える直前、および設計の手順が合格し、実装依頼に進めると人に伝える直前に、課題の期待がすでに main で満たされているかを判断する。課題番号、ファイル、行を根拠として、すでに main で満たされていると示せるときは、その案内の前に、SDD スキルが判断と根拠を人に示す。
-
 ## REQ-450
 
 もとになった課題は #116 である。
 
 すでに main で満たされていると、課題番号、ファイル、行を根拠として示せるときは、Cursor の質問機能で、閉じるか閉じないかの二択を出す。閉じるを選んだときだけ、判断と根拠を課題のコメントに書き、課題を閉じる。そのとき SDD スキルは `sdd-cur close <番号>` を使う。標準入力は、印のない判断と根拠である。
-
-## REQ-451
-
-もとになった課題は #69 である。
-
-`AGENTS.md`、SDD スキル、そのサブエージェントにある「課題を閉じない」という定めは、この課題で変える。変えるのは、人が閉じるを選んだときに SDD スキルが閉じる場合だけである。
 
 ## REQ-452
 
@@ -1793,29 +1745,17 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 
 すでに main で満たされていると、課題番号、ファイル、行を根拠として示せないときは、二択は出さず、課題を閉じない。
 
-## REQ-453
-
-もとになった課題は #69 である。
-
-実装、修正、quick の agent は、ブランチの先頭を動かす git 操作をしない。`reset`、`checkout`、`rebase` のように、先頭を動かす操作を含む。対象は `skills/sdd-cur-implement`、`skills/sdd-cur-fix`、`skills/sdd-cur-quick` と、実装のサブエージェントである。
-
-## REQ-454
-
-もとになった課題は #69 である。
-
-課題ランナーは、起動した agent の起動前と終了後で `HEAD` が変わっていたら、作業コピーは戻さず、コミットも push もせず、失敗で止まる。失敗の理由は `agent がブランチの先頭を変えました` であり、`Error` で返す。
-
 ## REQ-455
 
 もとになった課題は #69 である。
 
-判断する主体はSDD スキル。サブエージェントは判断しない。二択を出さない。課題を閉じないである。
+判断する主体はSDD スキル。サブエージェントは判断しない。二択を出さない。課題を閉じない。
 
 ## REQ-456
 
 もとになった課題は #69 である。
 
-二択はCursor の質問機能。選択肢の文言は `閉じる` と `閉じない` である。人が選ぶまで、案内は伝えず、コメントも書かず、課題も閉じないである。
+二択はCursor の質問機能。選択肢の文言は `閉じる` と `閉じない` である。人が選ぶまで、案内は伝えず、コメントも書かず、課題も閉じない。
 
 ## REQ-457
 
@@ -1827,13 +1767,13 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 
 もとになった課題は #69 である。
 
-コメントは確認、回答、受け入れ手順の印を使わない。新しい印を先頭行に付けない。`confirm` は使わない。最初の非空行は `sdd-cur: 確認`、`sdd-cur: 回答`、`sdd-cur: 受け入れ手順` のいずれでもないである。
+コメントは確認、回答、受け入れ手順の印を使わない。新しい印を先頭行に付けない。`confirm` は使わない。最初の非空行は `sdd-cur: 確認`、`sdd-cur: 回答`、`sdd-cur: 受け入れ手順` のいずれでもない。
 
 ## REQ-459
 
 もとになった課題は #69 である。
 
-閉じる操作は`bun src/cli.ts close <番号>` が、`confirm` と同様に標準入力を読む。印は付けない。`addComment` のあと、`issue close` と課題番号だけを付ける。`--state` は付けない。`createGitHub` 経由であり、スキルは `gh` を直接起動しない。人が閉じるを選んだときに SDD スキルが閉じる場合だけである。課題ランナーは付けないである。
+閉じる操作は`bun src/cli.ts close <番号>` が、`confirm` と同様に標準入力を読む。印は付けない。`addComment` のあと、`issue close` と課題番号だけを付ける。`--state` は付けない。`createGitHub` 経由であり、スキルは `gh` を直接起動しない。人が閉じるを選んだときに SDD スキルが閉じる場合だけである。課題ランナーは付けない。
 
 ## REQ-460
 
@@ -1845,7 +1785,7 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 
 もとになった課題は #69 である。
 
-課題ランナーは課題を閉じない。`issue close` は付けないである。
+課題ランナーは課題を閉じない。`issue close` は付けない。
 
 ## REQ-462
 
@@ -1889,18 +1829,6 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 
 `HEAD` が起動前と違っていたときは、作業コピーは戻さない。コミットも push もせず、失敗で止まる。
 
-## REQ-469
-
-もとになった課題は #72 である。
-
-人が内容を渡して `sdd-cur-create-issue` を明示して起動し、起動時の作業ツリーが git リポジトリであり、渡した内容から題を決められるとき、作られる GitHub の課題は 1 件である。
-
-## REQ-470
-
-もとになった課題は #72 である。
-
-その課題を作るリポジトリは、スキル起動時の作業ツリーの git リポジトリである。`gh` のカレントディレクトリのリポジトリと同じである。
-
 ## REQ-471
 
 もとになった課題は #72 である。
@@ -1930,12 +1858,6 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 もとになった課題は #72 である。
 
 渡した内容から題を決められないときは、課題を作らない。
-
-## REQ-476
-
-もとになった課題は #72 である。
-
-課題を作るのは、`sdd-cur-create-issue` を明示して起動し、内容を渡したときだけである。
 
 ## REQ-477
 
@@ -1967,29 +1889,17 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 
 `sdd-cur-complete` は、課題を作らない。
 
-## REQ-482
-
-もとになった課題は #72 である。
-
-スキルは`skills/sdd-cur-create-issue/SKILL.md`。ディレクトリ名は `sdd-cur-create-issue`である。
-
 ## REQ-483
 
 もとになった課題は #72 である。
 
-起動は人が Cursor のチャットで、このスキルを明示して起動し、内容を渡したときだけ課題を作るである。
+起動は人が Cursor のチャットで、このスキルを明示して起動し、内容を渡したときだけ課題を作る。
 
 ## REQ-484
 
 もとになった課題は #72 である。
 
 自動起動はしない。フロントマターは `disable-model-invocation: true`である。
-
-## REQ-485
-
-もとになった課題は #72 である。
-
-リポジトリは起動時の作業ツリーが git リポジトリであるとき、そのリポジトリである。`gh` のカレントディレクトリのリポジトリと同じである
 
 ## REQ-486
 
@@ -2001,25 +1911,25 @@ quick の着手では、「実装中」だけを付ける。quick は「実装�
 
 もとになった課題は #72 である。
 
-作ったあとは番号と URL をチャットで人に伝える。課題は閉じないである。
+作ったあとは番号と URL をチャットで人に伝える。課題は閉じない。
 
 ## REQ-488
 
 もとになった課題は #72 である。
 
-git でないは課題を作らない。`gh issue create` を実行しない。git リポジトリでない旨を伝える。止まるである。
+git でないは課題を作らない。`gh issue create` を実行しない。git リポジトリでない旨を伝える。止まる。
 
 ## REQ-489
 
 もとになった課題は #72 である。
 
-題を決められないはスペースと改行以外の文字を含む内容が渡されていて、題を決められないとき。課題を作らない。`gh issue create` を実行しない。題を決められない旨を伝える。止まるである。
+題を決められないはスペースと改行以外の文字を含む内容が渡されていて、題を決められないとき。課題を作らない。`gh issue create` を実行しない。題を決められない旨を伝える。止まる。
 
 ## REQ-490
 
 もとになった課題は #72 である。
 
-installは直下のディレクトリをコピーする今の手順のまま、このスキルもコピーする。`src/install.ts` は変えないである。
+installは直下のディレクトリをコピーする今の手順のまま、このスキルもコピーする。`src/install.ts` は変えない。
 
 ## REQ-491
 
