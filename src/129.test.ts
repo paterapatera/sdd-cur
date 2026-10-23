@@ -20,12 +20,6 @@ const canonicalBodies: Record<string, string> = {
 設計の合格の案内で「ここで止める」を選んだときは、人は、要求と設計を含む作業ブランチを push してから「実装依頼」を付ける。
 設計の合格の案内で「実装依頼する」を選んだときは、SDD スキルが実行する \`sdd-cur request <番号>\` が、push のあと「実装依頼」を付ける。
 \`<番号>\` は対象の課題番号である。`,
-  "REQ-641": `もとになった課題は #129 である。
-
-設計の合格の案内で「ここで止める」を選んだときは、push と実装依頼は人が行う。
-push するのは、要求と設計を含む作業ブランチである。
-設計の合格の案内で「実装依頼する」を選んだときは、SDD スキルが実行する \`sdd-cur request <番号>\` が、push のあと「実装依頼」を付ける。
-\`<番号>\` は対象の課題番号である。`,
   "REQ-801": `もとになった課題は #129 である。
 
 設計の合格の案内で人が「実装依頼する」を選んだときに限り、SDD スキルは \`sdd-cur request <番号>\` を呼ぶ。
@@ -433,9 +427,10 @@ describe("129", () => {
     expectContainsAll(section, prohibitionPhrases)
   })
 
-  test("[15][63][64][65][66][67][68][69] 正本 git REQ-635 REQ-641 REQ-801 REQ-803", async () => {
+  test("[15][63][64][65][66][67][68][69] 正本 git REQ-635 REQ-801 REQ-803（REQ-641 は無い）", async () => {
     const git = await readFile(gitCanonicalPath, "utf8")
-    for (const id of ["REQ-635", "REQ-641", "REQ-801", "REQ-803"] as const) {
+    expect(git).not.toContain("## REQ-641")
+    for (const id of ["REQ-635", "REQ-801", "REQ-803"] as const) {
       expect(reqBody(git, id)).toBe(canonicalBodies[id])
     }
   })
