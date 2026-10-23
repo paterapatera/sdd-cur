@@ -62,9 +62,9 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 
 ## REQ-717
 
-もとになった課題は #83 である。
+もとになった課題は #119 である。
 
-いまのディレクトリは`sdd-cur`、`sdd-cur-complete`、`sdd-cur-create-issue`、`sdd-cur-fix`、`sdd-cur-implement`、`sdd-cur-quick`。名前の昇順は、`skillNames.sort()` の既定の並びである
+いまのディレクトリは`sdd-cur`、`sdd-cur-complete`、`sdd-cur-create-issue`、`sdd-cur-fix`、`sdd-cur-implement`、`sdd-cur-policy`、`sdd-cur-quick`。名前の昇順は、`skillNames.sort()` の既定の並びである
 
 ## REQ-718
 
