@@ -4,7 +4,12 @@ import os from "node:os"
 import path from "node:path"
 import { createAgent, type AgentRunner } from "./agent.ts"
 import type { GitResult } from "./git.ts"
-import { formatDurationMs, formatProcessTiming, runLoop } from "./run.ts"
+import {
+  formatDurationMs,
+  formatProcessTiming,
+  runLoop,
+  type LocalTaskBranchGit,
+} from "./run.ts"
 import { createRunner, type Runner } from "./runner.ts"
 import {
   createIssueCommentStore,
@@ -24,6 +29,23 @@ function recordingAgentRunner(
     },
   }
   return { runner, calls }
+}
+
+function noDeletionGit(): LocalTaskBranchGit {
+  return {
+    async currentBranch() {
+      return "main"
+    },
+    async localBranchNames() {
+      return []
+    },
+    async hasChanges() {
+      return false
+    },
+    async deleteLocalBranch() {
+      throw new Error("deleteLocalBranch should not be called")
+    },
+  }
 }
 
 function minimalGitDeps(headSha = "deadbeef") {
@@ -124,6 +146,7 @@ describe("runLoop", () => {
     let stop = false
     await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => stop,
       sleep: async () => {
@@ -171,6 +194,7 @@ describe("runLoop", () => {
     const errors: string[] = []
     const code = await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => false,
       sleep: async () => {},
@@ -221,6 +245,7 @@ describe("runLoop", () => {
     const errors: string[] = []
     await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => false,
       sleep: async () => {},
@@ -253,6 +278,7 @@ describe("runLoop", () => {
     const errors: string[] = []
     const code = await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => false,
       sleep: async () => {},
@@ -285,6 +311,7 @@ describe("runLoop", () => {
     const errors: string[] = []
     const code = await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => false,
       sleep: async () => {},

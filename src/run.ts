@@ -45,8 +45,42 @@ export function parseRunArgs(args: string[]): ParseRunArgsResult {
   return { ok: true, intervalMin }
 }
 
+export type LocalTaskBranchGit = {
+  currentBranch(): Promise<string>
+  hasChanges(): Promise<boolean>
+  localBranchNames(): Promise<readonly string[]>
+  deleteLocalBranch(name: string): Promise<void>
+}
+
+export type DeleteLocalTaskBranchesResult = "proceed" | "skip"
+
+export async function deleteLocalTaskBranches(
+  git: LocalTaskBranchGit,
+): Promise<DeleteLocalTaskBranchesResult> {
+  const branch = await git.currentBranch()
+  if (branch.startsWith("task-") && (await git.hasChanges())) {
+    return "skip"
+  }
+  const taskBranches = (await git.localBranchNames()).filter((name) =>
+    name.startsWith("task-"),
+  )
+  if (taskBranches.length === 0) {
+    return "proceed"
+  }
+  for (const name of taskBranches) {
+    await git.deleteLocalBranch(name)
+  }
+  return "proceed"
+}
+
+type ProcessRunner = (
+  item: WorkItem,
+  options?: { skipWork?: boolean },
+) => Promise<void>
+
 export type RunLoopDeps = {
   runner: Runner
+  git: LocalTaskBranchGit
   intervalMin: number
   shouldStop: () => boolean
   sleep: (ms: number) => Promise<void>
@@ -119,10 +153,22 @@ export async function runLoop(deps: RunLoopDeps): Promise<0 | 1> {
         return 0
       }
 
+      let skipWork = false
+      try {
+        const deleteResult = await deleteLocalTaskBranches(deps.git)
+        if (deleteResult === "skip") {
+          skipWork = true
+        }
+      } catch (error) {
+        deps.logError(errorLine(error))
+        skipWork = true
+      }
+
       deps.log(`処理を開始します: ${item.id}`)
       const startedAt = now()
+      const processRunner = deps.runner.process as ProcessRunner
       try {
-        await deps.runner.process(item)
+        await processRunner(item, { skipWork })
       } catch (error) {
         const line = errorLine(error)
         deps.logError(line)
