@@ -32,7 +32,10 @@ export type { AgentLaunchCounts }
 
 export type Runner = {
   poll: () => Promise<WorkItem | null>
-  process: (item: WorkItem) => Promise<void>
+  process: (
+    item: WorkItem,
+    options?: { skipWork?: boolean },
+  ) => Promise<void>
   agentLaunches: () => AgentLaunchCounts
 }
 
@@ -606,8 +609,11 @@ export function createRunner(deps: RunnerDeps): Runner {
       return { id: String(completion.number) }
     },
 
-    async process(item) {
+    async process(item, options) {
       deps.agent.resetLaunchCounts?.()
+      if (options?.skipWork) {
+        return
+      }
 
       const issueNumber = parseIssueNumberString(item.id)
 

@@ -57,7 +57,11 @@ function assertGitOk(result: GitResult): void {
 
 export function createGit(
   options: { git: GitRunner; cwd: string },
-): GitClient & { currentBranch(): Promise<string> } {
+): GitClient & {
+  currentBranch(): Promise<string>
+  localBranchNames(): Promise<readonly string[]>
+  deleteLocalBranch(name: string): Promise<void>
+} {
   const git = options.git
   const cwd = options.cwd
 
@@ -135,6 +139,54 @@ export function createGit(
         reject("git が失敗しました")
       }
       return line.trim()
+    },
+
+    async localBranchNames() {
+      const result = await run([
+        "for-each-ref",
+        "--format=%(refname:short)",
+        "refs/heads",
+      ])
+      assertGitOk(result)
+      const names = result.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .sort((a, b) => a.localeCompare(b))
+      return names
+    },
+
+    async deleteLocalBranch(name) {
+      const currentResult = await run(["rev-parse", "--abbrev-ref", "HEAD"])
+      assertGitOk(currentResult)
+      const currentLine = firstNonemptyLine(currentResult.stdout)
+      if (currentLine === null) {
+        reject("git が失敗しました")
+      }
+      const current = currentLine.trim()
+      if (current === name) {
+        const listResult = await run([
+          "for-each-ref",
+          "--format=%(refname:short)",
+          "refs/heads",
+        ])
+        assertGitOk(listResult)
+        const others = listResult.stdout
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0 && line !== name)
+        const fallback = others[0]
+        if (fallback !== undefined) {
+          const checkoutResult = await run(["checkout", fallback])
+          assertGitOk(checkoutResult)
+        } else {
+          const deleteRefResult = await run(["update-ref", "-d", `refs/heads/${name}`])
+          assertGitOk(deleteRefResult)
+          return
+        }
+      }
+      const deleteResult = await run(["branch", "-D", name])
+      assertGitOk(deleteResult)
     },
 
     async hasChanges() {

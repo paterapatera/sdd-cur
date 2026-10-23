@@ -365,6 +365,7 @@ async function cmdRun(args: string[]): Promise<number> {
   const lines: string[] = []
   const code = await runLoop({
     runner,
+    git,
     intervalMin: parsed.intervalMin,
     shouldStop: () => stop,
     sleep: (ms) => Bun.sleep(ms),

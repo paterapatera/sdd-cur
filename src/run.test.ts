@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import { MAX_INTERVAL_MIN, MIN_INTERVAL_MIN, parseRunArgs, runLoop } from "./run.ts"
+import {
+  MAX_INTERVAL_MIN,
+  MIN_INTERVAL_MIN,
+  parseRunArgs,
+  runLoop,
+  type LocalTaskBranchGit,
+} from "./run.ts"
 import type { AgentLaunchCounts, Runner, WorkItem } from "./runner.ts"
 
 function deferred<T>(): {
@@ -39,6 +45,23 @@ describe("parseRunArgs", () => {
 
 async function noopCommentFailure(): Promise<void> {}
 
+function noDeletionGit(): LocalTaskBranchGit {
+  return {
+    async currentBranch() {
+      return "main"
+    },
+    async localBranchNames() {
+      return []
+    },
+    async hasChanges() {
+      return false
+    },
+    async deleteLocalBranch() {
+      throw new Error("deleteLocalBranch should not be called")
+    },
+  }
+}
+
 const zeroAgentLaunches = (): AgentLaunchCounts => ({
   quick: 0,
   implement: 0,
@@ -62,6 +85,7 @@ describe("runLoop", () => {
     const logs: string[] = []
     const code = await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: MIN_INTERVAL_MIN,
       shouldStop: () => stop,
       sleep: async () => {},
@@ -95,6 +119,7 @@ describe("runLoop", () => {
     let stop = false
     const loopPromise = runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => stop,
       sleep: async () => {},
@@ -129,6 +154,7 @@ describe("runLoop", () => {
     let stop = false
     const code = await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => stop,
       sleep: async () => {
@@ -161,6 +187,7 @@ describe("runLoop", () => {
 
     const loopPromise = runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => stop,
       sleep: async () => {},
@@ -188,6 +215,7 @@ describe("runLoop", () => {
 
     await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1440,
       shouldStop: () => stop,
       sleep: async (ms) => {
@@ -221,6 +249,7 @@ describe("runLoop", () => {
     const logs: string[] = []
     const code = await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => stop,
       sleep: async () => {},
@@ -247,6 +276,7 @@ describe("runLoop", () => {
     expect(
       await runLoop({
         runner: pollFail,
+        git: noDeletionGit(),
         intervalMin: 1,
         shouldStop: () => false,
         sleep: async () => {},
@@ -273,6 +303,7 @@ describe("runLoop", () => {
     expect(
       await runLoop({
         runner: processFail,
+        git: noDeletionGit(),
         intervalMin: 1,
         shouldStop: () => false,
         sleep: async () => {},
@@ -301,6 +332,7 @@ describe("runLoop", () => {
 
     const code = await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => false,
       sleep: async () => {},
@@ -334,6 +366,7 @@ describe("runLoop", () => {
 
     const code = await runLoop({
       runner,
+      git: noDeletionGit(),
       intervalMin: 1,
       shouldStop: () => false,
       sleep: async () => {},
