@@ -144,7 +144,11 @@ export function createGit(
     },
 
     async statusPorcelain() {
-      const result = await run(["status", "--porcelain"])
+      const result = await run([
+        "status",
+        "--porcelain",
+        "--untracked-files=all",
+      ])
       assertGitOk(result)
       return result.stdout
     },
