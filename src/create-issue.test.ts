@@ -14,7 +14,7 @@ describe("skills/sdd-cur-create-issue/SKILL.md", () => {
     const text = await readFile(createIssueSkillPath, "utf8")
     expect(text.startsWith(`---
 name: sdd-cur-create-issue
-description: 人が内容を渡して明示して起動したときだけ、起動時の作業ツリーの git リポジトリに GitHub の課題を 1 件作る。作った課題は閉じない。
+description: 人が明示して起動したときだけ、課題のタイプを人に聞いてから、そのタイプの質問の答えで本文を組み立て、起動時の作業ツリーの git リポジトリに GitHub の課題を 1 件作る。作った課題は閉じない。
 disable-model-invocation: true
 ---
 `)).toBe(true)
@@ -23,11 +23,9 @@ disable-model-invocation: true
       "## 作成",
       "## 禁止",
       "明示して起動",
-      "人が渡した内容",
-      "内容が欠けている",
+      "課題のタイプ",
       "スペースと改行だけ",
       "スペースと改行以外の文字",
-      "不足を伝える",
       "git リポジトリでない",
       "題を決められない",
       "gh issue create",
