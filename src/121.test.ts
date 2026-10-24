@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { execSync } from "node:child_process"
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { readFileSync } from "node:fs"
 import os from "node:os"
@@ -52,7 +53,25 @@ echo b
 `
 
 const exampleJson =
-  '{"tasks":[{"number":1,"line":"- 1. 一つ目を書く [1]","refs":[1]},{"number":2,"line":"- 2. 二つ目を書く [2][2]","refs":[2,2]},{"number":5,"line":"- 5. 括弧が無い","refs":[]}],"testCommands":["bun test","echo a","echo b","sdd-cur show 7"]}\n'
+  '{"tasks":[{"number":1,"line":"- 1. 一つ目を書く [1]","refs":[1],"done":false},{"number":2,"line":"- 2. 二つ目を書く [2][2]","refs":[2,2],"done":false},{"number":5,"line":"- 5. 括弧が無い","refs":[],"done":false}],"testCommands":["bun test","echo a","echo b","sdd-cur show 7"]}\n'
+
+function git(cwd: string, command: string): void {
+  execSync(`git ${command}`, { cwd, stdio: "pipe" })
+}
+
+function initTasksGitRepo(cwd: string): void {
+  git(cwd, "init -b main")
+  git(cwd, "config user.email t@example.com")
+  git(cwd, "config user.name t")
+  git(cwd, "commit --allow-empty -m init")
+  const bare = path.join(
+    path.dirname(cwd),
+    `${path.basename(cwd)}-origin.git`,
+  )
+  git(cwd, `init --bare -b main "${bare}"`)
+  git(cwd, `remote add origin "${bare}"`)
+  git(cwd, "push -u origin main")
+}
 
 async function runTasks(
   cwd: string,
@@ -62,7 +81,10 @@ async function runTasks(
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, PATH: path.dirname(bunExe) },
+    env: {
+      ...process.env,
+      PATH: `${path.dirname(bunExe)}${path.delimiter}${process.env.PATH ?? ""}`,
+    },
   })
   const [stdout, stderr] = await Promise.all([
     new Response(proc.stdout).text(),
@@ -96,6 +118,7 @@ describe("121 tasks", () => {
 
   test("例の design.md", async () => {
     await withTemp(async (temp) => {
+      initTasksGitRepo(temp)
       const designPath = path.join(temp, "docs/issues/7/design.md")
       await mkdir(path.dirname(designPath), { recursive: true })
       await writeFile(designPath, exampleDesign, "utf8")
@@ -108,6 +131,7 @@ describe("121 tasks", () => {
 
   test("作業の一覧のあとに ## が無い", async () => {
     await withTemp(async (temp) => {
+      initTasksGitRepo(temp)
       const designPath = path.join(temp, "docs/issues/7/design.md")
       await mkdir(path.dirname(designPath), { recursive: true })
       await writeFile(
@@ -124,6 +148,7 @@ describe("121 tasks", () => {
       expect(parsed.tasks).toHaveLength(1)
       expect(parsed.tasks[0].line).toBe("- 1. 末尾 [8]")
       expect(parsed.tasks[0].refs).toEqual([8])
+      expect(parsed.tasks[0].done).toBe(false)
       expect(parsed.testCommands).toEqual([])
       expect(stderr).toBe("")
     })

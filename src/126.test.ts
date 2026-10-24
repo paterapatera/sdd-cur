@@ -75,7 +75,10 @@ const SPEC_CHECK_PREFIXES = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "e2ac0e2cdb8d91b49b54a8376fd52839994798406fcdfb0bd9b54301b3e8e4d5"
+  "76c78a46b08e21902d44bbd3a9eb79b430febf4dcbe5fdc91c238c8500f4941d"
+
+/** #173 以降の正本差分で上書きされた要求（#126 の差分本文とは一致しない） */
+const SUPERSEDED_BY_LATER_ISSUES = new Set(["REQ-502", "REQ-798"])
 
 const REQ_HEADING = /^## REQ-([1-9][0-9]*)$/
 const ORIGIN_LINE = /^もとになった課題は #([1-9][0-9]*) である。$/
@@ -237,6 +240,9 @@ describe("126", () => {
 
   test("[5][6] 変更した要求の非空行が正本への差分と一致し、壊れた接尾辞が無い", () => {
     for (const [id, designBody] of changed) {
+      if (SUPERSEDED_BY_LATER_ISSUES.has(id)) {
+        continue
+      }
       const req = byId.get(id)
       expect(req).toBeDefined()
       expect(nonEmptyLines(req!.bodyLines)).toEqual(
@@ -275,6 +281,9 @@ describe("126", () => {
 
   test("[8][10][19][20] 変更の由来行は変えない", () => {
     for (const [id, designBody] of changed) {
+      if (SUPERSEDED_BY_LATER_ISSUES.has(id)) {
+        continue
+      }
       const req = byId.get(id)
       expect(req).toBeDefined()
       const designOrigins = designBody

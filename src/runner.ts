@@ -112,6 +112,20 @@ function runnerGitExtras(git: GitClient): RunnerGitExtras {
   return git as GitClient & RunnerGitExtras
 }
 
+function normalizeRunnerGit(git: GitClient): GitClient & RunnerGitExtras {
+  const partial = git as GitClient & Partial<RunnerGitExtras>
+  return {
+    ...git,
+    commitsAfterExclusive:
+      partial.commitsAfterExclusive ??
+      (async (before, after) => (before === after ? [] : [after])),
+    commitMessage:
+      partial.commitMessage ?? (async () => "feat: agent\n"),
+    branchOnlyCommitMessages:
+      partial.branchOnlyCommitMessages ?? (async () => []),
+  }
+}
+
 async function assertAgentHeadAllowed(
   deps: RunnerDeps,
   before: string,
@@ -612,7 +626,11 @@ async function ensureStartClaim(
   return true
 }
 
-export function createRunner(deps: RunnerDeps): Runner {
+export function createRunner(rawDeps: RunnerDeps): Runner {
+  const deps: RunnerDeps = {
+    ...rawDeps,
+    git: normalizeRunnerGit(rawDeps.git),
+  }
   const cloneId = randomUUID()
   return {
     async poll() {
