@@ -139,8 +139,8 @@ describe("issue 171", () => {
     expect(requirementsProcedure).not.toContain("課題全体が大きすぎる")
   })
 
-  test("[27] docs/canonical/sdd.md の REQ-923 から REQ-929", () => {
-    for (let n = 923; n <= 929; n += 1) {
+  test("[27] docs/canonical/sdd.md の REQ-939 から REQ-945", () => {
+    for (let n = 939; n <= 945; n += 1) {
       const id = `REQ-${n}`
       const expected = designDeltaItemBody(designMarkdown, "追加", "sdd", id)
       expect(reqBodyInCanonical(sddCanonical, id)).toBe(expected)

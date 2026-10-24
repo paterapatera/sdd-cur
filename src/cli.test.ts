@@ -16,6 +16,7 @@ const usageText =
   "sdd-cur labels\n" +
   "sdd-cur candidates\n" +
   "sdd-cur show <番号>\n" +
+  "sdd-cur gate <番号> <段>\n" +
   "sdd-cur branch <番号>\n" +
   "sdd-cur prepare-branch <番号>\n" +
   "sdd-cur confirm <番号>\n" +
@@ -25,6 +26,7 @@ const usageText =
   "sdd-cur complete <番号>\n" +
   "sdd-cur spec-check\n" +
   "sdd-cur tasks <番号>\n" +
+  "sdd-cur task-done <番号> <作業番号>\n" +
   "sdd-cur spec-diff <番号>\n"
 
 describe("cli subprocess", () => {

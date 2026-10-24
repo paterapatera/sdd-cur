@@ -14,7 +14,7 @@ import {
   selectUnprocessedBugs,
 } from "./conventions.ts"
 import type { GitHubClient, Issue, IssueComment, PullRequest } from "./github.ts"
-import type { GitClient } from "./git.ts"
+import { messageHasSddCurTaskTrailer, type GitClient } from "./git.ts"
 import { workflowLabels } from "./labels.ts"
 import type { AgentLaunchCounts } from "./agent.ts"
 import {
@@ -96,33 +96,117 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-async function assertHeadUnchanged(
+type RunnerGitExtras = {
+  commitsAfterExclusive(
+    before: string,
+    after: string,
+  ): Promise<readonly string[]>
+  commitMessage(sha: string): Promise<string>
+  branchOnlyCommitMessages(
+    remote: string,
+    defaultBranch: string,
+  ): Promise<readonly string[]>
+}
+
+function runnerGitExtras(git: GitClient): RunnerGitExtras {
+  return git as GitClient & RunnerGitExtras
+}
+
+function normalizeRunnerGit(git: GitClient): GitClient & RunnerGitExtras {
+  const partial = git as GitClient & Partial<RunnerGitExtras>
+  return {
+    ...git,
+    commitsAfterExclusive:
+      partial.commitsAfterExclusive ??
+      (async (before, after) => (before === after ? [] : [after])),
+    commitMessage:
+      partial.commitMessage ?? (async () => "feat: agent\n"),
+    branchOnlyCommitMessages:
+      partial.branchOnlyCommitMessages ?? (async () => []),
+  }
+}
+
+async function assertAgentHeadAllowed(
   deps: RunnerDeps,
   before: string,
 ): Promise<void> {
   const after = await withRetry(() => deps.git.headCommit())
-  if (after !== before) {
-    reject(HEAD_CHANGED)
+  const extras = runnerGitExtras(deps.git)
+  const newShas = await withRetry(() =>
+    extras.commitsAfterExclusive(before, after),
+  )
+  if (newShas.length === 0) {
+    return
   }
+  for (const sha of newShas) {
+    const message = await withRetry(() => extras.commitMessage(sha))
+    if (!messageHasSddCurTaskTrailer(message)) {
+      reject(HEAD_CHANGED)
+    }
+  }
+}
+
+async function commitAndPushImplementation(
+  deps: RunnerDeps,
+  issueNumber: number,
+  remote: string,
+  branch: string,
+  before: string,
+  defaultBranch: string,
+): Promise<void> {
+  const changed = await withRetry(() => deps.git.hasChanges())
+  if (changed) {
+    const commitMessage = `feat: 課題 ${issueNumber} を実装する`
+    await withRetry(() => deps.git.commitAll(commitMessage))
+  } else {
+    const after = await withRetry(() => deps.git.headCommit())
+    const shas = await withRetry(() =>
+      runnerGitExtras(deps.git).commitsAfterExclusive(before, after),
+    )
+    let hasTaskCommit = false
+    for (const sha of shas) {
+      const message = await withRetry(() =>
+        runnerGitExtras(deps.git).commitMessage(sha),
+      )
+      if (messageHasSddCurTaskTrailer(message)) {
+        hasTaskCommit = true
+        break
+      }
+    }
+    if (!hasTaskCommit) {
+      const messages = await withRetry(() =>
+        runnerGitExtras(deps.git).branchOnlyCommitMessages(
+          remote,
+          defaultBranch,
+        ),
+      )
+      hasTaskCommit = messages.some(messageHasSddCurTaskTrailer)
+    }
+    if (!hasTaskCommit) {
+      reject(NO_CHANGES)
+    }
+  }
+  await withRetry(() => deps.git.push(remote, branch))
 }
 
 async function runAgentWithHeadCheck(
   deps: RunnerDeps,
   run: () => Promise<void>,
-): Promise<void> {
+): Promise<string> {
   const before = await withRetry(() => deps.git.headCommit())
   try {
     await run()
   } catch (firstError) {
-    await assertHeadUnchanged(deps, before)
+    await assertAgentHeadAllowed(deps, before)
     try {
       await run()
     } catch (secondError) {
-      await assertHeadUnchanged(deps, before)
+      await assertAgentHeadAllowed(deps, before)
       throw secondError
     }
   }
-  await assertHeadUnchanged(deps, before)
+  await assertAgentHeadAllowed(deps, before)
+  return before
 }
 
 export function selectImplementationIssue(
@@ -561,7 +645,11 @@ async function ensureStartClaim(
   return true
 }
 
-export function createRunner(deps: RunnerDeps): Runner {
+export function createRunner(rawDeps: RunnerDeps): Runner {
+  const deps: RunnerDeps = {
+    ...rawDeps,
+    git: normalizeRunnerGit(rawDeps.git),
+  }
   const cloneId = randomUUID()
   return {
     async poll() {
@@ -747,8 +835,9 @@ async function runQuick(
 
     const procedure = await deps.createProcedureFile()
     try {
+      let headBefore: string
       try {
-        await runAgentWithHeadCheck(deps, () =>
+        headBefore = await runAgentWithHeadCheck(deps, () =>
           deps.agent.implement({
             issueNumber,
             procedurePath: procedure.path,
@@ -769,14 +858,14 @@ async function runQuick(
       }
       await procedure.remove()
 
-      const changed = await withRetry(() => deps.git.hasChanges())
-      if (!changed) {
-        reject(NO_CHANGES)
-      }
-
-      const commitMessage = `feat: 課題 ${issueNumber} を実装する`
-      await withRetry(() => deps.git.commitAll(commitMessage))
-      await withRetry(() => deps.git.push(remote, branch))
+      await commitAndPushImplementation(
+        deps,
+        issueNumber,
+        remote,
+        branch,
+        headBefore,
+        defaultBranch,
+      )
 
       const pullRequest = await withRetry(() =>
         deps.github.createPullRequest({
@@ -909,8 +998,9 @@ async function runImplementation(
 
   const procedure = await deps.createProcedureFile()
   try {
+    let headBefore: string
     try {
-      await runAgentWithHeadCheck(deps, () =>
+      headBefore = await runAgentWithHeadCheck(deps, () =>
         deps.agent.implement({
           issueNumber,
           procedurePath: procedure.path,
@@ -931,14 +1021,14 @@ async function runImplementation(
     }
     await procedure.remove()
 
-    const changed = await withRetry(() => deps.git.hasChanges())
-    if (!changed) {
-      reject(NO_CHANGES)
-    }
-
-    const commitMessage = `feat: 課題 ${issueNumber} を実装する`
-    await withRetry(() => deps.git.commitAll(commitMessage))
-    await withRetry(() => deps.git.push(remote, branch))
+    await commitAndPushImplementation(
+      deps,
+      issueNumber,
+      remote,
+      branch,
+      headBefore,
+      defaultBranch,
+    )
 
     const pullRequest = await withRetry(() =>
       deps.github.createPullRequest({

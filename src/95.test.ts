@@ -428,7 +428,7 @@ describe("createRunner agentLaunches", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels(_n, change) {
           expect(change.add).toEqual([LABEL_IN_PROGRESS])
