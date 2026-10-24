@@ -86,7 +86,6 @@ disable-model-invocation: true
       "指摘はどこにも置かない",
       "判定が合格なら設計に進むことができる",
       "人が答えるまで",
-      "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
       "全文は書かない",
       "sdd-cur-design-author",
       "sdd-cur-design-reviewer",
@@ -174,6 +173,13 @@ disable-model-invocation: true
     )
     const requirementsSlice = text.slice(requirementsStart, designStart)
     const designSlice = text.slice(designStart, confirmStart)
+    expect(requirementsSlice).toContain(
+      "（grok-4.7[context=256k,reasoning_effort=medium,fast=false]）",
+    )
+    expect(designSlice).toContain("（composer-2.5[fast=false]）")
+    expect(text).not.toContain(
+      "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
+    )
     const sectionRequired = ["修正を起動しない"]
     for (const phrase of sectionRequired) {
       expect(requirementsSlice).toContain(phrase)

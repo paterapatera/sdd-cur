@@ -252,9 +252,7 @@ describe("issue 116 req reviewer agents", () => {
     const text = await readFile(mediumPath, "utf8")
     const fm = fixReadonlyParse(text)
     expect(fm.name).toBe("sdd-cur-req-reviewer")
-    expect(fm.model).toBe(
-      "grok-4.7[context=256k,reasoning_effort=medium,fast=false]",
-    )
+    expect(fm.model).toBe("composer-2.5[fast=false]")
     expect(fm.readonly).toBe(true)
   })
 
@@ -264,7 +262,7 @@ describe("issue 116 req reviewer agents", () => {
     const fm = fixReadonlyParse(text)
     expect(fm.name).toBe("sdd-cur-req-reviewer-high")
     expect(fm.model).toBe(
-      "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
+      "grok-4.7[context=256k,reasoning_effort=medium,fast=false]",
     )
     expect(fm.model).toBe(reviewModelFromRound3)
     expect(fm.readonly).toBe(true)

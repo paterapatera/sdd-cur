@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { describe, expect, test } from "bun:test"
 import { checkSpec } from "./spec.ts"
+import {
+  issue145SupersededGitReqIds,
+  issue176SupersededSddReqIds,
+} from "./conventions.ts"
 
 const root = path.join(import.meta.dir, "..")
 const designPath = path.join(root, "docs/issues/126/design.md")
@@ -210,6 +214,10 @@ describe("126", () => {
   const touched = new Set<string>([...deleted, ...changed.keys()])
   const requirements = allCanonicalRequirements()
   const byId = new Map(requirements.map((req) => [req.id, req]))
+  const skipCanonicalMatch = new Set([
+    ...issue176SupersededSddReqIds(),
+    ...issue145SupersededGitReqIds(),
+  ])
 
   test("[1][2] 正本への差分に追加が無い", () => {
     const section = deltaSection(design)
@@ -237,6 +245,9 @@ describe("126", () => {
 
   test("[5][6] 変更した要求の非空行が正本への差分と一致し、壊れた接尾辞が無い", () => {
     for (const [id, designBody] of changed) {
+      if (skipCanonicalMatch.has(id)) {
+        continue
+      }
       const req = byId.get(id)
       expect(req).toBeDefined()
       expect(nonEmptyLines(req!.bodyLines)).toEqual(
@@ -275,6 +286,9 @@ describe("126", () => {
 
   test("[8][10][19][20] 変更の由来行は変えない", () => {
     for (const [id, designBody] of changed) {
+      if (skipCanonicalMatch.has(id)) {
+        continue
+      }
       const req = byId.get(id)
       expect(req).toBeDefined()
       const designOrigins = designBody

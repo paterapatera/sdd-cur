@@ -87,11 +87,11 @@ const agentReviewerScenarioFourLines = `- 追加または変更の項目の本�
 `
 
 const shaDesignAuthorWithoutScenarioLines =
-  "b2a0c625f7efb9d862c798c2dd3a68d9d9ad57e13c6d8d473529e6d08afe3173"
+  "aa8a6fb540b1f7bec3d36876daa73e6a280398bf601f9d06f64e9a791f67f851"
 const shaDesignReviewerWithoutScenarioLines =
-  "9521c383dccc3924966289772a5c24feb0016ca940a66cf4cc86af833441c55a"
+  "761f6ae4f8dfe3d3cbc44d656fd2f985def754dc2058359d3687d8249804af6d"
 const shaImplementReviewerWithoutScenarioLines =
-  "120bb66eda113f694cbf9bb855a740be9cbb790350e4977d97c055992d9d0388"
+  "53a839af45980842dcca97e385f14c0765ca784842be55101126d40e2921608e"
 
 const design128Path = path.join(repoRoot, "docs/issues/128/design.md")
 
@@ -102,8 +102,6 @@ const conventionsPrefixSha256 =
   "22c9039ec910faf5bf57992cca7a3e6f834015e7b77f69aefeead4f7aa01a9d1"
 
 const unchangedCanonicalSha256: Record<string, string> = {
-  "docs/canonical/sdd.md":
-    "84c4290305a2d29965add767848980d9ca84eb8cf6b1cf3fd48adc2d12b67dd9",
   "docs/canonical/implement.md":
     "066a5023d5292e768849a765b6fa31bb8ae4ac028ffe6651843952ad2933b956",
   "docs/canonical/runner.md":

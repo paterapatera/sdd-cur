@@ -73,9 +73,7 @@ describe("課題 93", () => {
     const reviewer = await readFile(reviewerPath, "utf8")
     const fm = parseImplementReviewerFrontmatter(reviewer)
     expect(fm.readonly).toBe(true)
-    expect(fm.model).toBe(
-      "grok-4.7[context=256k,reasoning_effort=medium,fast=false]",
-    )
+    expect(fm.model).toBe("composer-2.5[fast=false]")
 
     const body = bodyAfterFrontmatter(reviewer)
     for (const phrase of [

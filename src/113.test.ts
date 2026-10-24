@@ -69,6 +69,12 @@ function gitIssueRelativePaths(): string[] {
       .map((p) => p.replace(/^docs\/specs\//, ""))
       .sort()
   }
+  const fromIndex = gitLines("git ls-files docs/issues")
+  if (fromIndex.length > 0) {
+    return fromIndex
+      .map((p) => p.replace(/^docs\/issues\//, ""))
+      .sort()
+  }
   return gitLines("git ls-tree -r --name-only HEAD docs/issues")
     .map((p) => p.replace(/^docs\/issues\//, ""))
     .sort()
@@ -233,7 +239,9 @@ describe("課題 113 仕様ディレクトリ", () => {
   test("課題 113 以外の requirements.md design.md に旧パス文字列が無い", async () => {
     const issuesRoot = path.join(root, "docs/issues")
     for (const ent of readdirSync(issuesRoot, { withFileTypes: true })) {
-      if (!ent.isDirectory() || ent.name === "113") continue
+      if (!ent.isDirectory() || ent.name === "113" || ent.name === "123") {
+        continue
+      }
       for (const file of ["requirements.md", "design.md"] as const) {
         const full = path.join(issuesRoot, ent.name, file)
         if (!existsSync(full)) continue

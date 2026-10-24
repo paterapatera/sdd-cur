@@ -1,6 +1,6 @@
 ---
 name: sdd-cur-req-author
-model: grok-4.7[context=256k,reasoning_effort=high,fast=false]
+model: grok-4.7[context=256k,reasoning_effort=medium,fast=false]
 description: sdd-cur の要求ファイルを書く。人が要求の作成を依頼し、課題が開いていて業務ラベルが無いときに使う。設計、実装、確認コメントの投稿はしない。
 ---
 
