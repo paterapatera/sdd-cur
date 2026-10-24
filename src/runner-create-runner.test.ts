@@ -56,7 +56,7 @@ describe("createRunner", () => {
           }
           if (calls === 2) {
             expect(query).toEqual({
-              labels: [LABEL_DONE],
+              labels: [LABEL_VERIFIED],
               assignee: VIEWER_LOGIN,
               limit: 100,
             })
@@ -71,7 +71,7 @@ describe("createRunner", () => {
             return []
           }
           expect(query).toEqual({
-            labels: [LABEL_VERIFIED],
+            labels: [LABEL_DONE],
             assignee: VIEWER_LOGIN,
             limit: 100,
           })
@@ -1351,8 +1351,8 @@ describe("createRunner", () => {
     await rm(path.dirname(procedurePath), { recursive: true, force: true })
   })
 
-  test("poll は不具合修正があるとき quick の listIssues を呼ばない", async () => {
-    let quickListed = false
+  test("poll は quick だけがあるとき不具合修正用の listIssues を呼ばない", async () => {
+    let fixListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
@@ -1360,19 +1360,29 @@ describe("createRunner", () => {
           return VIEWER_LOGIN
         },
         async listIssues(query) {
-          if (
-            !query.labels?.includes(LABEL_REQUEST) &&
-            !query.labels?.includes(LABEL_DONE)
-          ) {
-            quickListed = true
+          if (query.labels?.includes(LABEL_DONE)) {
+            fixListed = true
           }
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
           }
-          return [issue({ number: 2, labels: [LABEL_DONE] })]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return []
+          }
+          if (query.state === "open" && !query.labels) {
+            return [
+              issue({
+                number: 7,
+                body: "quick 対象",
+                labels: ["quick 対象"],
+                assignees: [VIEWER_LOGIN],
+              }),
+            ]
+          }
+          return []
         },
         async getIssue() {
-          return issue({ number: 2, labels: [LABEL_DONE] })
+          return issue({ number: 7, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -1389,17 +1399,10 @@ describe("createRunner", () => {
           return { url: "https://c" }
         },
         async listPullRequests() {
-          return [{ number: 9, url: "https://pr/9", state: "open", merged: false }]
+          return []
         },
         async listPullRequestComments() {
-          return [
-            {
-              id: "IC_bug",
-              body: `${pullRequestCommentMarkers.bug}\n内容`,
-              author: "u",
-              createdAt: "2026-01-01",
-            },
-          ]
+          return []
         },
         async addPullRequestComment() {
           return { url: "https://c" }
@@ -1434,12 +1437,14 @@ describe("createRunner", () => {
       }),
     })
     const item = await runner.poll()
-    expect(item?.id).toBe("2")
-    expect(quickListed).toBe(false)
+    expect(item?.id).toBe("7")
+    expect(fixListed).toBe(false)
   })
 
   test("poll は実装依頼があるとき quick の listIssues を呼ばない", async () => {
     let quickListed = false
+    let verifiedListed = false
+    let fixListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
@@ -1447,7 +1452,13 @@ describe("createRunner", () => {
           return VIEWER_LOGIN
         },
         async listIssues(query) {
-          if (!query.labels?.includes(LABEL_REQUEST) && !query.labels?.includes(LABEL_DONE)) {
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            verifiedListed = true
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            fixListed = true
+          }
+          if (query.state === "open" && !query.labels) {
             quickListed = true
           }
           if (query.labels?.includes(LABEL_REQUEST)) {
@@ -1513,10 +1524,13 @@ describe("createRunner", () => {
     const item = await runner.poll()
     expect(item?.id).toBe("1")
     expect(quickListed).toBe(false)
+    expect(verifiedListed).toBe(false)
+    expect(fixListed).toBe(false)
   })
 
-  test("poll は quick があるとき動作確認OK を探さない", async () => {
-    let verifiedListed = false
+  test("poll は動作確認OK があるとき quick と不具合修正を探さない", async () => {
+    let quickListed = false
+    let fixListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
@@ -1524,21 +1538,28 @@ describe("createRunner", () => {
           return VIEWER_LOGIN
         },
         async listIssues(query) {
-          if (query.labels?.includes(LABEL_VERIFIED)) {
-            verifiedListed = true
-          }
           if (query.labels?.includes(LABEL_DONE)) {
-            return []
+            fixListed = true
           }
           if (query.state === "open" && !query.labels) {
+            quickListed = true
+          }
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          if (query.labels?.includes(LABEL_VERIFIED)) {
             return [
-              issue({ number: 7, body: "quick 対象", labels: ["quick 対象"], assignees: [VIEWER_LOGIN] }),
+              issue({
+                number: 9,
+                labels: [LABEL_VERIFIED],
+                assignees: [VIEWER_LOGIN],
+              }),
             ]
           }
           return []
         },
         async getIssue() {
-          return issue({ number: 7, body: "quick 対象", labels: ["quick 対象"] })
+          return issue({ number: 9, labels: [LABEL_VERIFIED] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -1593,8 +1614,9 @@ describe("createRunner", () => {
       }),
     })
     const item = await runner.poll()
-    expect(item?.id).toBe("7")
-    expect(verifiedListed).toBe(false)
+    expect(item?.id).toBe("9")
+    expect(quickListed).toBe(false)
+    expect(fixListed).toBe(false)
   })
 
   test("quick process は仕様から実装完了までの順序", async () => {

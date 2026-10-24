@@ -666,9 +666,16 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
         return { id: String(selected.number) }
       }
 
-      const fixItem = await findFixWorkItem(deps, login)
-      if (fixItem !== null) {
-        return fixItem
+      const completionIssues = await withRetry(() =>
+        deps.github.listIssues({
+          labels: [LABEL_VERIFIED],
+          assignee: login,
+          limit: 100,
+        }),
+      )
+      const completion = selectCompletionIssue(completionIssues, login)
+      if (completion !== null) {
+        return { id: String(completion.number) }
       }
 
       const quickIssues = await withRetry(() =>
@@ -683,18 +690,12 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
         return { id: String(quickSelected.number) }
       }
 
-      const completionIssues = await withRetry(() =>
-        deps.github.listIssues({
-          labels: [LABEL_VERIFIED],
-          assignee: login,
-          limit: 100,
-        }),
-      )
-      const completion = selectCompletionIssue(completionIssues, login)
-      if (completion === null) {
-        return null
+      const fixItem = await findFixWorkItem(deps, login)
+      if (fixItem !== null) {
+        return fixItem
       }
-      return { id: String(completion.number) }
+
+      return null
     },
 
     async process(item, options) {

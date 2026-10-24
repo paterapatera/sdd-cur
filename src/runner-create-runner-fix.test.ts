@@ -36,8 +36,10 @@ import {
   startMarker,
 } from "./runner.ts"
 describe("createRunner fix", () => {
-  test("poll は実装依頼を優先し実装完了の listIssues を呼ばない", async () => {
+  test("poll は実装依頼を優先し動作確認OK・quick・実装完了の listIssues を呼ばない", async () => {
     let doneList = false
+    let verifiedListed = false
+    let quickListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
@@ -45,10 +47,19 @@ describe("createRunner fix", () => {
           return VIEWER_LOGIN
         },
         async listIssues(query) {
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            verifiedListed = true
+          }
           if (query.labels?.includes(LABEL_DONE)) {
             doneList = true
           }
-          return [issue({ number: 1 })]
+          if (query.state === "open" && !query.labels) {
+            quickListed = true
+          }
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return [issue({ number: 1 })]
+          }
+          return []
         },
         async getIssue() {
           return issue({ number: 1 })
@@ -106,6 +117,8 @@ describe("createRunner fix", () => {
       }),
     })
     expect(await runner.poll()).toEqual({ id: "1" })
+    expect(verifiedListed).toBe(false)
+    expect(quickListed).toBe(false)
     expect(doneList).toBe(false)
   })
 
@@ -121,7 +134,16 @@ describe("createRunner fix", () => {
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
           }
-          return [issue({ number: 5, labels: [LABEL_DONE] })]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return []
+          }
+          if (query.state === "open" && !query.labels) {
+            return []
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            return [issue({ number: 5, labels: [LABEL_DONE] })]
+          }
+          return []
         },
         async getIssue() {
           return issue({ number: 5, labels: [LABEL_DONE] })
@@ -202,7 +224,16 @@ describe("createRunner fix", () => {
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
           }
-          return [issue({ number: 1, labels: [LABEL_DONE] })]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return []
+          }
+          if (query.state === "open" && !query.labels) {
+            return []
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            return [issue({ number: 1, labels: [LABEL_DONE] })]
+          }
+          return []
         },
         async getIssue() {
           return issue({ number: 1 })
@@ -399,10 +430,19 @@ describe("createRunner fix", () => {
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
           }
-          return [
-            issue({ number: 10, labels: [LABEL_DONE] }),
-            issue({ number: 20, labels: [LABEL_DONE] }),
-          ]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return []
+          }
+          if (query.state === "open" && !query.labels) {
+            return []
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            return [
+              issue({ number: 10, labels: [LABEL_DONE] }),
+              issue({ number: 20, labels: [LABEL_DONE] }),
+            ]
+          }
+          return []
         },
         async getIssue() {
           return issue({ number: 20, labels: [LABEL_DONE] })
@@ -478,7 +518,9 @@ describe("createRunner fix", () => {
   })
 
   test("不具合を探す", async () => {
-    let verifiedList = false
+    let verifiedListed = false
+    let quickListed = false
+    let fixListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
@@ -487,12 +529,27 @@ describe("createRunner fix", () => {
         },
         async listIssues(query) {
           if (query.labels?.includes(LABEL_VERIFIED)) {
-            verifiedList = true
+            verifiedListed = true
+          }
+          if (query.state === "open" && !query.labels) {
+            quickListed = true
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            fixListed = true
           }
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
           }
-          return [issue({ number: 2, labels: [LABEL_DONE] })]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return []
+          }
+          if (query.state === "open" && !query.labels) {
+            return []
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            return [issue({ number: 2, labels: [LABEL_DONE] })]
+          }
+          return []
         },
         async getIssue() {
           return issue({ number: 2, labels: [LABEL_DONE] })
@@ -557,7 +614,9 @@ describe("createRunner fix", () => {
       }),
     })
     expect(await runner.poll()).toEqual({ id: "2" })
-    expect(verifiedList).toBe(false)
+    expect(verifiedListed).toBe(true)
+    expect(quickListed).toBe(true)
+    expect(fixListed).toBe(true)
   })
 
   test("範囲外のみで変更なしは commit せず PR コメントと完了ラベル", async () => {
@@ -930,12 +989,21 @@ describe("createRunner fix", () => {
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
           }
-          return [
-            issue({
-              number: 5,
-              labels: [LABEL_DONE, LABEL_IN_PROGRESS],
-            }),
-          ]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return []
+          }
+          if (query.state === "open" && !query.labels) {
+            return []
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            return [
+              issue({
+                number: 5,
+                labels: [LABEL_DONE, LABEL_IN_PROGRESS],
+              }),
+            ]
+          }
+          return []
         },
         async getIssue() {
           throw new Error("unexpected")

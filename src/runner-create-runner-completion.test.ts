@@ -109,7 +109,7 @@ describe("createRunner completion", () => {
       }),
     })
     expect(await runner.poll()).toEqual({ id: "9" })
-    expect(listCalls).toBe(4)
+    expect(listCalls).toBe(2)
     expect(verifiedAssignee).toBe(VIEWER_LOGIN)
   })
 
