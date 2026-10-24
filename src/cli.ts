@@ -33,7 +33,13 @@ import {
 } from "./github.ts"
 import { ensureWorkflowLabels } from "./labels.ts"
 import { createAgent, defaultAgentRunner } from "./agent.ts"
-import { createGit, defaultGitRunner, prepareBranch } from "./git.ts"
+import {
+  createGit,
+  defaultGitRunner,
+  messageHasSddCurTaskForNumber,
+  parseDefaultBranchFromSymref,
+  prepareBranch,
+} from "./git.ts"
 import { parseRunArgs, runLoop } from "./run.ts"
 import { restoreIssue } from "./restore.ts"
 import { requestImplementation } from "./request.ts"
@@ -77,6 +83,7 @@ export function printUsage(): void {
   console.error("sdd-cur complete <番号>")
   console.error("sdd-cur spec-check")
   console.error("sdd-cur tasks <番号>")
+  console.error("sdd-cur task-done <番号> <作業番号>")
   console.error("sdd-cur spec-diff <番号>")
 }
 
@@ -148,18 +155,54 @@ function collectTestCommands(markdown: string): string[] {
   return commands
 }
 
-type TaskItem = {
+type CollectedTask = {
   number: number
   line: string
   refs: number[]
 }
 
-function collectTasks(markdown: string): TaskItem[] | { error: string } {
+type TaskItem = CollectedTask & {
+  done: boolean
+}
+
+async function defaultBranchFromSymref(
+  remote: string,
+  cwd: string,
+): Promise<string> {
+  const symrefResult = await defaultGitRunner.run(
+    ["ls-remote", "--symref", remote, "HEAD"],
+    { cwd },
+  )
+  if (symrefResult.exitCode !== 0) {
+    const fromStderr = symrefResult.stderr
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0)
+    if (fromStderr) {
+      throw new Error(fromStderr)
+    }
+    const fromStdout = symrefResult.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0)
+    if (fromStdout) {
+      throw new Error(fromStdout)
+    }
+    throw new Error("git が失敗しました")
+  }
+  const defaultBranch = parseDefaultBranchFromSymref(symrefResult.stdout)
+  if (defaultBranch === null) {
+    throw new Error("デフォルトブランチを特定できません")
+  }
+  return defaultBranch
+}
+
+function collectTasks(markdown: string): CollectedTask[] | { error: string } {
   const workListBody = firstSectionBody(markdown, "作業の一覧")
   if (workListBody === null) {
     return { error: NO_WORK_LIST_SECTION }
   }
-  const tasks: TaskItem[] = []
+  const tasks: CollectedTask[] = []
   for (const line of workListBody.split("\n")) {
     if (!isWorkListItemLine(line)) {
       continue
@@ -208,9 +251,79 @@ async function cmdTasks(args: string[]): Promise<number> {
     return 1
   }
 
+  const cwd = process.cwd()
+  const git = createGit({ git: defaultGitRunner, cwd })
+
+  let remote: string
+  try {
+    remote = await git.remoteName()
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  let defaultBranch: string
+  try {
+    defaultBranch = await defaultBranchFromSymref(remote, cwd)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  let branchOnlyMessages: readonly string[]
+  try {
+    branchOnlyMessages = await git.branchOnlyCommitMessages(
+      remote,
+      defaultBranch,
+    )
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const tasks: TaskItem[] = collected.map((task) => ({
+    number: task.number,
+    line: task.line,
+    refs: task.refs,
+    done: branchOnlyMessages.some((message) =>
+      messageHasSddCurTaskForNumber(message, task.number),
+    ),
+  }))
+
   const testCommands = collectTestCommands(designFile.markdown)
-  console.log(JSON.stringify({ tasks: collected, testCommands }))
+  console.log(JSON.stringify({ tasks, testCommands }))
   return 0
+}
+
+async function cmdTaskDone(args: string[]): Promise<number> {
+  if (args.length !== 2) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  let taskNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+    taskNumber = parseIssueNumberString(args[1])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const git = createGit({ git: defaultGitRunner, cwd: process.cwd() })
+
+  try {
+    if (!(await git.hasChanges())) {
+      console.error("作業の変更がありません")
+      return 1
+    }
+    await git.commitTaskDone(issueNumber, taskNumber)
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
 }
 
 async function cmdSpecDiff(args: string[]): Promise<number> {
@@ -905,6 +1018,8 @@ async function main(): Promise<number> {
       return await cmdSpecCheck(argv.slice(1))
     case "tasks":
       return await cmdTasks(rest)
+    case "task-done":
+      return await cmdTaskDone(rest)
     case "spec-diff":
       return await cmdSpecDiff(rest)
     default:
