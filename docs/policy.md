@@ -4,7 +4,7 @@
 
 ## 誰のための道具か
 
-このリポジトリは `@paterapatera/sdd-cur` である。このプロジェクト専用の SDD スキルと課題ランナーである。
+このリポジトリは `@paterapatera/sdd-cur` である。Cursor、GitHub（`gh`）、Bun があれば、どのプロジェクトでも使える SDD スキルと課題ランナーである。
 
 ## 技術の前提
 

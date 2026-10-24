@@ -29,7 +29,7 @@ const sevenScenarioRuleLines = [
 const sevenScenarioRuleBlock = `${sevenScenarioRuleLines.join("\n")}\n`
 
 const skillsConventionsWithoutScenarioBlockSha256 =
-  "e755f61fa8c44d53bc91524a456dd071a8bd0fbbd7021d8de5767cd947257bcb"
+  "9919c9c0ee5b52946acf3fea224a2fe39beda6acc48737c3fa15d04deb736dfd"
 
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
@@ -87,9 +87,9 @@ const agentReviewerScenarioFourLines = `- 追加または変更の項目の本�
 `
 
 const shaDesignAuthorWithoutScenarioLines =
-  "b2a0c625f7efb9d862c798c2dd3a68d9d9ad57e13c6d8d473529e6d08afe3173"
+  "9af0635906fb82b6d18c712d5eff372c808b47c0f3b0e6f3e6ec4f124acc27da"
 const shaDesignReviewerWithoutScenarioLines =
-  "9521c383dccc3924966289772a5c24feb0016ca940a66cf4cc86af833441c55a"
+  "c30565b9eba6a988ab597269b2bc639c4f7ecd3c755e2be5b34d26f7bfc1ccff"
 const shaImplementReviewerWithoutScenarioLines =
   "120bb66eda113f694cbf9bb855a740be9cbb790350e4977d97c055992d9d0388"
 
