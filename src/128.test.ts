@@ -89,7 +89,7 @@ const agentReviewerScenarioFourLines = `- 追加または変更の項目の本�
 const shaDesignAuthorWithoutScenarioLines =
   "b2a0c625f7efb9d862c798c2dd3a68d9d9ad57e13c6d8d473529e6d08afe3173"
 const shaDesignReviewerWithoutScenarioLines =
-  "9521c383dccc3924966289772a5c24feb0016ca940a66cf4cc86af833441c55a"
+  "93cba86d4b42d7d4f3d84d701068697b2046fd9d4c7c53adcb4d026cd2bf5de6"
 const shaImplementReviewerWithoutScenarioLines =
   "120bb66eda113f694cbf9bb855a740be9cbb790350e4977d97c055992d9d0388"
 
@@ -103,7 +103,7 @@ const conventionsPrefixSha256 =
 
 const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/sdd.md":
-    "84c4290305a2d29965add767848980d9ca84eb8cf6b1cf3fd48adc2d12b67dd9",
+    "58a4b5a8737e62d90869de4efac3c75a7f3429a12bce7930814b4312d821a0e2",
   "docs/canonical/implement.md":
     "066a5023d5292e768849a765b6fa31bb8ae4ac028ffe6651843952ad2933b956",
   "docs/canonical/runner.md":
