@@ -80,6 +80,9 @@ const UNTOUCHED_SHA256 =
 /** #173 以降の正本差分で上書きされた要求（#126 の差分本文とは一致しない） */
 const SUPERSEDED_BY_LATER_ISSUES = new Set(["REQ-502", "REQ-798"])
 
+/** 課題 126 の差分適用後、課題 145 が正本を上書きした REQ */
+const SUPERSEDED_BY_ISSUE_145 = new Set(["REQ-798"])
+
 const REQ_HEADING = /^## REQ-([1-9][0-9]*)$/
 const ORIGIN_LINE = /^もとになった課題は #([1-9][0-9]*) である。$/
 const DELTA_HEADING =

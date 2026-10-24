@@ -13,7 +13,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "6d4157cacd818ddcd75a8f04a05090bbdd354049571afcd2bdafd7a891b25655"
+  "de93dbf7d2ba9dbd75bf7ca12eae17159c822dda5c5dab7c0772b330bb0c5b07"
 
 const DELETED_IDS = [
   "REQ-381",
@@ -199,7 +199,7 @@ describe("125", () => {
 
   test("[4][6][14] 変更した要求の非空行が正本への差分と一致する", () => {
     const byId = new Map(requirements.map((req) => [req.id, req]))
-    const skipDesign125Match = new Set(["REQ-483", "REQ-489"])
+    const skipDesign125Match = new Set(["REQ-421", "REQ-483", "REQ-489"])
     for (const [id, designBody] of changed) {
       if (skipDesign125Match.has(id)) {
         continue

@@ -69,9 +69,19 @@ function gitIssueRelativePaths(): string[] {
       .map((p) => p.replace(/^docs\/specs\//, ""))
       .sort()
   }
-  return gitLines("git ls-tree -r --name-only HEAD docs/issues")
-    .map((p) => p.replace(/^docs\/issues\//, ""))
-    .sort()
+  const rel = new Set<string>()
+  for (const p of gitLines("git ls-tree -r --name-only HEAD docs/issues")) {
+    rel.add(p.replace(/^docs\/issues\//, ""))
+  }
+  for (const p of gitLines("git ls-files docs/issues")) {
+    rel.add(p.replace(/^docs\/issues\//, ""))
+  }
+  for (const p of gitLines(
+    "git ls-files -o --exclude-standard docs/issues",
+  )) {
+    rel.add(p.replace(/^docs\/issues\//, ""))
+  }
+  return [...rel].sort()
 }
 
 async function listIssueRelativePathsOnDisk(): Promise<string[]> {

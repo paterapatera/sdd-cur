@@ -131,13 +131,7 @@ export function isQuickTarget(issue: {
   body: string
   labels: readonly string[]
 }): boolean {
-  if (issue.labels.includes(quickTargetLabel.name)) {
-    return true
-  }
-  if (issue.body.includes(quickTargetLabel.name)) {
-    return true
-  }
-  return false
+  return issue.labels.includes(quickTargetLabel.name)
 }
 
 export async function listStartCandidates(github: {

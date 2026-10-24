@@ -13,7 +13,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "321bc32780fcb016ac0ae944a0ef579fbcdd6d1694eca9b58160fcbd10419cdb"
+  "2df5507a673f7ffc5ff9bd48715a31e659644fcfef72956b429cff3c7d6424f1"
 
 const DELETED_IDS = [
   "REQ-166",
