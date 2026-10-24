@@ -10,12 +10,13 @@ const bunExe = process.execPath
 const isolatedPath = path.dirname(bunExe)
 
 const usageText =
-  "sdd-cur install [project-root]\n" +
+  "sdd-cur install [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]\n" +
   "sdd-cur init [project-root]\n" +
   "sdd-cur run [--interval-min <1 以上 1440 以下の整数>]\n" +
   "sdd-cur labels\n" +
   "sdd-cur candidates\n" +
   "sdd-cur show <番号>\n" +
+  "sdd-cur gate <番号> <段>\n" +
   "sdd-cur branch <番号>\n" +
   "sdd-cur prepare-branch <番号>\n" +
   "sdd-cur confirm <番号>\n" +
@@ -25,6 +26,7 @@ const usageText =
   "sdd-cur complete <番号>\n" +
   "sdd-cur spec-check\n" +
   "sdd-cur tasks <番号>\n" +
+  "sdd-cur task-done <番号> <作業番号>\n" +
   "sdd-cur spec-diff <番号>\n"
 
 describe("cli subprocess", () => {

@@ -84,14 +84,16 @@ async function runCli(
 }
 
 describe("123 spec-diff", () => {
-  test("[1] switch に spec-diff があり tasks の次である", () => {
+  test("[1] switch に spec-diff があり task-done の次である", () => {
     const cli = readFileSync(cliPath, "utf8")
     const tasksIdx = cli.indexOf('case "tasks":')
+    const taskDoneIdx = cli.indexOf('case "task-done":')
     const specDiffIdx = cli.indexOf('case "spec-diff":')
     const defaultIdx = cli.indexOf("default:")
     expect(specDiffIdx).toBeGreaterThan(-1)
     expect(tasksIdx).toBeGreaterThan(-1)
-    expect(specDiffIdx).toBeGreaterThan(tasksIdx)
+    expect(taskDoneIdx).toBeGreaterThan(tasksIdx)
+    expect(specDiffIdx).toBeGreaterThan(taskDoneIdx)
     expect(specDiffIdx).toBeLessThan(defaultIdx)
     const cmdStart = cli.indexOf("async function cmdSpecDiff")
     const cmdEnd = cli.indexOf("function wantsHelp", cmdStart)
@@ -104,16 +106,19 @@ describe("123 spec-diff", () => {
     expect(cmdBlock).not.toContain("defaultGhRunner")
   })
 
-  test("[2] 使い方に spec-diff が tasks の次にある", async () => {
+  test("[2] 使い方に spec-diff が task-done の次にある", async () => {
     await withTemp(async (temp) => {
       const { stderr } = await runCli(temp, [])
       const taskLine = "sdd-cur tasks <番号>"
+      const taskDoneLine = "sdd-cur task-done <番号> <作業番号>"
       const specLine = "sdd-cur spec-diff <番号>"
       const lines = stderr.split("\n")
       const taskIdx = lines.indexOf(taskLine)
+      const taskDoneIdx = lines.indexOf(taskDoneLine)
       const specIdx = lines.indexOf(specLine)
       expect(taskIdx).toBeGreaterThan(-1)
-      expect(specIdx).toBe(taskIdx + 1)
+      expect(taskDoneIdx).toBe(taskIdx + 1)
+      expect(specIdx).toBe(taskDoneIdx + 1)
     })
   })
 
@@ -470,12 +475,16 @@ describe("123 spec-diff", () => {
     const tasksIdx = agentsLines.findIndex(
       (line) => line === "bun src/cli.ts tasks <番号>",
     )
+    const taskDoneIdx = agentsLines.findIndex(
+      (line) => line === "bun src/cli.ts task-done <番号> <作業番号>",
+    )
     const specIdx = agentsLines.findIndex(
       (line) => line === "bun src/cli.ts spec-diff <番号>",
     )
     const testIdx = agentsLines.findIndex((line) => line === "bun test")
     expect(tasksIdx).toBeGreaterThan(-1)
-    expect(specIdx).toBe(tasksIdx + 1)
+    expect(taskDoneIdx).toBe(tasksIdx + 1)
+    expect(specIdx).toBe(taskDoneIdx + 1)
     expect(testIdx).toBe(specIdx + 1)
   })
 

@@ -4,13 +4,19 @@ import os from "node:os"
 import path from "node:path"
 import {
   assertDirectoryExists,
+  installAgents,
   installAll,
   installSkills,
   parseInstallArgs,
+  readModelFromAgentFile,
   resolveAgentsDestination,
   resolveSkillsDestination,
+  setModelLineInAgentFile,
   subagentFileNames,
+  subagentModelTierByFileName,
 } from "./install.ts"
+
+const defaultAgentsSourceDir = path.join(import.meta.dir, "../agents")
 
 describe("subagentFileNames", () => {
   test("廃止した修正案作成役はリストに無い", () => {
@@ -56,14 +62,149 @@ describe("parseInstallArgs", () => {
     expect(parseInstallArgs([])).toEqual({ ok: true, projectRoot: undefined })
   })
 
+  test("ルート一つ", () => {
+    expect(parseInstallArgs(["/tmp/proj"])).toEqual({
+      ok: true,
+      projectRoot: "/tmp/proj",
+    })
+  })
+
   test("空文字は失敗", () => {
     const result = parseInstallArgs([""])
     expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.message).toBe("install の引数はプロジェクトのルートを一つまでです")
+    }
   })
 
-  test("二つ以上は失敗", () => {
+  test("二つのルートは失敗", () => {
     const result = parseInstallArgs(["a", "b"])
     expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.message).toBe("install の引数はプロジェクトのルートを一つまでです")
+    }
+  })
+
+  test("ルートと三フラグの順序入れ替え", () => {
+    expect(
+      parseInstallArgs([
+        "--low-model",
+        "low-m",
+        "/tmp/r",
+        "--high-model",
+        "high-m",
+        "--medium-model",
+        "med-m",
+      ]),
+    ).toEqual({
+      ok: true,
+      projectRoot: "/tmp/r",
+      highModel: "high-m",
+      mediumModel: "med-m",
+      lowModel: "low-m",
+    })
+    expect(
+      parseInstallArgs([
+        "/tmp/r",
+        "--high-model",
+        "high-m",
+        "--medium-model",
+        "med-m",
+        "--low-model",
+        "low-m",
+      ]),
+    ).toEqual({
+      ok: true,
+      projectRoot: "/tmp/r",
+      highModel: "high-m",
+      mediumModel: "med-m",
+      lowModel: "low-m",
+    })
+  })
+
+  test("値に = や -- 接頭", () => {
+    const r = parseInstallArgs(["--high-model", "m=x", "--medium-model", "--foo"])
+    expect(r).toEqual({
+      ok: true,
+      projectRoot: undefined,
+      highModel: "m=x",
+      mediumModel: "--foo",
+    })
+  })
+
+  test("フラグ直後に引数が無い", () => {
+    const r = parseInstallArgs(["--high-model"])
+    expect(r).toEqual({ ok: false, message: "モデルの指定が不正です: --high-model" })
+  })
+
+  test("--flag= 形式は失敗", () => {
+    const r = parseInstallArgs(["--medium-model=foo"])
+    expect(r).toEqual({
+      ok: false,
+      message: "モデルの指定が不正です: --medium-model=foo",
+    })
+  })
+
+  test("未知の -- 引数は失敗", () => {
+    const r = parseInstallArgs(["/tmp", "--unknown"])
+    expect(r).toEqual({ ok: false, message: "モデルの指定が不正です: --unknown" })
+  })
+
+  test("重複指定は後の値で失敗", () => {
+    const r = parseInstallArgs(["--low-model", "a", "--low-model", "b"])
+    expect(r).toEqual({ ok: false, message: "モデルの指定が不正です: b" })
+  })
+
+  test("空の値は失敗", () => {
+    const r = parseInstallArgs(["--high-model", ""])
+    expect(r).toEqual({ ok: false, message: "モデルの指定が不正です: " })
+  })
+})
+
+describe("subagentModelTierByFileName", () => {
+  test("受け入れ条件 6 の割り当て", () => {
+    const high = [
+      "sdd-cur-req-author.md",
+      "sdd-cur-design-author.md",
+      "sdd-cur-req-reviewer-high.md",
+    ]
+    const medium = [
+      "sdd-cur-req-reviewer.md",
+      "sdd-cur-design-reviewer.md",
+      "sdd-cur-implement-reviewer.md",
+    ]
+    const low = [
+      "sdd-cur-implement-author.md",
+      "sdd-cur-req-fixer.md",
+      "sdd-cur-design-fixer.md",
+      "sdd-cur-implement-fixer.md",
+      "sdd-cur-explore.md",
+    ]
+    for (const name of high) {
+      expect(subagentModelTierByFileName[name]).toBe("high")
+    }
+    for (const name of medium) {
+      expect(subagentModelTierByFileName[name]).toBe("medium")
+    }
+    for (const name of low) {
+      expect(subagentModelTierByFileName[name]).toBe("low")
+    }
+  })
+})
+
+describe("readModelFromAgentFile と setModelLineInAgentFile", () => {
+  test("agents/ の実ファイルで model: 行だけ読み書き", async () => {
+    for (const name of subagentFileNames) {
+      const content = await readFile(path.join(defaultAgentsSourceDir, name), "utf8")
+      const model = readModelFromAgentFile(content)
+      expect(model.length).toBeGreaterThan(0)
+      const replaced = setModelLineInAgentFile(content, "custom-model")
+      expect(readModelFromAgentFile(replaced)).toBe("custom-model")
+      const lines = replaced.split("\n")
+      const modelLines = lines.filter((l) => l.startsWith("model:"))
+      expect(modelLines).toHaveLength(1)
+      expect(modelLines[0]).toBe("model: custom-model")
+    }
   })
 })
 
@@ -165,12 +306,128 @@ describe("installSkills", () => {
   })
 })
 
-async function writeMinimalAgents(agentsSource: string): Promise<void> {
+async function writeMinimalAgents(agentsSource: string, model = "orig-model"): Promise<void> {
   await mkdir(agentsSource, { recursive: true })
   for (const name of subagentFileNames) {
-    await writeFile(path.join(agentsSource, name), `# ${name}\n`)
+    await writeFile(
+      path.join(agentsSource, name),
+      `---\nname: ${name}\nmodel: ${model}\ndescription: test\n---\n\n# ${name}\n`,
+    )
   }
 }
+
+describe("installAgents", () => {
+  let tempRoot: string
+  let agentsSource: string
+  let destParent: string
+
+  beforeEach(async () => {
+    tempRoot = await mkdtemp(path.join(os.tmpdir(), "sdd-cur-install-agents-"))
+    agentsSource = path.join(tempRoot, "agents-src")
+    destParent = path.join(tempRoot, "dest-parent")
+    await mkdir(destParent, { recursive: true })
+    await writeMinimalAgents(agentsSource)
+  })
+
+  afterEach(async () => {
+    await rm(tempRoot, { recursive: true, force: true })
+  })
+
+  test("三種すべて指定", async () => {
+    const { subagentModels } = await installAgents({
+      homedir: destParent,
+      projectRoot: destParent,
+      agentsSourceDir: agentsSource,
+      highModel: "H",
+      mediumModel: "M",
+      lowModel: "L",
+    })
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+    for (const name of subagentFileNames) {
+      const content = await readFile(path.join(agentsDest, name), "utf8")
+      const tier = subagentModelTierByFileName[name]
+      const expected =
+        tier === "high" ? "H" : tier === "medium" ? "M" : "L"
+      expect(readModelFromAgentFile(content)).toBe(expected)
+    }
+    expect(subagentModels).toHaveLength(11)
+  })
+
+  test("high だけ指定", async () => {
+    await installAgents({
+      homedir: destParent,
+      projectRoot: destParent,
+      agentsSourceDir: agentsSource,
+      highModel: "H",
+    })
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+    for (const name of subagentFileNames) {
+      const content = await readFile(path.join(agentsDest, name), "utf8")
+      const tier = subagentModelTierByFileName[name]
+      expect(readModelFromAgentFile(content)).toBe(tier === "high" ? "H" : "orig-model")
+    }
+  })
+
+  test("medium だけ指定", async () => {
+    await installAgents({
+      homedir: destParent,
+      projectRoot: destParent,
+      agentsSourceDir: agentsSource,
+      mediumModel: "M",
+    })
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+    for (const name of subagentFileNames) {
+      const content = await readFile(path.join(agentsDest, name), "utf8")
+      const tier = subagentModelTierByFileName[name]
+      expect(readModelFromAgentFile(content)).toBe(
+        tier === "medium" ? "M" : "orig-model",
+      )
+    }
+  })
+
+  test("low だけ指定", async () => {
+    await installAgents({
+      homedir: destParent,
+      projectRoot: destParent,
+      agentsSourceDir: agentsSource,
+      lowModel: "L",
+    })
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+    for (const name of subagentFileNames) {
+      const content = await readFile(path.join(agentsDest, name), "utf8")
+      const tier = subagentModelTierByFileName[name]
+      expect(readModelFromAgentFile(content)).toBe(tier === "low" ? "L" : "orig-model")
+    }
+  })
+
+  test("指定なしはコピー元の model のまま", async () => {
+    await installAgents({
+      homedir: destParent,
+      projectRoot: destParent,
+      agentsSourceDir: agentsSource,
+    })
+    const agentsDest = path.join(destParent, ".cursor", "agents")
+    for (const name of subagentFileNames) {
+      const content = await readFile(path.join(agentsDest, name), "utf8")
+      expect(readModelFromAgentFile(content)).toBe("orig-model")
+    }
+  })
+
+  test("コピー元 agents/ は変えない", async () => {
+    const before = await readFile(
+      path.join(agentsSource, subagentFileNames[0]),
+      "utf8",
+    )
+    await installAgents({
+      homedir: destParent,
+      projectRoot: destParent,
+      agentsSourceDir: agentsSource,
+      highModel: "H",
+    })
+    const after = await readFile(path.join(agentsSource, subagentFileNames[0]), "utf8")
+    expect(after).toBe(before)
+  })
+})
 
 describe("installAll", () => {
   let tempRoot: string
@@ -206,7 +463,7 @@ describe("installAll", () => {
     const agentsDest = path.join(destParent, ".cursor", "agents")
     for (const name of subagentFileNames) {
       const content = await readFile(path.join(agentsDest, name), "utf8")
-      expect(content).toBe(`# ${name}\n`)
+      expect(readModelFromAgentFile(content)).toBe("orig-model")
     }
   })
 
@@ -242,7 +499,7 @@ describe("installAll", () => {
       path.join(agentsDest, subagentFileNames[0]),
       "utf8",
     )
-    expect(content).toBe(`# ${subagentFileNames[0]}\n`)
+    expect(readModelFromAgentFile(content)).toBe("orig-model")
   })
 
   test("十一個のいずれかが無いときは失敗し、スキルの宛先もサブエージェントの宛先も作られない", async () => {

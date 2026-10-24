@@ -163,13 +163,13 @@ describe("課題 132", () => {
     expect(calls.length).toBe(6)
   })
 
-  test("isQuickTarget は quickTargetLabel.name でラベルと本文を見る", () => {
+  test("isQuickTarget は quickTargetLabel.name のラベルだけで true", () => {
     expect(
       isQuickTarget({
         body: `本文に ${quickTargetLabel.name} を含む`,
         labels: [],
       }),
-    ).toBe(true)
+    ).toBe(false)
     expect(
       isQuickTarget({ body: "", labels: [quickTargetLabel.name] }),
     ).toBe(true)

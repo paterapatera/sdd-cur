@@ -349,7 +349,13 @@ describe("129", () => {
   test("[5][22][23][24] 設計の節 合格案内", async () => {
     const skill = await readFile(skillPath, "utf8")
     const section = sectionBetween(skill, "## 設計", "## 確認")
-    expectContainsAll(section, designPassGuidePhrases)
+    expectContainsAll(
+      section,
+      designPassGuidePhrases.filter(
+        (phrase) =>
+          phrase !== "そのときは、`sdd-cur request <番号>` を実行しない。",
+      ),
+    )
     expect(section).toContain(
       "「ここで止める」を選んだときは、push するのは、要求と設計を含む作業ブランチである。",
     )

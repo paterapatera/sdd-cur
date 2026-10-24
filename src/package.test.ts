@@ -32,12 +32,13 @@ const expectedPackageJson = {
 }
 
 const usageText =
-  "sdd-cur install [project-root]\n" +
+  "sdd-cur install [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]\n" +
   "sdd-cur init [project-root]\n" +
   "sdd-cur run [--interval-min <1 以上 1440 以下の整数>]\n" +
   "sdd-cur labels\n" +
   "sdd-cur candidates\n" +
   "sdd-cur show <番号>\n" +
+  "sdd-cur gate <番号> <段>\n" +
   "sdd-cur branch <番号>\n" +
   "sdd-cur prepare-branch <番号>\n" +
   "sdd-cur confirm <番号>\n" +
@@ -47,6 +48,7 @@ const usageText =
   "sdd-cur complete <番号>\n" +
   "sdd-cur spec-check\n" +
   "sdd-cur tasks <番号>\n" +
+  "sdd-cur task-done <番号> <作業番号>\n" +
   "sdd-cur spec-diff <番号>\n"
 
 async function listFilesRecursive(root: string): Promise<string[]> {
@@ -261,7 +263,8 @@ describe("installed bin", () => {
       extraContent,
     )
     const agentName = "sdd-cur-req-author.md"
-    const replacedAgent = "# replaced in installed package\n"
+    const replacedAgent =
+      "---\nname: sdd-cur-req-author\nmodel: pack-only-model\ndescription: test\n---\n\n# replaced in installed package\n"
     await writeFile(
       path.join(packageDir, "agents", agentName),
       replacedAgent,
