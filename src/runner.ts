@@ -654,16 +654,17 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
   return {
     async poll() {
       const login = await withRetry(() => deps.github.viewerLogin())
-      const issues = await withRetry(() =>
+
+      const completionIssues = await withRetry(() =>
         deps.github.listIssues({
-          labels: [LABEL_REQUEST],
+          labels: [LABEL_VERIFIED],
           assignee: login,
           limit: 100,
         }),
       )
-      const selected = selectImplementationIssue(issues, login)
-      if (selected !== null) {
-        return { id: String(selected.number) }
+      const completion = selectCompletionIssue(completionIssues, login)
+      if (completion !== null) {
+        return { id: String(completion.number) }
       }
 
       const fixItem = await findFixWorkItem(deps, login)
@@ -683,18 +684,19 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
         return { id: String(quickSelected.number) }
       }
 
-      const completionIssues = await withRetry(() =>
+      const issues = await withRetry(() =>
         deps.github.listIssues({
-          labels: [LABEL_VERIFIED],
+          labels: [LABEL_REQUEST],
           assignee: login,
           limit: 100,
         }),
       )
-      const completion = selectCompletionIssue(completionIssues, login)
-      if (completion === null) {
-        return null
+      const selected = selectImplementationIssue(issues, login)
+      if (selected !== null) {
+        return { id: String(selected.number) }
       }
-      return { id: String(completion.number) }
+
+      return null
     },
 
     async process(item, options) {

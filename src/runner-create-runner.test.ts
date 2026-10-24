@@ -36,7 +36,7 @@ import {
   startMarker,
 } from "./runner.ts"
 describe("createRunner", () => {
-  test("poll は listIssues を実装依頼で呼び候補が無いとき null", async () => {
+  test("poll は listIssues を動作確認OKから順に呼び候補が無いとき null", async () => {
     let calls = 0
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
@@ -48,7 +48,7 @@ describe("createRunner", () => {
           calls += 1
           if (calls === 1) {
             expect(query).toEqual({
-              labels: [LABEL_REQUEST],
+              labels: [LABEL_VERIFIED],
               assignee: VIEWER_LOGIN,
               limit: 100,
             })
@@ -71,7 +71,7 @@ describe("createRunner", () => {
             return []
           }
           expect(query).toEqual({
-            labels: [LABEL_VERIFIED],
+            labels: [LABEL_REQUEST],
             assignee: VIEWER_LOGIN,
             limit: 100,
           })
@@ -148,12 +148,15 @@ describe("createRunner", () => {
         async viewerLogin() {
           return VIEWER_LOGIN
         },
-        async listIssues() {
+        async listIssues(query) {
           calls += 1
           if (calls === 1) {
             throw new Error("temporary")
           }
-          return [issue({ number: 1 })]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return [issue({ number: 1, labels: [LABEL_VERIFIED] })]
+          }
+          return []
         },
         async getIssue() {
           throw new Error("unexpected")
@@ -1351,8 +1354,8 @@ describe("createRunner", () => {
     await rm(path.dirname(procedurePath), { recursive: true, force: true })
   })
 
-  test("poll は不具合修正があるとき quick の listIssues を呼ばない", async () => {
-    let quickListed = false
+  test("poll は quick だけがあるとき不具合修正を先に空で探してから返す", async () => {
+    let fixListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
@@ -1360,179 +1363,23 @@ describe("createRunner", () => {
           return VIEWER_LOGIN
         },
         async listIssues(query) {
-          if (
-            !query.labels?.includes(LABEL_REQUEST) &&
-            !query.labels?.includes(LABEL_DONE)
-          ) {
-            quickListed = true
+          if (query.labels?.includes(LABEL_DONE)) {
+            fixListed = true
           }
           if (query.labels?.includes(LABEL_REQUEST)) {
             return []
           }
-          return [issue({ number: 2, labels: [LABEL_DONE] })]
-        },
-        async getIssue() {
-          return issue({ number: 2, labels: [LABEL_DONE] })
-        },
-        async editLabels() {},
-        async getDefaultBranch() {
-          return "main"
-        },
-        async createBranch() {},
-        async createPullRequest() {
-          return { number: 1, url: "https://pr" }
-        },
-        async addComment(_n, body) {
-          if (startIssueComments.recordStartComment(body)) {
-            return { url: "https://start-comment" }
-          }
-          return { url: "https://c" }
-        },
-        async listPullRequests() {
-          return [{ number: 9, url: "https://pr/9", state: "open", merged: false }]
-        },
-        async listPullRequestComments() {
-          return [
-            {
-              id: "IC_bug",
-              body: `${pullRequestCommentMarkers.bug}\n内容`,
-              author: "u",
-              createdAt: "2026-01-01",
-            },
-          ]
-        },
-        async addPullRequestComment() {
-          return { url: "https://c" }
-        },
-        async squashMerge() {},
-      async listComments() {
-          return startIssueComments.listComments()
-        },
-      },
-      git: {
-        async remoteName() {
-          return "origin"
-        },
-        async fetch() {},
-        async checkoutFetched() {},
-        async mergeFetched() {
-          return { status: "merged" as const }
-        },
-        async headCommit() {
-          return "deadbeef"
-        },
-        async hasChanges() {
-          return true
-        },
-        async commitAll() {},
-        async push() {},
-      },
-      agent: { async implement() {}, async fix() {}, async quick() {} },
-      createProcedureFile: async () => ({
-        path: "/tmp/x",
-        async remove() {},
-      }),
-    })
-    const item = await runner.poll()
-    expect(item?.id).toBe("2")
-    expect(quickListed).toBe(false)
-  })
-
-  test("poll は実装依頼があるとき quick の listIssues を呼ばない", async () => {
-    let quickListed = false
-    const startIssueComments = createIssueCommentStore()
-    const runner = createRunner({
-      github: {
-        async viewerLogin() {
-          return VIEWER_LOGIN
-        },
-        async listIssues(query) {
-          if (!query.labels?.includes(LABEL_REQUEST) && !query.labels?.includes(LABEL_DONE)) {
-            quickListed = true
-          }
-          if (query.labels?.includes(LABEL_REQUEST)) {
-            return [issue({ number: 1 })]
-          }
-          return []
-        },
-        async getIssue() {
-          return issue({ number: 1 })
-        },
-        async editLabels() {},
-        async getDefaultBranch() {
-          return "main"
-        },
-        async createBranch() {},
-        async createPullRequest() {
-          return { number: 1, url: "https://pr" }
-        },
-        async addComment(_n, body) {
-          if (startIssueComments.recordStartComment(body)) {
-            return { url: "https://start-comment" }
-          }
-          return { url: "https://c" }
-        },
-        async listPullRequests() {
-          return []
-        },
-        async listPullRequestComments() {
-          return []
-        },
-        async addPullRequestComment() {
-          return { url: "https://c" }
-        },
-        async squashMerge() {},
-      async listComments() {
-          return startIssueComments.listComments()
-        },
-      },
-      git: {
-        async remoteName() {
-          return "origin"
-        },
-        async fetch() {},
-        async checkoutFetched() {},
-        async mergeFetched() {
-          return { status: "merged" as const }
-        },
-        async headCommit() {
-          return "deadbeef"
-        },
-        async hasChanges() {
-          return true
-        },
-        async commitAll() {},
-        async push() {},
-      },
-      agent: { async implement() {}, async fix() {}, async quick() {} },
-      createProcedureFile: async () => ({
-        path: "/tmp/x",
-        async remove() {},
-      }),
-    })
-    const item = await runner.poll()
-    expect(item?.id).toBe("1")
-    expect(quickListed).toBe(false)
-  })
-
-  test("poll は quick があるとき動作確認OK を探さない", async () => {
-    let verifiedListed = false
-    const startIssueComments = createIssueCommentStore()
-    const runner = createRunner({
-      github: {
-        async viewerLogin() {
-          return VIEWER_LOGIN
-        },
-        async listIssues(query) {
           if (query.labels?.includes(LABEL_VERIFIED)) {
-            verifiedListed = true
-          }
-          if (query.labels?.includes(LABEL_DONE)) {
             return []
           }
           if (query.state === "open" && !query.labels) {
             return [
-              issue({ number: 7, body: "quick 対象", labels: ["quick 対象"], assignees: [VIEWER_LOGIN] }),
+              issue({
+                number: 7,
+                body: "quick 対象",
+                labels: ["quick 対象"],
+                assignees: [VIEWER_LOGIN],
+              }),
             ]
           }
           return []
@@ -1594,7 +1441,191 @@ describe("createRunner", () => {
     })
     const item = await runner.poll()
     expect(item?.id).toBe("7")
-    expect(verifiedListed).toBe(false)
+    expect(fixListed).toBe(true)
+  })
+
+  test("poll は動作確認OK があるとき実装依頼と quick の listIssues を呼ばない", async () => {
+    let quickListed = false
+    let requestListed = false
+    let fixListed = false
+    const startIssueComments = createIssueCommentStore()
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            requestListed = true
+          }
+          if (query.labels?.includes(LABEL_DONE)) {
+            fixListed = true
+          }
+          if (query.state === "open" && !query.labels) {
+            quickListed = true
+          }
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return [
+              issue({
+                number: 9,
+                labels: [LABEL_VERIFIED],
+                assignees: [VIEWER_LOGIN],
+              }),
+            ]
+          }
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 9, labels: [LABEL_VERIFIED] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    expect(item?.id).toBe("9")
+    expect(quickListed).toBe(false)
+    expect(requestListed).toBe(false)
+    expect(fixListed).toBe(false)
+  })
+
+  test("poll は動作確認OK があるとき quick と不具合修正を探さない", async () => {
+    let quickListed = false
+    let fixListed = false
+    const startIssueComments = createIssueCommentStore()
+    const runner = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues(query) {
+          if (query.labels?.includes(LABEL_DONE)) {
+            fixListed = true
+          }
+          if (query.state === "open" && !query.labels) {
+            quickListed = true
+          }
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            return []
+          }
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return [
+              issue({
+                number: 9,
+                labels: [LABEL_VERIFIED],
+                assignees: [VIEWER_LOGIN],
+              }),
+            ]
+          }
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 9, labels: [LABEL_VERIFIED] })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment(_n, body) {
+          if (startIssueComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
+          return { url: "https://c" }
+        },
+        async listPullRequests() {
+          return []
+        },
+        async listPullRequestComments() {
+          return []
+        },
+        async addPullRequestComment() {
+          return { url: "https://c" }
+        },
+        async squashMerge() {},
+      async listComments() {
+          return startIssueComments.listComments()
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
+        async headCommit() {
+          return "deadbeef"
+        },
+        async hasChanges() {
+          return true
+        },
+        async commitAll() {},
+        async push() {},
+      },
+      agent: { async implement() {}, async fix() {}, async quick() {} },
+      createProcedureFile: async () => ({
+        path: "/tmp/x",
+        async remove() {},
+      }),
+    })
+    const item = await runner.poll()
+    expect(item?.id).toBe("9")
+    expect(quickListed).toBe(false)
+    expect(fixListed).toBe(false)
   })
 
   test("quick process は仕様から実装完了までの順序", async () => {
