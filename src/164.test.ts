@@ -260,7 +260,10 @@ async function writeMinimalPackage(
   )
   await mkdir(agentsSourceDir, { recursive: true })
   for (const name of subagentFileNames) {
-    await writeFile(path.join(agentsSourceDir, name), `# ${name}\n`)
+    await writeFile(
+      path.join(agentsSourceDir, name),
+      `---\nname: ${name}\nmodel: test-model\ndescription: test\n---\n\n# ${name}\n`,
+    )
   }
   return { skillsSourceDir, agentsSourceDir }
 }

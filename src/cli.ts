@@ -33,7 +33,13 @@ import {
 } from "./github.ts"
 import { ensureWorkflowLabels } from "./labels.ts"
 import { createAgent, defaultAgentRunner } from "./agent.ts"
-import { createGit, defaultGitRunner, prepareBranch } from "./git.ts"
+import {
+  createGit,
+  defaultGitRunner,
+  messageHasSddCurTaskForNumber,
+  parseDefaultBranchFromSymref,
+  prepareBranch,
+} from "./git.ts"
 import { parseRunArgs, runLoop } from "./run.ts"
 import { restoreIssue } from "./restore.ts"
 import { requestImplementation } from "./request.ts"
@@ -59,16 +65,20 @@ import {
   validateReflectLocal,
   writeSpecFile,
 } from "./sdd.ts"
+import { evaluateGate, parseGateStage, type GateStage } from "./gate.ts"
 import { checkSpec } from "./spec.ts"
 import { defaultCommandExists, runDoctor } from "./doctor.ts"
 
 export function printUsage(): void {
-  console.error("sdd-cur install [project-root]")
+  console.error(
+    "sdd-cur install [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]",
+  )
   console.error("sdd-cur init [project-root]")
   console.error("sdd-cur run [--interval-min <1 以上 1440 以下の整数>]")
   console.error("sdd-cur labels")
   console.error("sdd-cur candidates")
   console.error("sdd-cur show <番号>")
+  console.error("sdd-cur gate <番号> <段>")
   console.error("sdd-cur branch <番号>")
   console.error("sdd-cur prepare-branch <番号>")
   console.error("sdd-cur confirm <番号>")
@@ -78,6 +88,7 @@ export function printUsage(): void {
   console.error("sdd-cur complete <番号>")
   console.error("sdd-cur spec-check")
   console.error("sdd-cur tasks <番号>")
+  console.error("sdd-cur task-done <番号> <作業番号>")
   console.error("sdd-cur spec-diff <番号>")
 }
 
@@ -149,18 +160,54 @@ function collectTestCommands(markdown: string): string[] {
   return commands
 }
 
-type TaskItem = {
+type CollectedTask = {
   number: number
   line: string
   refs: number[]
 }
 
-function collectTasks(markdown: string): TaskItem[] | { error: string } {
+type TaskItem = CollectedTask & {
+  done: boolean
+}
+
+async function defaultBranchFromSymref(
+  remote: string,
+  cwd: string,
+): Promise<string> {
+  const symrefResult = await defaultGitRunner.run(
+    ["ls-remote", "--symref", remote, "HEAD"],
+    { cwd },
+  )
+  if (symrefResult.exitCode !== 0) {
+    const fromStderr = symrefResult.stderr
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0)
+    if (fromStderr) {
+      throw new Error(fromStderr)
+    }
+    const fromStdout = symrefResult.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0)
+    if (fromStdout) {
+      throw new Error(fromStdout)
+    }
+    throw new Error("git が失敗しました")
+  }
+  const defaultBranch = parseDefaultBranchFromSymref(symrefResult.stdout)
+  if (defaultBranch === null) {
+    throw new Error("デフォルトブランチを特定できません")
+  }
+  return defaultBranch
+}
+
+function collectTasks(markdown: string): CollectedTask[] | { error: string } {
   const workListBody = firstSectionBody(markdown, "作業の一覧")
   if (workListBody === null) {
     return { error: NO_WORK_LIST_SECTION }
   }
-  const tasks: TaskItem[] = []
+  const tasks: CollectedTask[] = []
   for (const line of workListBody.split("\n")) {
     if (!isWorkListItemLine(line)) {
       continue
@@ -209,9 +256,80 @@ async function cmdTasks(args: string[]): Promise<number> {
     return 1
   }
 
+  const cwd = process.cwd()
+  const git = createGit({ git: defaultGitRunner, cwd })
+
+  let remote: string
+  try {
+    remote = await git.remoteName()
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  let defaultBranch: string
+  try {
+    defaultBranch = await defaultBranchFromSymref(remote, cwd)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  let branchOnlyMessages: readonly string[]
+  try {
+    branchOnlyMessages = await git.branchOnlyCommitMessages(
+      remote,
+      defaultBranch,
+    )
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const tasks: TaskItem[] = collected.map((task) => ({
+    number: task.number,
+    line: task.line,
+    refs: task.refs,
+    done: branchOnlyMessages.some((message) =>
+      messageHasSddCurTaskForNumber(message, task.number),
+    ),
+  }))
+
   const testCommands = collectTestCommands(designFile.markdown)
-  console.log(JSON.stringify({ tasks: collected, testCommands }))
+  console.log(JSON.stringify({ tasks, testCommands }))
   return 0
+}
+
+// task-done subcommand.
+async function cmdTaskDone(args: string[]): Promise<number> {
+  if (args.length !== 2) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  let taskNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+    taskNumber = parseIssueNumberString(args[1])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const git = createGit({ git: defaultGitRunner, cwd: process.cwd() })
+
+  try {
+    if (!(await git.hasChanges())) {
+      console.error("作業の変更がありません")
+      return 1
+    }
+    await git.commitTaskDone(issueNumber, taskNumber)
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
 }
 
 async function cmdSpecDiff(args: string[]): Promise<number> {
@@ -259,7 +377,9 @@ async function cmdInstall(args: string[]): Promise<number> {
   const parsed = parseInstallArgs(args)
   if (!parsed.ok) {
     console.error(parsed.message)
-    printUsage()
+    if (!parsed.message.startsWith("モデルの指定が不正です:")) {
+      printUsage()
+    }
     return 1
   }
 
@@ -280,6 +400,9 @@ async function cmdInstall(args: string[]): Promise<number> {
       projectRoot: parsed.projectRoot,
       skillsSourceDir: defaultSkillsSourceDir,
       agentsSourceDir: defaultAgentsSourceDir,
+      highModel: parsed.highModel,
+      mediumModel: parsed.mediumModel,
+      lowModel: parsed.lowModel,
     })
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
@@ -289,6 +412,9 @@ async function cmdInstall(args: string[]): Promise<number> {
   console.log(result.destDir)
   if (result.skillNames.length === 0) {
     console.log("配置するスキルはありません")
+  }
+  for (const line of result.subagentModels) {
+    console.log(`${line.baseName} ${line.model}`)
   }
   return 0
 }
@@ -478,6 +604,70 @@ async function cmdShow(args: string[]): Promise<number> {
     const github = await githubFromCwd()
     const view = await loadIssueView(github, issueNumber, files)
     console.log(JSON.stringify(view))
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
+export type GateCmdDeps = {
+  readSpecPair: typeof readSpecPair
+  assertSpecFilesReflected: typeof assertSpecFilesReflected
+  loadIssueView: typeof loadIssueView
+  openGitHub: typeof githubFromCwd
+  currentBranch: () => Promise<string>
+}
+
+export function defaultGateCmdDeps(): GateCmdDeps {
+  return {
+    readSpecPair,
+    assertSpecFilesReflected,
+    loadIssueView,
+    openGitHub: githubFromCwd,
+    currentBranch: async () => {
+      const git = createGit({ git: defaultGitRunner, cwd: process.cwd() })
+      return await git.currentBranch()
+    },
+  }
+}
+
+export async function cmdGate(
+  args: string[],
+  deps: GateCmdDeps = defaultGateCmdDeps(),
+): Promise<number> {
+  if (args.length !== 2) {
+    console.error("段が不正です")
+    return 1
+  }
+
+  let stage: GateStage
+  try {
+    stage = parseGateStage(args[1])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  try {
+    const files = await deps.readSpecPair(issueNumber)
+    deps.assertSpecFilesReflected({
+      requirements: files.requirements.markdown,
+      design: files.design.markdown,
+    })
+    const github = await deps.openGitHub()
+    const view = await deps.loadIssueView(github, issueNumber, files)
+    const currentBranch = await deps.currentBranch()
+    const result = evaluateGate(stage, view, currentBranch, issueNumber)
+    console.log(JSON.stringify(result))
     return 0
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
@@ -904,6 +1094,8 @@ async function main(): Promise<number> {
       return await cmdCandidates(rest)
     case "show":
       return await cmdShow(rest)
+    case "gate":
+      return await cmdGate(rest)
     case "branch":
       return await cmdBranch(rest)
     case "prepare-branch":
@@ -928,6 +1120,8 @@ async function main(): Promise<number> {
       return await cmdSpecCheck(argv.slice(1))
     case "tasks":
       return await cmdTasks(rest)
+    case "task-done":
+      return await cmdTaskDone(rest)
     case "spec-diff":
       return await cmdSpecDiff(rest)
     default:

@@ -83,7 +83,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-policy`、`skills/sdd-cur-quick` である。
 
-`install` は、`skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の十一個をコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents`。
+`install` は、`skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の十一個をコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents`。`--high-model`、`--medium-model`、`--low-model` で三種類を指定し、high は `sdd-cur-req-author` と `sdd-cur-design-author` と `sdd-cur-req-reviewer-high`、medium は `sdd-cur-req-reviewer` と `sdd-cur-design-reviewer` と `sdd-cur-implement-reviewer`、low は `sdd-cur-implement-author` と `sdd-cur-req-fixer` と `sdd-cur-design-fixer` と `sdd-cur-implement-fixer` と `sdd-cur-explore` のコピー先の `model:` に反映できる。
 
 ## 役割
 
