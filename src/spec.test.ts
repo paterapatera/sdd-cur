@@ -68,8 +68,9 @@ describe("docs/canonical/", () => {
     )
     expect(all).toContain("履歴として残す")
     expect(all).toContain(
-      "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
+      "grok-4.7[context=256k,reasoning_effort=medium,fast=false]",
     )
+    expect(all).toContain("composer-2.5[fast=false]")
     expect(all).not.toContain("使用するサブエージェントは、下の表の四つである")
     expect(all).not.toContain("既定の `poll` は常に `null` を返す")
   })

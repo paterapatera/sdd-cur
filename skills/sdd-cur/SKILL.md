@@ -161,7 +161,7 @@ frontmatter の `model` を使う。
 この再起動は回数を増やさない。
 `kind` が `stopBrokenStampTwice`、`stopSameFindingTwice`、`stopMissingConfirmLine` のときは、レスポンスを人に見せて止まる。修正を起動しない。レビューにも修正にも戻らない。
 `action` が `修正` のとき、レビューに入る前に人が選んだ通常の回答を、人が決めた条件として渡す。要求作成役は起動しない。
-「作成から合格まで 1 回」および high の作成 1 回は、レビューに入る前の初回の成果物作成（grok-4.7[context=256k,reasoning_effort=high,fast=false]）を指す。
+「作成から合格まで 1 回」および high の作成 1 回は、レビューに入る前の、要求作成役を medium の Grok で起動して行う初回の成果物作成（grok-4.7[context=256k,reasoning_effort=medium,fast=false]）を指す。
 要求の未記載の質問で人が通常の選択肢を選んだあとの要求作成役の再起動は、同じ要求の続きであり、作成の high の 2 回目に数えない。
 レビューの不合格のあと、要求作成役は起動しない。
 
@@ -311,6 +311,7 @@ checkout はしない。
 
 `kind` が `stopWaitConfirm` のとき、列挙された点を人に見せる。修正を起動しない。確認コメントは投稿しない。人が答えるまで、その部分は設計へ書かない。人が答えたあとは、返った `model` でレビューを再び起動する。この再起動は回数を増やさない。モデルは、`確認: あり` を返したそのレビューと同じである。
 `kind` が `stopBrokenStampTwice`、`stopSameFindingTwice`、`stopMissingConfirmLine` のときは、レスポンスを人に見せて止まる。修正を起動しない。レビューにも修正にも戻らない。
+レビューに入る前の、設計作成役を Composer で起動して行う初回の成果物作成（composer-2.5[fast=false]）を指す。
 不合格のあと、設計作成役は起動しない。
 
 `action` が `合格` のとき、設計を終える。

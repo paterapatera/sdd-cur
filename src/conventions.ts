@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { readdir, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
 import type { GitRunner } from "./git.ts"
@@ -335,7 +336,7 @@ export function parseReview(body: string): ParsedReview {
 }
 
 export const reviewModelFromRound3 =
-  "grok-4.7[context=256k,reasoning_effort=high,fast=false]"
+  "grok-4.7[context=256k,reasoning_effort=medium,fast=false]"
 
 export const invalidConsecutiveFailuresMessage = "連続不合格の回数が不正です"
 
@@ -2152,4 +2153,59 @@ export async function specDiff(options: {
   const expected = applyDeltaToBaseline(baseline, deltaItems)
   const worktree = await readWorktreeCanonicalMap(cwd)
   return compareCanonicalMaps(expected, worktree)
+}
+
+function normalizeDesignNewlines(text: string): string {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+}
+
+/** 設計の「正本への差分」節（見出し行の直後から次の `## ` まで） */
+export function deltaSectionText(designMarkdown: string): string {
+  const parts = normalizeDesignNewlines(designMarkdown).split(
+    "\n## 正本への差分\n",
+  )
+  if (parts.length < 2) {
+    return ""
+  }
+  const lines = parts[1].split("\n")
+  const sectionLines: string[] = []
+  for (let i = 0; i < lines.length; i += 1) {
+    if (i > 0 && lines[i].startsWith("## ")) {
+      break
+    }
+    sectionLines.push(lines[i])
+  }
+  return sectionLines.join("\n")
+}
+
+export function supersededReqIdsFromDesign(
+  designMarkdown: string,
+  domain: string,
+): Set<string> {
+  const section = deltaSectionText(designMarkdown)
+  const headingRe = new RegExp(
+    `^### (削除|変更|追加) ${domain} (REQ-\\d+)\\n`,
+    "gm",
+  )
+  const ids = new Set<string>()
+  for (const match of section.matchAll(headingRe)) {
+    ids.add(match[2])
+  }
+  return ids
+}
+
+export function issue176SupersededSddReqIds(): Set<string> {
+  const design = readFileSync(
+    join(import.meta.dir, "..", "docs/issues/176/design.md"),
+    "utf8",
+  )
+  return supersededReqIdsFromDesign(design, "sdd")
+}
+
+export function issue145SupersededGitReqIds(): Set<string> {
+  const design = readFileSync(
+    join(import.meta.dir, "..", "docs/issues/145/design.md"),
+    "utf8",
+  )
+  return supersededReqIdsFromDesign(design, "git")
 }

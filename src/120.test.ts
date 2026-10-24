@@ -341,11 +341,12 @@ describe("120 prepare-branch", () => {
     ]) {
       expect(reqSection).not.toContain(word)
     }
-    expect(skill).toContain("sdd-cur branch <番号>")
+    expect(skill).toContain("`sdd-cur gate <番号> design`")
+    expect(skill).not.toContain("sdd-cur branch <番号>")
     expect(skill).toContain(
       "設計作成役を起動する前に、`sdd-cur prepare-branch <番号>` は実行しない。",
     )
-    expect(skill).toContain("checkout をしない。")
+    expect(skill).toContain("checkout はしない。")
     expect(skill).toContain("作業ブランチを新しく作らない。")
     expect(skill).toContain("実装のランナーは、この用意をしない。")
 

@@ -28,25 +28,25 @@ const expectedFrontmatter: Record<
 > = {
   "agents/sdd-cur-req-author.md": {
     name: "sdd-cur-req-author",
-    model: "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
+    model: "grok-4.7[context=256k,reasoning_effort=medium,fast=false]",
   },
   "agents/sdd-cur-req-reviewer.md": {
     name: "sdd-cur-req-reviewer",
-    model: "grok-4.7[context=256k,reasoning_effort=medium,fast=false]",
+    model: "composer-2.5[fast=false]",
     readonly: true,
   },
   "agents/sdd-cur-design-author.md": {
     name: "sdd-cur-design-author",
-    model: "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
+    model: "composer-2.5[fast=false]",
   },
   "agents/sdd-cur-design-reviewer.md": {
     name: "sdd-cur-design-reviewer",
-    model: "grok-4.7[context=256k,reasoning_effort=medium,fast=false]",
+    model: "composer-2.5[fast=false]",
     readonly: true,
   },
   "agents/sdd-cur-implement-reviewer.md": {
     name: "sdd-cur-implement-reviewer",
-    model: "grok-4.7[context=256k,reasoning_effort=medium,fast=false]",
+    model: "composer-2.5[fast=false]",
     readonly: true,
   },
 }

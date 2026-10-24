@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs"
 import { describe, expect, test } from "bun:test"
 import path from "node:path"
 import { checkSpec } from "./spec.ts"
+import {
+  deltaSectionText as sharedDeltaSectionText,
+  issue176SupersededSddReqIds,
+} from "./conventions.ts"
 
 const root = path.join(import.meta.dir, "..")
 const sddPath = path.join(root, "docs/canonical/sdd.md")
@@ -13,7 +17,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "fae4db67fb0043722b240cddad984513990fdcf772ae4c071ef6b64c6aba8900"
+  "6098ea4279ea7a44f54dafc609dfa0e81a922b8aeac3f49b9af8aca3e7124fa7"
 
 const DELETED_IDS = [
   "REQ-381",
@@ -85,29 +89,11 @@ function nonEmptyLines(lines: readonly string[]): string[] {
   return lines.filter((line) => line.trim().length > 0)
 }
 
-function deltaSectionText(designMarkdown: string): string {
-  const lines = normalizeNewlines(designMarkdown).split("\n")
-  let start = -1
-  for (let i = 0; i < lines.length; i += 1) {
-    if (lines[i] === "## 正本への差分") {
-      start = i + 1
-      break
-    }
-  }
-  if (start < 0) return ""
-  const sectionLines: string[] = []
-  for (let i = start; i < lines.length; i += 1) {
-    if (lines[i].startsWith("## ")) break
-    sectionLines.push(lines[i])
-  }
-  return sectionLines.join("\n")
-}
-
 function parseDesignDeltas(design: string): {
   deleted: string[]
   changed: Map<string, string>
 } {
-  const section = deltaSectionText(design)
+  const section = sharedDeltaSectionText(design)
   const headingRe = /^### (削除|変更) sdd (REQ-\d+)\n\n/gm
   const headings: {
     type: string
@@ -180,7 +166,7 @@ describe("125", () => {
   )
 
   test("[2][7] 正本への差分に追加見出しが無く、変更と削除だけで領域は sdd", () => {
-    const section = deltaSectionText(design)
+    const section = sharedDeltaSectionText(design)
     expect(section).not.toMatch(/^### 追加 /m)
     for (const match of section.matchAll(/^### (削除|変更) (\w+) /gm)) {
       expect(match[2]).toBe("sdd")
@@ -199,9 +185,14 @@ describe("125", () => {
 
   test("[4][6][14] 変更した要求の非空行が正本への差分と一致する", () => {
     const byId = new Map(requirements.map((req) => [req.id, req]))
-    const skipDesign125Match = new Set(["REQ-421", "REQ-483", "REQ-489"])
+    const skipCanonicalMatch = new Set([
+      "REQ-421",
+      "REQ-483",
+      "REQ-489",
+      ...issue176SupersededSddReqIds(),
+    ])
     for (const [id, designBody] of changed) {
-      if (skipDesign125Match.has(id)) {
+      if (skipCanonicalMatch.has(id)) {
         continue
       }
       const req = byId.get(id)

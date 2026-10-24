@@ -1130,5 +1130,7 @@ async function main(): Promise<number> {
   }
 }
 
-const exitCode = await main()
-process.exit(exitCode)
+if (import.meta.main) {
+  const exitCode = await main()
+  process.exit(exitCode)
+}

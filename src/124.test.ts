@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs"
 import { describe, expect, test } from "bun:test"
 import path from "node:path"
 import { checkSpec } from "./spec.ts"
+import {
+  deltaSectionText,
+  issue176SupersededSddReqIds,
+} from "./conventions.ts"
 
 const root = path.join(import.meta.dir, "..")
 const sddPath = path.join(root, "docs/canonical/sdd.md")
@@ -13,7 +17,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "3058d26635991e147557540d4b9aa7c96d492267534176ae5b8aa4052e61de5f"
+  "3c7ff0663691892abb916feccd3c966ff0ba9fd7c5687da27051d429a7f4b326"
 
 const DELETED_IDS = [
   "REQ-166",
@@ -79,15 +83,11 @@ function requirementInScope(bodyLines: readonly string[]): boolean {
   return false
 }
 
-function deltaSection(design: string): string {
-  return design.split("## 正本への差分")[1] ?? ""
-}
-
 function parseDesignDeltas(design: string): {
   deleted: string[]
   changed: Map<string, string>
 } {
-  const section = deltaSection(design)
+  const section = deltaSectionText(design)
   const headingRe = /^### (削除|変更) sdd (REQ-\d+)\n\n/gm
   const headings: {
     type: string
@@ -159,7 +159,11 @@ describe("124", () => {
 
   test("[4][6][14] 変更した要求の非空行が正本への差分と一致する", () => {
     const byId = new Map(requirements.map((req) => [req.id, req]))
+    const skipCanonicalMatch = issue176SupersededSddReqIds()
     for (const [id, designBody] of changed) {
+      if (skipCanonicalMatch.has(id)) {
+        continue
+      }
       const req = byId.get(id)
       expect(req).toBeDefined()
       expect(nonEmptyLines(req!.bodyLines)).toEqual(

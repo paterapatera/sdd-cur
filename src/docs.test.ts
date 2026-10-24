@@ -3,8 +3,10 @@ import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
 const root = join(import.meta.dir, "..")
-const expectedHighModel =
-  "grok-4.7[context=256k,reasoning_effort=high,fast=false]"
+const expectedReqAuthorModel =
+  "grok-4.7[context=256k,reasoning_effort=medium,fast=false]"
+const expectedDesignAuthorModel = "composer-2.5[fast=false]"
+const expectedReviewRound3Model = expectedReqAuthorModel
 
 function sorted(set: Set<string>): string[] {
   return [...set].sort()
@@ -143,8 +145,9 @@ describe("docs と skills の整合", () => {
       join(root, "agents/sdd-cur-design-author.md"),
       "utf8",
     )
-    expect(frontmatterModel(reqAuthor)).toBe(expectedHighModel)
-    expect(frontmatterModel(designAuthor)).toBe(expectedHighModel)
+    expect(frontmatterModel(reqAuthor)).toBe(expectedReqAuthorModel)
+    expect(frontmatterModel(designAuthor)).toBe(expectedDesignAuthorModel)
+    expect(expectedReqAuthorModel).not.toBe(expectedDesignAuthorModel)
 
     const skillsRoot = join(root, "skills")
     for (const ent of readdirSync(skillsRoot, { withFileTypes: true })) {
@@ -154,7 +157,7 @@ describe("docs と skills の整合", () => {
       expect(text).not.toContain("grok-4.7-high")
       const raised = raisedModelFromSkill(text)
       if (raised !== null) {
-        expect(raised).toBe(expectedHighModel)
+        expect(raised).toBe(expectedReviewRound3Model)
       }
     }
 
