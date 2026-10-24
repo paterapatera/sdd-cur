@@ -133,7 +133,7 @@
 - 1. 六ファイルの frontmatter の `model` 行を、決定の表にする。[1][2][3][4][5][6][7]
 - 2. `src/conventions.ts` の `reviewModelFromRound3` を受け入れ条件 8 にする。[8][9]
 - 3. `skills/sdd-cur/SKILL.md` を、決定のスキルのとおり直す。[10][11][12][13]
-- 4. `docs/canonical/sdd.md` に、作成・人向け表記まわり（REQ-167、REQ-174、REQ-204、REQ-228、REQ-229、REQ-400、REQ-923 など）を正本への差分のとおり反映する。[10][11][12][13][14][15]
+- 4. `docs/canonical/sdd.md` に、作成・人向け表記まわり（REQ-167、REQ-174、REQ-204、REQ-228、REQ-229、REQ-400、REQ-946 など）を正本への差分のとおり反映する。[10][11][12][13][14][15]
 - 5. 同ファイルに、レビュー 3 回目以降と `reviewModelFromRound3`、中級・上級の切り替え（REQ-205、REQ-209、REQ-227、REQ-231、REQ-233、REQ-372、REQ-375、REQ-376、REQ-382、REQ-383、REQ-398、REQ-399、REQ-407、REQ-810 など）を反映する。[8][9][14][16]
 - 6. 同ファイルに、テスト・スキル・ID 表（REQ-377、REQ-378、REQ-379、REQ-387、REQ-388、REQ-389、REQ-390、REQ-391、REQ-392、REQ-393、REQ-402、REQ-411、REQ-412 など）を反映する。[14][16][18][19]
 - 7. 上記四ファイルに加え、`src/docs.test.ts`、`src/spec.test.ts`、`src/89.test.ts`、`src/93.test.ts` を、テスト節のとおり直す。[17][18][19][20][21]
@@ -449,7 +449,7 @@
 
 - シナリオ: 条件: 実装レビューで数えた 3 回目である 主体: 親 結果: 渡す `model` は `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である
 
-### 追加 sdd REQ-923
+### 追加 sdd REQ-946
 
 もとになった課題は #176 である。
 

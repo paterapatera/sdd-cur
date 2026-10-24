@@ -29,7 +29,7 @@ const sevenScenarioRuleLines = [
 const sevenScenarioRuleBlock = `${sevenScenarioRuleLines.join("\n")}\n`
 
 const skillsConventionsWithoutScenarioBlockSha256 =
-  "e755f61fa8c44d53bc91524a456dd071a8bd0fbbd7021d8de5767cd947257bcb"
+  "9919c9c0ee5b52946acf3fea224a2fe39beda6acc48737c3fa15d04deb736dfd"
 
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
@@ -87,9 +87,9 @@ const agentReviewerScenarioFourLines = `- 追加または変更の項目の本�
 `
 
 const shaDesignAuthorWithoutScenarioLines =
-  "aa8a6fb540b1f7bec3d36876daa73e6a280398bf601f9d06f64e9a791f67f851"
+  "4ab80fb99a43b08da6a8735de1635f31e22694ee33a2da54b0cc1328f93842d7"
 const shaDesignReviewerWithoutScenarioLines =
-  "761f6ae4f8dfe3d3cbc44d656fd2f985def754dc2058359d3687d8249804af6d"
+  "706101f0b51aa8b5df73168860fe87312f746f9d19f6e83e517741511bbeafd2"
 const shaImplementReviewerWithoutScenarioLines =
   "53a839af45980842dcca97e385f14c0765ca784842be55101126d40e2921608e"
 
@@ -103,11 +103,11 @@ const conventionsPrefixSha256 =
 
 const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/implement.md":
-    "066a5023d5292e768849a765b6fa31bb8ae4ac028ffe6651843952ad2933b956",
+    "f487340f74d361fdca7a2e6ecab857954c01f022395e3ddc4af976c92d4658a7",
   "docs/canonical/runner.md":
-    "e221ff0582fb24336216e9e3d83893a34aa2b6793eb34951699385cad055fecc",
+    "0cd679943ed6788e13abb8e527050664fdb86b9c6b38e112d21c3b0397ba6e1d",
   "docs/canonical/git.md":
-    "61a513ffc91c93e0a7763adc3679033f9d2701184172a804e32c84b291fbd2e5",
+    "a8fbcc9c5fd4ed0b43ab6d511142639a857881389f3531f0d1b0567ace7a72f2",
   "docs/canonical/complete.md":
     "acfe23f933ea0f87c7c54d2708203bfad043557183ae11fe6d644cc9109deec4",
   "docs/canonical/github.md":
@@ -115,9 +115,9 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/labels.md":
     "6c0d68a701f34de8cc796ff7e0a73f7b275fc4e83e0a89bb65e224b564f64875",
   "docs/canonical/install.md":
-    "52591185a48545487bfde9f26384e8866ab2145cf792ba69f346cfa9c93e3909",
+    "fedbe2fda20ac149a9c690ec9b5dbf82707560f70b491c6b8bd57a3f97218dc8",
   "docs/canonical/docs.md":
-    "3d70a0cc1c9175df87db18343a5f13f18139f00b370914eae0f39c5913ae2177",
+    "355c7066fa1a4572d0323aa75b4f976aa61a9ec59023adb52a93c7a61b3aeedd",
   "docs/canonical/init.md":
     "5f83df3a9ed5cc491dabc1355354482950960ba6bf31d287e63d63d629b198d4",
 }

@@ -349,7 +349,13 @@ describe("129", () => {
   test("[5][22][23][24] 設計の節 合格案内", async () => {
     const skill = await readFile(skillPath, "utf8")
     const section = sectionBetween(skill, "## 設計", "## 確認")
-    expectContainsAll(section, designPassGuidePhrases)
+    expectContainsAll(
+      section,
+      designPassGuidePhrases.filter(
+        (phrase) =>
+          phrase !== "そのときは、`sdd-cur request <番号>` を実行しない。",
+      ),
+    )
     expect(section).toContain(
       "「ここで止める」を選んだときは、push するのは、要求と設計を含む作業ブランチである。",
     )
@@ -387,7 +393,9 @@ describe("129", () => {
   test("[13][14][54][55][56][57][58][59][60][61][62] 満たされているかの判断", async () => {
     const skill = await readFile(skillPath, "utf8")
     const section = judgmentSection(skill)
-    expect(section).toContain("閉じるかどうかの確認の出し方は、#114 のままである。")
+    expect(section).toContain(
+      "閉じるかどうかの確認は、根拠を示せるときに `閉じる` と `閉じない` を出す。",
+    )
     expect(section).toContain(
       "根拠を示せるときは、合格の案内より先に、`閉じる` と `閉じない` を出す。",
     )

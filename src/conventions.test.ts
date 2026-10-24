@@ -877,10 +877,10 @@ describe("文書", () => {
     expect(text).toContain("docs/canonical/<領域>.md")
     expect(text).toContain("## レビューが読む範囲")
     expect(text).toContain(
-      "要求レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、#86 で作る正本と、対象課題の `docs/issues/<番号>/requirements.md` の「関係する課題」に挙げた課題の仕様だけである。",
+      "要求レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、正本と、対象課題の `docs/issues/<番号>/requirements.md` の「関係する課題」に挙げた課題の仕様だけである。正本は `docs/canonical/` に置く。",
     )
     expect(text).toContain(
-      "設計レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、#86 で作る正本と、対象課題の `docs/issues/<番号>/design.md` の「関係する課題」に挙げた課題の仕様だけである。",
+      "設計レビュー役が食い違いと巻き戻りを探すときに読んで比べる範囲は、正本と、対象課題の `docs/issues/<番号>/design.md` の「関係する課題」に挙げた課題の仕様だけである。正本は `docs/canonical/` に置く。",
     )
     expect(text).toContain("履歴として残す")
     expect(text).toContain("## 正本への差分")

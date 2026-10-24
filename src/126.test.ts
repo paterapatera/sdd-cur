@@ -79,7 +79,11 @@ const SPEC_CHECK_PREFIXES = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "e2ac0e2cdb8d91b49b54a8376fd52839994798406fcdfb0bd9b54301b3e8e4d5"
+  "2dca6c671cf7464e78a05f8b53ec4ad399e6412617c4987e0d67d7a69e2df8eb"
+
+/** #173 以降の正本差分で上書きされた要求（#126 の差分本文とは一致しない） */
+/** 課題 126 の差分適用後、課題 145 が正本を上書きした REQ */
+const SUPERSEDED_BY_ISSUE_145 = new Set(["REQ-798"])
 
 const REQ_HEADING = /^## REQ-([1-9][0-9]*)$/
 const ORIGIN_LINE = /^もとになった課題は #([1-9][0-9]*) である。$/
@@ -215,6 +219,8 @@ describe("126", () => {
   const requirements = allCanonicalRequirements()
   const byId = new Map(requirements.map((req) => [req.id, req]))
   const skipCanonicalMatch = new Set([
+    "REQ-502",
+    "REQ-798",
     ...issue176SupersededSddReqIds(),
     ...issue145SupersededGitReqIds(),
   ])

@@ -29,6 +29,18 @@ import {
 const skillPath = path.join(import.meta.dir, "../skills/sdd-cur/SKILL.md")
 const cliPath = path.join(import.meta.dir, "cli.ts")
 
+function sectionBetween(
+  text: string,
+  startHeading: string,
+  endHeading: string,
+): string {
+  const start = text.indexOf(startHeading)
+  expect(start).toBeGreaterThanOrEqual(0)
+  const end = text.indexOf(endHeading, start + startHeading.length)
+  expect(end).toBeGreaterThan(start)
+  return text.slice(start, end)
+}
+
 describe("skills/sdd-cur/SKILL.md", () => {
   test("フロントマターと必須の文言", async () => {
     const text = await readFile(skillPath, "utf8")
@@ -71,7 +83,7 @@ disable-model-invocation: true
       "実装のラベルが付いている",
       "ファイルを変えず",
       "人が直したときは、直した文字列を改めて見せ",
-      "未回答の確認があるあいだ、次の確認は投稿しない",
+      "`unanswered` が空でないときは、次の確認は投稿しない",
       "未反映の回答があるとき、人が取り込み先を決めるまでファイルは変えない",
       "reflect が成功するまでディスク上のファイルは変えない",
       "反映済みブロックより前",
@@ -97,7 +109,6 @@ disable-model-invocation: true
       "実装依頼に進めることができる、とは伝えない",
       "判定が合格なら実装依頼に進むことができる",
       "作業ブランチを用意する",
-      "sdd-cur branch",
       "`sdd-cur prepare-branch <番号>` を実行し、終了コードが 0 以外なら止まる。",
       "要求作成役を起動する前に",
       "設計作成役を起動する前に",
@@ -218,6 +229,50 @@ disable-model-invocation: true
     expect(text).not.toContain("createGitHub")
     expect(text).not.toContain("src/sdd.ts")
     expect(text).not.toContain(reflectedOpenLine)
+  })
+
+  test("[36][37][38][39][40][41][42][43][50][51] gate 各段と旧ゲート文の除去", async () => {
+    const text = await readFile(skillPath, "utf8")
+    const explore = sectionBetween(text, "## 調べる", "## 要件")
+    const requirements = sectionBetween(text, "## 要件", "## 設計")
+    const design = sectionBetween(text, "## 設計", "## 確認")
+    const confirm = sectionBetween(text, "## 確認", "## 回答")
+    const reflect = sectionBetween(text, "## 回答", "## 禁止")
+
+    for (const [slice, stage] of [
+      [explore, "explore"],
+      [requirements, "requirements"],
+      [design, "design"],
+      [confirm, "confirm"],
+      [reflect, "reflect"],
+    ] as const) {
+      expect(slice).toContain(`sdd-cur gate <番号> ${stage}`)
+      expect(slice).toContain("終了コードが 0 以外なら止まる")
+      expect(slice).toContain("`allowed` が `false` なら `reason` を伝えて止まる")
+    }
+    expect(design).toContain("sdd-cur gate <番号> request")
+
+    expect(explore).not.toContain("`state` が `open` でないとき")
+    expect(explore).not.toContain("業務ラベルが一つでもあるときは")
+    expect(explore).not.toContain("業務ラベルが無いときだけ")
+
+    expect(requirements).toContain(
+      "`sdd-cur prepare-branch <番号>` を実行し、終了コードが 0 以外なら止まる。",
+    )
+    expect(requirements.indexOf("sdd-cur gate")).toBeLessThan(
+      requirements.indexOf("prepare-branch"),
+    )
+
+    expect(design).toContain(
+      "設計作成役を起動する前に、`sdd-cur prepare-branch <番号>` は実行しない。",
+    )
+    expect(design).not.toContain("sdd-cur branch <番号>` の標準出力")
+    expect(design).not.toContain("今のブランチと比較")
+    expect(design).not.toContain(
+      "`unanswered` が空でない、または `nextAnswer` が `null` でないときは、`sdd-cur request",
+    )
+
+    expect(explore).toContain("`show` が返した課題本文とコメント")
   })
 
   test("install で SKILL.md とサブエージェントがコピーされる", async () => {

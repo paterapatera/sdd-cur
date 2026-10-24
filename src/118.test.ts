@@ -81,7 +81,9 @@ describe("118 init", () => {
     const help = await runCli(["--help"])
     expect(help.code).toBe(0)
     const helpLines = help.stderr.split("\n")
-    const idx = helpLines.indexOf("sdd-cur install [project-root]")
+    const idx = helpLines.indexOf(
+      "sdd-cur install [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]",
+    )
     expect(helpLines[idx + 1]).toBe("sdd-cur init [project-root]")
   })
 

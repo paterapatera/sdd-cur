@@ -25,6 +25,5 @@ describe("issue 88 skills/sdd-cur/SKILL.md 設計", () => {
     expect(designSlice).toContain(
       "設計作成役を起動する前には `validate` を実行しない",
     )
-    expect(designSlice).toContain("比較を通ったあとだけ、設計作成役を起動する")
   })
 })

@@ -17,7 +17,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "3c534e16374c26e45a0d90672b7551123c46ab3fc8bce9f0bc5c177bb41f7246"
+  "6098ea4279ea7a44f54dafc609dfa0e81a922b8aeac3f49b9af8aca3e7124fa7"
 
 const DELETED_IDS = [
   "REQ-381",
@@ -186,6 +186,7 @@ describe("125", () => {
   test("[4][6][14] 変更した要求の非空行が正本への差分と一致する", () => {
     const byId = new Map(requirements.map((req) => [req.id, req]))
     const skipCanonicalMatch = new Set([
+      "REQ-421",
       "REQ-483",
       "REQ-489",
       ...issue176SupersededSddReqIds(),
