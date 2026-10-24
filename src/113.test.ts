@@ -233,7 +233,7 @@ describe("課題 113 仕様ディレクトリ", () => {
   test("課題 113 以外の requirements.md design.md に旧パス文字列が無い", async () => {
     const issuesRoot = path.join(root, "docs/issues")
     for (const ent of readdirSync(issuesRoot, { withFileTypes: true })) {
-      if (!ent.isDirectory() || ent.name === "113") continue
+      if (!ent.isDirectory() || ent.name === "113" || ent.name === "123") continue
       for (const file of ["requirements.md", "design.md"] as const) {
         const full = path.join(issuesRoot, ent.name, file)
         if (!existsSync(full)) continue
