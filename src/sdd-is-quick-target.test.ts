@@ -27,10 +27,10 @@ import {
   isQuickTarget,
 } from "./sdd.ts"
 describe("isQuickTarget", () => {
-  test("本文またはラベルの quick 対象", () => {
+  test("ラベルの quick 対象だけが true", () => {
     expect(
       isQuickTarget({ body: "本文に quick 対象 を含む", labels: [] }),
-    ).toBe(true)
+    ).toBe(false)
     expect(isQuickTarget({ body: "", labels: ["quick 対象"] })).toBe(true)
     expect(isQuickTarget({ body: "", labels: [] })).toBe(false)
     expect(isQuickTarget({ body: "quick対象", labels: [] })).toBe(false)

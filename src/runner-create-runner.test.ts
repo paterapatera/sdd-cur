@@ -1532,13 +1532,13 @@ describe("createRunner", () => {
           }
           if (query.state === "open" && !query.labels) {
             return [
-              issue({ number: 7, body: "quick 対象", labels: [], assignees: [VIEWER_LOGIN] }),
+              issue({ number: 7, body: "quick 対象", labels: ["quick 対象"], assignees: [VIEWER_LOGIN] }),
             ]
           }
           return []
         },
         async getIssue() {
-          return issue({ number: 7, body: "quick 対象", labels: [] })
+          return issue({ number: 7, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -1618,7 +1618,7 @@ describe("createRunner", () => {
           return issue({
             number: 56,
             body: "quick 対象",
-            labels: [],
+            labels: ["quick 対象"],
             title: "題",
             url: "https://issue/56",
           })
@@ -1759,7 +1759,7 @@ describe("createRunner", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels(_n, change) {
           expect(change.add).toEqual([LABEL_IN_PROGRESS])
@@ -1845,7 +1845,7 @@ describe("createRunner", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -1920,7 +1920,7 @@ describe("createRunner", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -1998,7 +1998,7 @@ describe("createRunner", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -2084,7 +2084,7 @@ describe("createRunner", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -2237,7 +2237,7 @@ describe("createRunner", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 9, body: "quick 対象", labels: [] })
+          return issue({ number: 9, body: "quick 対象", labels: ["quick 対象"] })
         },
         async editLabels() {},
         async getDefaultBranch() {
