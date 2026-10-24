@@ -23,6 +23,49 @@ export type GitClient = {
   push(remote: string, branch: string): Promise<void>
 }
 
+const SDD_CUR_TASK_LINE = /^Sdd-Cur-Task: ([1-9]\d*)$/
+
+export function taskDoneCommitSubject(
+  issueNumber: number,
+  taskNumber: number,
+): string {
+  return `feat: 課題 ${issueNumber} 作業 ${taskNumber}`
+}
+
+export function taskDoneCommitTrailer(taskNumber: number): string {
+  return `Sdd-Cur-Task: ${taskNumber}`
+}
+
+export function parseSddCurTaskNumberFromLine(line: string): number | null {
+  const match = line.match(SDD_CUR_TASK_LINE)
+  if (match === null) {
+    return null
+  }
+  return Number(match[1])
+}
+
+export function messageHasSddCurTaskTrailer(message: string): boolean {
+  for (const line of message.split(/\r?\n/)) {
+    if (parseSddCurTaskNumberFromLine(line) !== null) {
+      return true
+    }
+  }
+  return false
+}
+
+export function messageHasSddCurTaskForNumber(
+  message: string,
+  taskNumber: number,
+): boolean {
+  const expected = taskDoneCommitTrailer(taskNumber)
+  for (const line of message.split(/\r?\n/)) {
+    if (line === expected) {
+      return true
+    }
+  }
+  return false
+}
+
 function reject(message: string): never {
   throw new Error(message)
 }
@@ -55,12 +98,46 @@ function assertGitOk(result: GitResult): void {
   }
 }
 
+function firstShaFromLsRemote(stdout: string): string | null {
+  for (const line of stdout.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (trimmed.length === 0) {
+      continue
+    }
+    const tab = trimmed.indexOf("\t")
+    const sha = tab === -1 ? trimmed : trimmed.slice(0, tab)
+    if (sha.length > 0) {
+      return sha.trim()
+    }
+  }
+  return null
+}
+
 export function createGit(
   options: { git: GitRunner; cwd: string },
 ): GitClient & {
   currentBranch(): Promise<string>
   localBranchNames(): Promise<readonly string[]>
   deleteLocalBranch(name: string): Promise<void>
+  commitTaskDone(issueNumber: number, taskNumber: number): Promise<void>
+  defaultBranchTip(remote: string, defaultBranch: string): Promise<string>
+  revListReachableNotFrom(
+    reachable: string,
+    excluded: string,
+  ): Promise<readonly string[]>
+  commitMessage(sha: string): Promise<string>
+  branchOnlyCommitShas(
+    remote: string,
+    defaultBranch: string,
+  ): Promise<readonly string[]>
+  branchOnlyCommitMessages(
+    remote: string,
+    defaultBranch: string,
+  ): Promise<readonly string[]>
+  commitsAfterExclusive(
+    before: string,
+    after: string,
+  ): Promise<readonly string[]>
 } {
   const git = options.git
   const cwd = options.cwd
@@ -219,6 +296,74 @@ export function createGit(
       assertGitOk(commitResult)
     },
 
+    async commitTaskDone(issueNumber, taskNumber) {
+      const addResult = await run(["add", "-A"])
+      assertGitOk(addResult)
+      const subject = taskDoneCommitSubject(issueNumber, taskNumber)
+      const trailer = taskDoneCommitTrailer(taskNumber)
+      const commitResult = await run([
+        "commit",
+        "-m",
+        subject,
+        "-m",
+        "",
+        "-m",
+        trailer,
+      ])
+      assertGitOk(commitResult)
+    },
+
+    async defaultBranchTip(remote, defaultBranch) {
+      const remoteRef = `refs/remotes/${remote}/${defaultBranch}`
+      const parseResult = await run(["rev-parse", remoteRef])
+      if (parseResult.exitCode === 0) {
+        const line = firstNonemptyLine(parseResult.stdout)
+        if (line !== null) {
+          return line.trim()
+        }
+      }
+      const lsResult = await run(["ls-remote", remote, defaultBranch])
+      assertGitOk(lsResult)
+      const sha = firstShaFromLsRemote(lsResult.stdout)
+      if (sha === null) {
+        reject("git が失敗しました")
+      }
+      return sha
+    },
+
+    async revListReachableNotFrom(reachable, excluded) {
+      const result = await run(["rev-list", reachable, `^${excluded}`])
+      assertGitOk(result)
+      return result.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+    },
+
+    async commitMessage(sha) {
+      const result = await run(["log", "-1", "--format=%B", sha])
+      assertGitOk(result)
+      return result.stdout
+    },
+
+    async branchOnlyCommitShas(remote, defaultBranch) {
+      const tip = await this.defaultBranchTip(remote, defaultBranch)
+      return await this.revListReachableNotFrom("HEAD", tip)
+    },
+
+    async branchOnlyCommitMessages(remote, defaultBranch) {
+      const shas = await this.branchOnlyCommitShas(remote, defaultBranch)
+      const messages: string[] = []
+      for (const sha of shas) {
+        messages.push(await this.commitMessage(sha))
+      }
+      return messages
+    },
+
+    async commitsAfterExclusive(before, after) {
+      return await this.revListReachableNotFrom(after, before)
+    },
+
     async push(remote, branch) {
       const result = await run(["push", "-u", remote, branch])
       assertGitOk(result)
@@ -226,7 +371,7 @@ export function createGit(
   }
 }
 
-function parseDefaultBranchFromSymref(stdout: string): string | null {
+export function parseDefaultBranchFromSymref(stdout: string): string | null {
   const prefix = "ref: refs/heads/"
   for (const line of stdout.split(/\r?\n/)) {
     if (!line.startsWith(prefix)) {

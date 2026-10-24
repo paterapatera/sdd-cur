@@ -183,7 +183,7 @@ export function evaluateGate(
 
 ## 正本への差分
 
-### 追加 sdd REQ-923
+### 追加 sdd REQ-931
 
 もとになった課題は #166 である。
 
@@ -191,7 +191,7 @@ export function evaluateGate(
 
 - シナリオ: 条件: 引数が課題番号と六つの段のどれかである 主体: `gate` 結果: 標準出力は JSON の一行であり、終了コードは 0 である
 
-### 追加 sdd REQ-924
+### 追加 sdd REQ-932
 
 もとになった課題は #166 である。
 
@@ -200,7 +200,7 @@ export function evaluateGate(
 - シナリオ: 条件: 引数の数が二つでない、または段が六つのどれでもない 主体: `gate` 結果: 標準エラーは `段が不正です` であり、`allowed` を含む JSON は出さない
 - シナリオ: 条件: 引数が二つであり段が六つのどれかであり番号が不正である 主体: `gate` 結果: 標準エラーは `番号が不正です` であり、`allowed` を含む JSON は出さない
 
-### 追加 sdd REQ-925
+### 追加 sdd REQ-933
 
 もとになった課題は #166 である。
 
@@ -209,7 +209,7 @@ export function evaluateGate(
 - シナリオ: 条件: 判定がその段を始めてよい 主体: `gate` 結果: 標準出力の一行は `{"allowed":true}` である
 - シナリオ: 条件: 判定がその段を始めてはいけない 主体: `gate` 結果: 標準出力は `allowed` が false の JSON 一行であり、`reason` は人に伝える一文である
 
-### 追加 sdd REQ-926
+### 追加 sdd REQ-934
 
 もとになった課題は #166 である。
 
@@ -218,7 +218,7 @@ export function evaluateGate(
 - シナリオ: 条件: 段が `explore` であり課題が開いて業務ラベルが無い 主体: `gate` 結果: `{"allowed":true}` である
 - シナリオ: 条件: 段が `explore` であり課題が閉じている 主体: `gate` 結果: `reason` は `課題は閉じている` である
 
-### 追加 sdd REQ-927
+### 追加 sdd REQ-935
 
 もとになった課題は #166 である。
 
@@ -227,7 +227,7 @@ export function evaluateGate(
 - シナリオ: 条件: 段が `requirements` であり開いて業務ラベルが無く要件が `missing` または `ready` である 主体: `gate` 結果: `{"allowed":true}` である
 - シナリオ: 条件: 段が `requirements` であり要件が `invalid` である 主体: `gate` 結果: `reason` は `要件の見出しが不正である` である
 
-### 追加 sdd REQ-928
+### 追加 sdd REQ-936
 
 もとになった課題は #166 である。
 
@@ -237,7 +237,7 @@ export function evaluateGate(
 - シナリオ: 条件: 段が `design` であり未回答の確認がある 主体: `gate` 結果: `reason` は `未回答の確認があるため、設計には進まない` である
 - シナリオ: 条件: 段が `request` であり設計が `missing` で他の止まりに当たらない 主体: `gate` 結果: `reason` は `設計が無い` である
 
-### 追加 sdd REQ-929
+### 追加 sdd REQ-937
 
 もとになった課題は #166 である。
 
@@ -273,7 +273,7 @@ export function evaluateGate(
 - シナリオ: 条件: 設計のゲートが `allowed` true である 主体: SDD スキル 結果: `prepare-branch` を設計作成役の前に実行しない
 - シナリオ: 条件: 設計のゲートが `allowed` false である 主体: SDD スキル 結果: 設計のサブエージェントを起動しない
 
-### 追加 sdd REQ-930
+### 追加 sdd REQ-938
 
 もとになった課題は #166 である。
 

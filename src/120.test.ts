@@ -89,7 +89,7 @@ describe("120 prepare-branch", () => {
     expect(implementationBranch(120)).toBe(BRANCH)
     const cliSource = await readFile(cliPath, "utf8")
     const gitSource = await readFile(path.join(import.meta.dir, "git.ts"), "utf8")
-    expect(cliSource).not.toContain("task-")
+    expect(cliSource.replaceAll("task-done", "")).not.toContain("task-")
     expect(gitSource).not.toContain("implementationBranch")
   })
 
