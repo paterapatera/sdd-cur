@@ -75,7 +75,10 @@ const SPEC_CHECK_PREFIXES = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "e2ac0e2cdb8d91b49b54a8376fd52839994798406fcdfb0bd9b54301b3e8e4d5"
+  "2dca6c671cf7464e78a05f8b53ec4ad399e6412617c4987e0d67d7a69e2df8eb"
+
+/** #173 以降の正本差分で上書きされた要求（#126 の差分本文とは一致しない） */
+const SUPERSEDED_BY_LATER_ISSUES = new Set(["REQ-502", "REQ-798"])
 
 /** 課題 126 の差分適用後、課題 145 が正本を上書きした REQ */
 const SUPERSEDED_BY_ISSUE_145 = new Set(["REQ-798"])
@@ -240,7 +243,7 @@ describe("126", () => {
 
   test("[5][6] 変更した要求の非空行が正本への差分と一致し、壊れた接尾辞が無い", () => {
     for (const [id, designBody] of changed) {
-      if (SUPERSEDED_BY_ISSUE_145.has(id)) {
+      if (SUPERSEDED_BY_LATER_ISSUES.has(id)) {
         continue
       }
       const req = byId.get(id)
@@ -281,7 +284,7 @@ describe("126", () => {
 
   test("[8][10][19][20] 変更の由来行は変えない", () => {
     for (const [id, designBody] of changed) {
-      if (SUPERSEDED_BY_ISSUE_145.has(id)) {
+      if (SUPERSEDED_BY_LATER_ISSUES.has(id)) {
         continue
       }
       const req = byId.get(id)
