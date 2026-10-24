@@ -409,7 +409,7 @@ describe("createRunner start claim", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async listComments() {
           ghLog.push("listComments")
@@ -489,7 +489,7 @@ describe("createRunner start claim", () => {
             return []
           },
           async getIssue() {
-            return issue({ number: 1, body: "quick 対象", labels: [] })
+            return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
           },
           async listComments() {
             ghLog.push("listComments")
@@ -573,7 +573,7 @@ describe("createRunner start claim", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async listComments() {
           listCall += 1
@@ -675,7 +675,7 @@ describe("createRunner start claim", () => {
           return []
         },
         async getIssue() {
-          return issue({ number: 1, body: "quick 対象", labels: [] })
+          return issue({ number: 1, body: "quick 対象", labels: ["quick 対象"] })
         },
         async listComments() {
           return startIssueComments.listComments()

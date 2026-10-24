@@ -39,10 +39,10 @@ describe("selectQuickIssue", () => {
   test("条件を満たす最小番号を返す", () => {
     const issues = [
       issue({ number: 10, body: "quick 対象", labels: [] }),
-      issue({ number: 2, body: "quick 対象", labels: [] }),
-      issue({ number: 3, state: "closed", body: "quick 対象" }),
+      issue({ number: 2, body: "quick 対象", labels: ["quick 対象"] }),
+      issue({ number: 3, state: "closed", body: "quick 対象", labels: ["quick 対象"] }),
       issue({ number: 4, labels: [LABEL_REQUEST] }),
-      issue({ number: 5, body: "quick 対象", assignees: ["other"] }),
+      issue({ number: 5, body: "quick 対象", labels: ["quick 対象"], assignees: ["other"] }),
       issue({ number: 6, body: "通常" }),
     ]
     expect(selectQuickIssue(issues, VIEWER_LOGIN)?.number).toBe(2)
