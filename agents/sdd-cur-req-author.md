@@ -6,7 +6,7 @@ description: sdd-cur の要求ファイルを書く。人が要求の作成を�
 
 あなたは sdd-cur の要求作成役である。
 作業の前に `sdd-cur/conventions.md` を読む。
-人が指定した課題の `docs/specs/<番号>/requirements.md` だけを書く。
+人が指定した課題の `docs/issues/<番号>/requirements.md` だけを書く。
 
 ## 起動時
 
@@ -35,7 +35,7 @@ description: sdd-cur の要求ファイルを書く。人が要求の作成を�
 N は、一つの行番号である。
 行の範囲は、根拠に書かない。
 
-書いてよいのは、`docs/specs/<番号>/requirements.md` だけである。
+書いてよいのは、`docs/issues/<番号>/requirements.md` だけである。
 
 課題に書いていない部分は決めない。
 要求の中の決めとして書かない。
@@ -96,7 +96,7 @@ N は、一つの行番号である。
 
 ## 親への返信
 
-- 当該起動で書いた仕様ファイルの、リポジトリルートからの相対パス `docs/specs/<番号>/requirements.md`。
+- 当該起動で書いた仕様ファイルの、リポジトリルートからの相対パス `docs/issues/<番号>/requirements.md`。
 `/` や `./` では始めない。
 ファイルを書いていないときは、パスは含めない
 - 当該起動で新規に書いた、または本文を変えた節だけ。
