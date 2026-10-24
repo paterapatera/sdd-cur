@@ -295,6 +295,7 @@ async function cmdTasks(args: string[]): Promise<number> {
   return 0
 }
 
+// task-done subcommand.
 async function cmdTaskDone(args: string[]): Promise<number> {
   if (args.length !== 2) {
     printUsage()
