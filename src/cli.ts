@@ -62,7 +62,9 @@ import {
 import { checkSpec } from "./spec.ts"
 
 export function printUsage(): void {
-  console.error("sdd-cur install [project-root]")
+  console.error(
+    "sdd-cur install [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]",
+  )
   console.error("sdd-cur init [project-root]")
   console.error("sdd-cur run [--interval-min <1 以上 1440 以下の整数>]")
   console.error("sdd-cur labels")
@@ -258,7 +260,9 @@ async function cmdInstall(args: string[]): Promise<number> {
   const parsed = parseInstallArgs(args)
   if (!parsed.ok) {
     console.error(parsed.message)
-    printUsage()
+    if (!parsed.message.startsWith("モデルの指定が不正です:")) {
+      printUsage()
+    }
     return 1
   }
 
@@ -279,6 +283,9 @@ async function cmdInstall(args: string[]): Promise<number> {
       projectRoot: parsed.projectRoot,
       skillsSourceDir: defaultSkillsSourceDir,
       agentsSourceDir: defaultAgentsSourceDir,
+      highModel: parsed.highModel,
+      mediumModel: parsed.mediumModel,
+      lowModel: parsed.lowModel,
     })
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
@@ -288,6 +295,9 @@ async function cmdInstall(args: string[]): Promise<number> {
   console.log(result.destDir)
   if (result.skillNames.length === 0) {
     console.log("配置するスキルはありません")
+  }
+  for (const line of result.subagentModels) {
+    console.log(`${line.baseName} ${line.model}`)
   }
   return 0
 }
