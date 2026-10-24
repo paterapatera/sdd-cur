@@ -414,6 +414,73 @@ describe("173 task-done and tasks", () => {
     expect(commitMsg).toBe("")
     await rm(procedurePath, { force: true })
 
+    const branchOnlyComments = createIssueCommentStore()
+    await writeFile(procedurePath, "手順", "utf8")
+    const runnerBranchOnly = createRunner({
+      github: {
+        async viewerLogin() {
+          return VIEWER_LOGIN
+        },
+        async listIssues() {
+          return []
+        },
+        async getIssue() {
+          return issue({ number: 1 })
+        },
+        async editLabels() {},
+        async getDefaultBranch() {
+          return "main"
+        },
+        async createBranch() {},
+        async createPullRequest() {
+          return { number: 1, url: "https://pr" }
+        },
+        async addComment(_n, body) {
+          if (branchOnlyComments.recordStartComment(body)) {
+            return { url: "https://start-comment" }
+          }
+          return { url: "https://c" }
+        },
+        async listComments() {
+          return branchOnlyComments.listComments()
+        },
+      },
+      git: {
+        async remoteName() {
+          return "origin"
+        },
+        async fetch() {},
+        async checkoutFetched() {},
+        async mergeFetched() {
+          return { status: "merged" as const }
+        },
+        async headCommit() {
+          return "same"
+        },
+        async hasChanges() {
+          return false
+        },
+        async commitAll(msg) {
+          commitMsg = msg
+        },
+        async push() {},
+        async commitsAfterExclusive() {
+          return []
+        },
+        async branchOnlyCommitMessages() {
+          return [`feat: 課題 173 作業 1\n\nSdd-Cur-Task: 1\n`]
+        },
+      },
+      agent: { async implement() {} },
+      createProcedureFile: async () => ({
+        path: procedurePath,
+        async remove() {},
+      }),
+    })
+    await runnerBranchOnly.process({ id: "1" })
+    expect(commitMsg).toBe("")
+    await rm(procedurePath, { force: true })
+
     headCalls = 0
     commitMsg = ""
     await writeFile(procedurePath, "手順", "utf8")

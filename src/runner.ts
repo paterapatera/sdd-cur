@@ -152,6 +152,7 @@ async function commitAndPushImplementation(
   remote: string,
   branch: string,
   before: string,
+  defaultBranch: string,
 ): Promise<void> {
   const changed = await withRetry(() => deps.git.hasChanges())
   if (changed) {
@@ -171,6 +172,15 @@ async function commitAndPushImplementation(
         hasTaskCommit = true
         break
       }
+    }
+    if (!hasTaskCommit) {
+      const messages = await withRetry(() =>
+        runnerGitExtras(deps.git).branchOnlyCommitMessages(
+          remote,
+          defaultBranch,
+        ),
+      )
+      hasTaskCommit = messages.some(messageHasSddCurTaskTrailer)
     }
     if (!hasTaskCommit) {
       reject(NO_CHANGES)
@@ -854,6 +864,7 @@ async function runQuick(
         remote,
         branch,
         headBefore,
+        defaultBranch,
       )
 
       const pullRequest = await withRetry(() =>
@@ -1016,6 +1027,7 @@ async function runImplementation(
       remote,
       branch,
       headBefore,
+      defaultBranch,
     )
 
     const pullRequest = await withRetry(() =>
