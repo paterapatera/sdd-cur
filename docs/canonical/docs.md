@@ -40,7 +40,9 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 
 もとになった課題は #83 である。
 
-サブコマンドの正は `src/cli.ts` の `main` にある `switch (sub)` の `case "..."` である。`default` は含めない。順は `install`、`run`、`labels`、`candidates`、`show`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`、`spec-check`、`tasks` である。
+サブコマンドの正は `src/cli.ts` の `main` にある `switch (sub)` の `case "..."` である。`default` は含めない。順は `install`、`run`、`labels`、`candidates`、`show`、`gate`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`、`spec-check`、`tasks` である。
+
+- シナリオ: 条件: `src/cli.ts` に `gate` の `case` がある 主体: 文書と CLI 結果: `docs/canonical/docs.md` の列挙に `gate` が含まれる
 
 ## REQ-714
 

@@ -35,7 +35,7 @@ const BAD_DES_HEADING = "設計の見出しが不正です"
 const BAD_HEADING = "見出しが不正です"
 const CANT_READ_SPEC = "仕様を読めません"
 
-const workflowLabelNames = new Set(workflowLabels.map((l) => l.name))
+export const workflowLabelNames = new Set(workflowLabels.map((l) => l.name))
 const allMarkers = new Set<string>(Object.values(commentMarkers))
 
 function reject(message: string): never {

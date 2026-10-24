@@ -38,6 +38,7 @@ const usageText =
   "sdd-cur labels\n" +
   "sdd-cur candidates\n" +
   "sdd-cur show <番号>\n" +
+  "sdd-cur gate <番号> <段>\n" +
   "sdd-cur branch <番号>\n" +
   "sdd-cur prepare-branch <番号>\n" +
   "sdd-cur confirm <番号>\n" +

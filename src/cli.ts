@@ -65,6 +65,7 @@ import {
   validateReflectLocal,
   writeSpecFile,
 } from "./sdd.ts"
+import { evaluateGate, parseGateStage, type GateStage } from "./gate.ts"
 import { checkSpec } from "./spec.ts"
 
 export function printUsage(): void {
@@ -74,6 +75,7 @@ export function printUsage(): void {
   console.error("sdd-cur labels")
   console.error("sdd-cur candidates")
   console.error("sdd-cur show <番号>")
+  console.error("sdd-cur gate <番号> <段>")
   console.error("sdd-cur branch <番号>")
   console.error("sdd-cur prepare-branch <番号>")
   console.error("sdd-cur confirm <番号>")
@@ -598,6 +600,70 @@ async function cmdShow(args: string[]): Promise<number> {
   }
 }
 
+export type GateCmdDeps = {
+  readSpecPair: typeof readSpecPair
+  assertSpecFilesReflected: typeof assertSpecFilesReflected
+  loadIssueView: typeof loadIssueView
+  openGitHub: typeof githubFromCwd
+  currentBranch: () => Promise<string>
+}
+
+export function defaultGateCmdDeps(): GateCmdDeps {
+  return {
+    readSpecPair,
+    assertSpecFilesReflected,
+    loadIssueView,
+    openGitHub: githubFromCwd,
+    currentBranch: async () => {
+      const git = createGit({ git: defaultGitRunner, cwd: process.cwd() })
+      return await git.currentBranch()
+    },
+  }
+}
+
+export async function cmdGate(
+  args: string[],
+  deps: GateCmdDeps = defaultGateCmdDeps(),
+): Promise<number> {
+  if (args.length !== 2) {
+    console.error("段が不正です")
+    return 1
+  }
+
+  let stage: GateStage
+  try {
+    stage = parseGateStage(args[1])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  try {
+    const files = await deps.readSpecPair(issueNumber)
+    deps.assertSpecFilesReflected({
+      requirements: files.requirements.markdown,
+      design: files.design.markdown,
+    })
+    const github = await deps.openGitHub()
+    const view = await deps.loadIssueView(github, issueNumber, files)
+    const currentBranch = await deps.currentBranch()
+    const result = evaluateGate(stage, view, currentBranch, issueNumber)
+    console.log(JSON.stringify(result))
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
 async function cmdConfirm(args: string[]): Promise<number> {
   if (args.length !== 1) {
     printUsage()
@@ -995,6 +1061,8 @@ async function main(): Promise<number> {
       return await cmdCandidates(rest)
     case "show":
       return await cmdShow(rest)
+    case "gate":
+      return await cmdGate(rest)
     case "branch":
       return await cmdBranch(rest)
     case "prepare-branch":

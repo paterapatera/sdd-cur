@@ -31,6 +31,7 @@ bun src/cli.ts run [--interval-min <1 以上 1440 以下の整数>]
 bun src/cli.ts labels
 bun src/cli.ts candidates
 bun src/cli.ts show <番号>
+bun src/cli.ts gate <番号> <段>
 bun src/cli.ts branch <番号>
 bun src/cli.ts prepare-branch <番号>
 bun src/cli.ts confirm <番号>

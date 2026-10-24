@@ -103,7 +103,7 @@ const conventionsPrefixSha256 =
 
 const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/sdd.md":
-    "737ebf767fd7e43c7d339f9dfb2c9cfecae1c0ad5d9a34ac3090a6ea09279497",
+    "4f585052b696d53345de47be39bd1dcd73fe7270805c91efb40263d7a8eaf67f",
   "docs/canonical/implement.md":
     "f487340f74d361fdca7a2e6ecab857954c01f022395e3ddc4af976c92d4658a7",
   "docs/canonical/runner.md":
@@ -119,7 +119,7 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/install.md":
     "52591185a48545487bfde9f26384e8866ab2145cf792ba69f346cfa9c93e3909",
   "docs/canonical/docs.md":
-    "3daf3f10b3735bae33b302b7f3a41d1d2f0d5fcdbb0b808a589e96e0f48b2ad2",
+    "50736642fd77cb9f723de0afe541e141fb816d3a4810e6d5ac5a00804182c2d1",
   "docs/canonical/init.md":
     "5f83df3a9ed5cc491dabc1355354482950960ba6bf31d287e63d63d629b198d4",
 }
