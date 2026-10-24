@@ -79,7 +79,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 パスへ入ったあとは `sdd-cur install` と `sdd-cur run` で同じ入口を呼ぶ。
 
-導入の順は `install`、`init`、`labels` である。
+導入の順は `install`、`init`、`labels` である。`sdd-cur doctor` は導入の前提を一つずつ確かめるコマンドである。
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-policy`、`skills/sdd-cur-quick` である。
 

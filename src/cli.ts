@@ -67,6 +67,7 @@ import {
 } from "./sdd.ts"
 import { evaluateGate, parseGateStage, type GateStage } from "./gate.ts"
 import { checkSpec } from "./spec.ts"
+import { defaultCommandExists, runDoctor } from "./doctor.ts"
 
 export function printUsage(): void {
   console.error(
@@ -970,6 +971,22 @@ async function cmdSpecCheck(args: string[]): Promise<number> {
   }
 }
 
+async function cmdDoctor(args: string[]): Promise<number> {
+  if (args.length > 0) {
+    console.error("引数は受け取れません")
+    return 1
+  }
+
+  return await runDoctor({
+    cwd: process.cwd(),
+    homedir: homedir(),
+    skillsSourceDir: defaultSkillsSourceDir,
+    agentsSourceDir: defaultAgentsSourceDir,
+    commandExists: defaultCommandExists,
+    gh: defaultGhRunner,
+  })
+}
+
 async function cmdRequest(args: string[]): Promise<number> {
   if (args.length !== 1) {
     printUsage()
@@ -1045,7 +1062,11 @@ async function cmdComplete(args: string[]): Promise<number> {
 
 async function main(): Promise<number> {
   const argv = process.argv.slice(2)
-  if (wantsHelp(argv) && argv[0] !== "spec-check") {
+  if (
+    wantsHelp(argv) &&
+    argv[0] !== "spec-check" &&
+    argv[0] !== "doctor"
+  ) {
     printUsage()
     return 0
   }
@@ -1063,6 +1084,8 @@ async function main(): Promise<number> {
       return await cmdInstall(rest)
     case "init":
       return await cmdInit(rest)
+    case "doctor":
+      return await cmdDoctor(argv.slice(1))
     case "run":
       return await cmdRun(rest)
     case "labels":

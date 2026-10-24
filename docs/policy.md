@@ -18,7 +18,8 @@ GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起�
 
 | 場所 | 役割 |
 |---|---|
-| `src/cli.ts` | 入口。サブコマンドは `install`、`init`、`run`、`labels`、`candidates`、`show`、`gate`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`、`spec-check`、`tasks`、`task-done`、`spec-diff` |
+| `src/cli.ts` | 入口。サブコマンドは `install`、`init`、`doctor`、`run`、`labels`、`candidates`、`show`、`gate`、`branch`、`prepare-branch`、`confirm`、`close`、`reflect`、`validate`、`complete`、`restore`、`review-next`、`request`、`spec-check`、`tasks`、`task-done`、`spec-diff` |
+| `src/doctor.ts` | 導入の前提を検査する |
 | `src/spec.ts` | `docs/canonical/` 直下の要求について、近い本文、壊れた文末、空の本文、識別子の重複を検査する |
 | `src/install.ts` | `skills/<名前>/` を `~/.cursor/skills` または `<project>/.cursor/skills` へ、`agents/<名前>.md` を `~/.cursor/agents` または `<project>/.cursor/agents` へコピーする |
 | `src/run.ts` | 停止まで `poll` と `process` を繰り返す。処理のあいだは次の `poll` を呼ばない |
