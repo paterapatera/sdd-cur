@@ -245,3 +245,19 @@ README の「開発中の起動」のコードフェンスと、そのあとの�
 もとになった課題は #123 である。
 
 `AGENTS.md` の「コマンド」の例に、行全体が `bun src/cli.ts spec-diff <番号>` である行がある。
+
+## REQ-928
+
+もとになった課題は #173 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `task-done` を含む。
+
+- シナリオ: 条件: `docs/policy.md` を読む 主体: 人 結果: `src/cli.ts` の行に `task-done` がある
+
+## REQ-929
+
+もとになった課題は #173 である。
+
+`AGENTS.md` の「コマンド」の例に、`bun src/cli.ts task-done <番号> <作業番号>` の行がある。
+
+- シナリオ: 条件: `AGENTS.md` を読む 主体: 人 結果: `task-done` の起動例がある

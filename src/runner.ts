@@ -151,20 +151,28 @@ async function commitAndPushImplementation(
   issueNumber: number,
   remote: string,
   branch: string,
-  defaultBranch: string,
+  before: string,
 ): Promise<void> {
   const changed = await withRetry(() => deps.git.hasChanges())
   if (changed) {
     const commitMessage = `feat: 課題 ${issueNumber} を実装する`
     await withRetry(() => deps.git.commitAll(commitMessage))
   } else {
-    const messages = await withRetry(() =>
-      runnerGitExtras(deps.git).branchOnlyCommitMessages(
-        remote,
-        defaultBranch,
-      ),
+    const after = await withRetry(() => deps.git.headCommit())
+    const shas = await withRetry(() =>
+      runnerGitExtras(deps.git).commitsAfterExclusive(before, after),
     )
-    if (!messages.some(messageHasSddCurTaskTrailer)) {
+    let hasTaskCommit = false
+    for (const sha of shas) {
+      const message = await withRetry(() =>
+        runnerGitExtras(deps.git).commitMessage(sha),
+      )
+      if (messageHasSddCurTaskTrailer(message)) {
+        hasTaskCommit = true
+        break
+      }
+    }
+    if (!hasTaskCommit) {
       reject(NO_CHANGES)
     }
   }
@@ -174,7 +182,7 @@ async function commitAndPushImplementation(
 async function runAgentWithHeadCheck(
   deps: RunnerDeps,
   run: () => Promise<void>,
-): Promise<void> {
+): Promise<string> {
   const before = await withRetry(() => deps.git.headCommit())
   try {
     await run()
@@ -188,6 +196,7 @@ async function runAgentWithHeadCheck(
     }
   }
   await assertAgentHeadAllowed(deps, before)
+  return before
 }
 
 export function selectImplementationIssue(
@@ -816,8 +825,9 @@ async function runQuick(
 
     const procedure = await deps.createProcedureFile()
     try {
+      let headBefore: string
       try {
-        await runAgentWithHeadCheck(deps, () =>
+        headBefore = await runAgentWithHeadCheck(deps, () =>
           deps.agent.implement({
             issueNumber,
             procedurePath: procedure.path,
@@ -843,7 +853,7 @@ async function runQuick(
         issueNumber,
         remote,
         branch,
-        defaultBranch,
+        headBefore,
       )
 
       const pullRequest = await withRetry(() =>
@@ -977,8 +987,9 @@ async function runImplementation(
 
   const procedure = await deps.createProcedureFile()
   try {
+    let headBefore: string
     try {
-      await runAgentWithHeadCheck(deps, () =>
+      headBefore = await runAgentWithHeadCheck(deps, () =>
         deps.agent.implement({
           issueNumber,
           procedurePath: procedure.path,
@@ -1004,7 +1015,7 @@ async function runImplementation(
       issueNumber,
       remote,
       branch,
-      defaultBranch,
+      headBefore,
     )
 
     const pullRequest = await withRetry(() =>

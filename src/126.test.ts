@@ -75,7 +75,7 @@ const SPEC_CHECK_PREFIXES = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "76c78a46b08e21902d44bbd3a9eb79b430febf4dcbe5fdc91c238c8500f4941d"
+  "2dca6c671cf7464e78a05f8b53ec4ad399e6412617c4987e0d67d7a69e2df8eb"
 
 /** #173 以降の正本差分で上書きされた要求（#126 の差分本文とは一致しない） */
 const SUPERSEDED_BY_LATER_ISSUES = new Set(["REQ-502", "REQ-798"])

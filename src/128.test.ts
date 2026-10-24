@@ -109,7 +109,7 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/runner.md":
     "0cd679943ed6788e13abb8e527050664fdb86b9c6b38e112d21c3b0397ba6e1d",
   "docs/canonical/git.md":
-    "ae44852ff342293dd5fff53f3fcc32216d10e8b11d5c3ed01c2c89b4adae4e68",
+    "a8fbcc9c5fd4ed0b43ab6d511142639a857881389f3531f0d1b0567ace7a72f2",
   "docs/canonical/complete.md":
     "acfe23f933ea0f87c7c54d2708203bfad043557183ae11fe6d644cc9109deec4",
   "docs/canonical/github.md":
@@ -119,7 +119,7 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/install.md":
     "52591185a48545487bfde9f26384e8866ab2145cf792ba69f346cfa9c93e3909",
   "docs/canonical/docs.md":
-    "3d70a0cc1c9175df87db18343a5f13f18139f00b370914eae0f39c5913ae2177",
+    "3daf3f10b3735bae33b302b7f3a41d1d2f0d5fcdbb0b808a589e96e0f48b2ad2",
   "docs/canonical/init.md":
     "5f83df3a9ed5cc491dabc1355354482950960ba6bf31d287e63d63d629b198d4",
 }
