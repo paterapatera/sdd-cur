@@ -928,7 +928,10 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 もとになった課題は #120 である。
 
-`skills/sdd-cur/SKILL.md` の設計の手順は、作業ブランチ名を `branch` の標準出力から得る。末尾の改行は除く。設計作成役を起動する前に、今のブランチとその名前を比べる。違うときは、ファイルを変えず、設計のサブエージェントも起動しない。設計の前に `prepare-branch` は実行しない。checkout はしない。作業ブランチは新しく作らない。
+`skills/sdd-cur/SKILL.md` の設計の手順は、`sdd-cur gate <番号> design` を実行し、終了コードが 0 以外なら止まる。`allowed` が `false` なら `reason` を伝えて止まる。`allowed` が `true` のあとは、設計作成役を起動する。設計の前に `prepare-branch` は実行しない。checkout はしない。作業ブランチは新しく作らない。作業ブランチ名と今のブランチの比較は `gate` が行う。スキルは `branch` の出力と今のブランチを比べない。
+
+- シナリオ: 条件: 設計のゲートが `allowed` true である 主体: SDD スキル 結果: `prepare-branch` を設計作成役の前に実行しない
+- シナリオ: 条件: 設計のゲートが `allowed` false である 主体: SDD スキル 結果: 設計のサブエージェントを起動しない
 
 ## REQ-309
 
@@ -1976,9 +1979,12 @@ installは直下のディレクトリをコピーする今の手順のまま、�
 
 ## REQ-755
 
-もとになった課題は #116 である。
+もとになった課題は #90 である。
 
-調べるだけの段では、`sdd-cur show <番号>` を実行する。終了コードが 0 であり、`state` が `open` であり、業務ラベルが無いときだけ、サブエージェントを一つ起動する。起動する名前は `sdd-cur-explore` である。`model` は渡さない。frontmatter の `model` を使う。起動するときに、課題番号と、人が依頼した調査の内容と、`show` が返した課題本文とコメントを渡す。
+調べるだけの段では、`sdd-cur gate <番号> explore` を実行する。終了コードが 0 以外のときは、サブエージェントを起動しない。このときは止まる。`allowed` が `false` のときは、`reason` を伝えて止まり、サブエージェントを起動しない。`allowed` が `true` のときは、`sdd-cur show <番号>` を実行する。終了コードが 0 のときだけ、サブエージェントを一つ起動する。起動する名前は `sdd-cur-explore` である。`model` は渡さない。frontmatter の `model` を使う。起動するときに、課題番号と、人が依頼した調査の内容と、`show` が返した課題本文とコメントを渡す。
+
+- シナリオ: 条件: 調査を依頼しゲートが `allowed` true である 主体: SDD スキル 結果: `show` のあと `sdd-cur-explore` を起動する
+- シナリオ: 条件: ゲートの `allowed` が false である 主体: SDD スキル 結果: `reason` を伝えて止まりサブエージェントを起動しない
 
 ## REQ-756
 
@@ -2008,7 +2014,9 @@ installは直下のディレクトリをコピーする今の手順のまま、�
 
 もとになった課題は #116 である。
 
-`sdd-cur show <番号>` の終了コードが 0 以外のときは、サブエージェントを起動しない。このときは止まる。
+`sdd-cur gate <番号> explore` の終了コードが 0 以外のときは、サブエージェントを起動しない。このときは止まる。`sdd-cur show <番号>` の終了コードが 0 以外のときも、サブエージェントを起動しない。このときは止まる。
+
+- シナリオ: 条件: `gate` の終了コードが 0 以外である 主体: SDD スキル 結果: 調べる段のサブエージェントを起動しない
 
 ## REQ-804
 
@@ -2309,3 +2317,77 @@ CLI を実行するスキルは、`skills/sdd-cur/SKILL.md`、`skills/sdd-cur-qu
 もとになった課題は #152 である。
 
 確認待ちのあいだ、待ちの点そのものは Cursor の質問機能で再び質問しない。その待ちの点に依存しない決められない点だけ、質問を続ける。待ちの点の決定が他の節の文言を変えるとき、またはその決められない点は待ちの点に依存すると判断したときは、その決められない点は決めず、質問もしない。判断に迷ったときは保留し、決めず、質問もしない。質問しない点は、人が決めた条件として設計作成役へ渡さない。
+
+## REQ-923
+
+もとになった課題は #166 である。
+
+サブコマンド名は `gate` である。使い方の表示には、行全体が `sdd-cur gate <番号> <段>` である行がある。`src/cli.ts` の `switch` に `gate` がある。`show` の次であり、`default` より前である。開発時の起動は `bun src/cli.ts gate <番号> <段>` である。スキルが呼ぶときは `sdd-cur gate <番号> <段>` である。`<段>` は `explore`、`requirements`、`design`、`confirm`、`reflect`、`request` のどれかである。
+
+- シナリオ: 条件: 引数が課題番号と六つの段のどれかである 主体: `gate` 結果: 標準出力は JSON の一行であり、終了コードは 0 である
+
+## REQ-924
+
+もとになった課題は #166 である。
+
+`gate` の引数は、課題番号と `<段>` の二つである。`--help` と `-h` を除いた残りが二つでないときは、標準エラーへ `段が不正です` の一行を書き、終了コードは 1 である。標準出力には書かない。`printUsage` は書かない。第二引数が六つの段のどれでもないときも、引数が二つでないときと同じである。引数が二つであり、第二引数が六つの段のどれかであり、番号が不正なときは、`parseIssueNumberString` が拒否するときと同じである。標準エラーへ書く一行は `番号が不正です` と一文字も違わない。終了コードは 1 である。標準出力には書かない。この検証で拒否するときは `gh` を呼ばない。
+
+- シナリオ: 条件: 引数の数が二つでない、または段が六つのどれでもない 主体: `gate` 結果: 標準エラーは `段が不正です` であり、`allowed` を含む JSON は出さない
+- シナリオ: 条件: 引数が二つであり段が六つのどれかであり番号が不正である 主体: `gate` 結果: 標準エラーは `番号が不正です` であり、`allowed` を含む JSON は出さない
+
+## REQ-925
+
+もとになった課題は #166 である。
+
+`gate` は、`show` と同じ順で `readSpecPair`、`assertSpecFilesReflected`、`loadIssueView` を呼ぶ。あわせて `createGit` の `currentBranch` を呼ぶ。判定は `loadIssueView` の結果と `currentBranch` だけを使う。ファイルを変えない。ラベルを変えない。課題コメントを投稿しない。成功の標準出力は、`allowed` が true のとき `{"allowed":true}`、`allowed` が false のとき `{"allowed":false,"reason":` で始まり `}` で終わり、キーは `allowed` と `reason` だけである。`reason` の値は人に伝える一文である。`loadIssueView` と `currentBranch` が拒否したときは、終了コードは 1 である。標準エラーは一行である。`allowed` を含む JSON は出さない。
+
+- シナリオ: 条件: 判定がその段を始めてよい 主体: `gate` 結果: 標準出力の一行は `{"allowed":true}` である
+- シナリオ: 条件: 判定がその段を始めてはいけない 主体: `gate` 結果: 標準出力は `allowed` が false の JSON 一行であり、`reason` は人に伝える一文である
+
+## REQ-926
+
+もとになった課題は #166 である。
+
+`evaluateGate` は `src/gate.ts` に置く。作業ブランチ名は `implementationBranch` の戻り値である。業務ラベルは `workflowLabels` の `name` と `issue.labels` の完全一致である。`explore` で `state` が `open` でないときの `reason` は `課題は閉じている` である。`explore` で `state` が `open` であり業務ラベルが一つでもあるときの `reason` は `実装のラベルが付いている` である。`explore` で `allowed` が true のときは、`state` が `open` であり、業務ラベルが無い。
+
+- シナリオ: 条件: 段が `explore` であり課題が開いて業務ラベルが無い 主体: `gate` 結果: `{"allowed":true}` である
+- シナリオ: 条件: 段が `explore` であり課題が閉じている 主体: `gate` 結果: `reason` は `課題は閉じている` である
+
+## REQ-927
+
+もとになった課題は #166 である。
+
+`requirements` で `state` が `open` でないときの `reason` は `課題は閉じている` である。`requirements` で業務ラベルが一つでもあるときの `reason` は `実装のラベルが付いている` である。`requirements` で `specs.requirements` が `invalid` のときの `reason` は `要件の見出しが不正である` である。`requirements` で `allowed` が true のときは、`state` が `open` であり、業務ラベルが無く、`specs.requirements` が `missing` または `ready` である。`requirements` は `unanswered` と `nextAnswer` を見ない。
+
+- シナリオ: 条件: 段が `requirements` であり開いて業務ラベルが無く要件が `missing` または `ready` である 主体: `gate` 結果: `{"allowed":true}` である
+- シナリオ: 条件: 段が `requirements` であり要件が `invalid` である 主体: `gate` 結果: `reason` は `要件の見出しが不正である` である
+
+## REQ-928
+
+もとになった課題は #166 である。
+
+`design` と `request` で複数の止まりに当たるときは、次の順で最初の `reason` だけを返す。`state` が `open` でないときは `課題は閉じている`。業務ラベルが一つでもあるときは `実装のラベルが付いている`。`unanswered` が空でないときは `未回答の確認があるため、設計には進まない`。`unanswered` が空であり `nextAnswer` が `null` でないときは `まだ要求へ反映していない回答があるため、設計には進まない`。`specs.requirements` が `missing` のときは `要件が無い`。`specs.requirements` が `invalid` のときは `要件の見出しが不正である`。`specs.design` が `invalid` のときは `設計の見出しが不正である`。`currentBranch` が作業ブランチ名と違うときは `作業ブランチではない`。`request` で上に当たらず `specs.design` が `missing` のときは `設計が無い`。`design` で `allowed` が true のときは、`specs.requirements` が `ready` であり、`specs.design` が `missing` または `ready` であり、作業ブランチ名と一致する。`request` で `allowed` が true のときは、要件と設計がともに `ready` であり、作業ブランチ名と一致する。
+
+- シナリオ: 条件: 段が `design` であり受け入れ条件 18 の条件を満たす 主体: `gate` 結果: `{"allowed":true}` である
+- シナリオ: 条件: 段が `design` であり未回答の確認がある 主体: `gate` 結果: `reason` は `未回答の確認があるため、設計には進まない` である
+- シナリオ: 条件: 段が `request` であり設計が `missing` で他の止まりに当たらない 主体: `gate` 結果: `reason` は `設計が無い` である
+
+## REQ-929
+
+もとになった課題は #166 である。
+
+`confirm` で `unanswered` が空でないときの `reason` は `未回答の確認があるため、次の確認は投稿しない` である。`unanswered` が空であり `nextAnswer` が `null` でないときの `reason` は `まだ反映していない回答があるため、次の確認は投稿しない` である。両方に当たるときは前者を先に返す。どちらにも当たらないときは `allowed` が true である。`reflect` で `nextAnswer` が `null` のときの `reason` は `未反映の回答は無い` である。`nextAnswer` が `null` でないときは `allowed` が true である。`confirm` と `reflect` は、ゲートのあと `confirm` と `reflect` が、閉じている課題と業務ラベルについて今と同じ拒否をする。
+
+- シナリオ: 条件: 段が `confirm` であり未回答の確認が無く未反映の回答が無い 主体: `gate` 結果: `{"allowed":true}` である
+- シナリオ: 条件: 段が `reflect` であり未反映の回答がある 主体: `gate` 結果: `{"allowed":true}` である
+- シナリオ: 条件: 段が `reflect` であり未反映の回答が無い 主体: `gate` 結果: `reason` は `未反映の回答は無い` である
+
+## REQ-930
+
+もとになった課題は #166 である。
+
+`skills/sdd-cur/SKILL.md` の `## 要件`、`## 確認`、`## 回答` の段を始める手順の先頭は、それぞれ `sdd-cur gate <番号> requirements`、`sdd-cur gate <番号> confirm`、`sdd-cur gate <番号> reflect` を実行し、終了コードが 0 以外なら止まる。`allowed` が `false` なら `reason` を伝えて止まる。`allowed` が `false` のときは、その段のサブエージェントを起動しない。`requirements` で `allowed` が `true` のあとは、要求作成役を起動する前に `sdd-cur prepare-branch <番号>` を実行する。`## 設計` で実装依頼の質問の直前は、`sdd-cur gate <番号> request` を実行し、終了コードが 0 以外なら止まる。`allowed` が `false` なら `reason` を伝えて止まる。段を始めてよいかを並べた文は、これらの節から除く。
+
+- シナリオ: 条件: 要件のゲートが `allowed` true である 主体: SDD スキル 結果: `prepare-branch` を要求作成役の前に実行する
+- シナリオ: 条件: 設計で実装依頼の質問の直前のゲートが `allowed` false である 主体: SDD スキル 結果: `reason` を伝えて止まり `request` を実行しない
+
