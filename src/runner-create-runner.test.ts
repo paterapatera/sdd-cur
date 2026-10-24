@@ -36,7 +36,7 @@ import {
   startMarker,
 } from "./runner.ts"
 describe("createRunner", () => {
-  test("poll は listIssues を実装依頼で呼び候補が無いとき null", async () => {
+  test("poll は listIssues を動作確認OKから順に呼び候補が無いとき null", async () => {
     let calls = 0
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
@@ -48,7 +48,7 @@ describe("createRunner", () => {
           calls += 1
           if (calls === 1) {
             expect(query).toEqual({
-              labels: [LABEL_REQUEST],
+              labels: [LABEL_VERIFIED],
               assignee: VIEWER_LOGIN,
               limit: 100,
             })
@@ -56,7 +56,7 @@ describe("createRunner", () => {
           }
           if (calls === 2) {
             expect(query).toEqual({
-              labels: [LABEL_VERIFIED],
+              labels: [LABEL_DONE],
               assignee: VIEWER_LOGIN,
               limit: 100,
             })
@@ -71,7 +71,7 @@ describe("createRunner", () => {
             return []
           }
           expect(query).toEqual({
-            labels: [LABEL_DONE],
+            labels: [LABEL_REQUEST],
             assignee: VIEWER_LOGIN,
             limit: 100,
           })
@@ -148,12 +148,15 @@ describe("createRunner", () => {
         async viewerLogin() {
           return VIEWER_LOGIN
         },
-        async listIssues() {
+        async listIssues(query) {
           calls += 1
           if (calls === 1) {
             throw new Error("temporary")
           }
-          return [issue({ number: 1 })]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return [issue({ number: 1, labels: [LABEL_VERIFIED] })]
+          }
+          return []
         },
         async getIssue() {
           throw new Error("unexpected")
@@ -1351,7 +1354,7 @@ describe("createRunner", () => {
     await rm(path.dirname(procedurePath), { recursive: true, force: true })
   })
 
-  test("poll は quick だけがあるとき不具合修正用の listIssues を呼ばない", async () => {
+  test("poll は quick だけがあるとき不具合修正を先に空で探してから返す", async () => {
     let fixListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
@@ -1438,12 +1441,12 @@ describe("createRunner", () => {
     })
     const item = await runner.poll()
     expect(item?.id).toBe("7")
-    expect(fixListed).toBe(false)
+    expect(fixListed).toBe(true)
   })
 
-  test("poll は実装依頼があるとき quick の listIssues を呼ばない", async () => {
+  test("poll は動作確認OK があるとき実装依頼と quick の listIssues を呼ばない", async () => {
     let quickListed = false
-    let verifiedListed = false
+    let requestListed = false
     let fixListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
@@ -1452,8 +1455,8 @@ describe("createRunner", () => {
           return VIEWER_LOGIN
         },
         async listIssues(query) {
-          if (query.labels?.includes(LABEL_VERIFIED)) {
-            verifiedListed = true
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            requestListed = true
           }
           if (query.labels?.includes(LABEL_DONE)) {
             fixListed = true
@@ -1461,13 +1464,19 @@ describe("createRunner", () => {
           if (query.state === "open" && !query.labels) {
             quickListed = true
           }
-          if (query.labels?.includes(LABEL_REQUEST)) {
-            return [issue({ number: 1 })]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return [
+              issue({
+                number: 9,
+                labels: [LABEL_VERIFIED],
+                assignees: [VIEWER_LOGIN],
+              }),
+            ]
           }
           return []
         },
         async getIssue() {
-          return issue({ number: 1 })
+          return issue({ number: 9, labels: [LABEL_VERIFIED] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -1522,9 +1531,9 @@ describe("createRunner", () => {
       }),
     })
     const item = await runner.poll()
-    expect(item?.id).toBe("1")
+    expect(item?.id).toBe("9")
     expect(quickListed).toBe(false)
-    expect(verifiedListed).toBe(false)
+    expect(requestListed).toBe(false)
     expect(fixListed).toBe(false)
   })
 

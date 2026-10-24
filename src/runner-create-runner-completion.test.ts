@@ -109,12 +109,12 @@ describe("createRunner completion", () => {
       }),
     })
     expect(await runner.poll()).toEqual({ id: "9" })
-    expect(listCalls).toBe(2)
+    expect(listCalls).toBe(1)
     expect(verifiedAssignee).toBe(VIEWER_LOGIN)
   })
 
-  test("runner で実装依頼があれば動作確認OK を探さない", async () => {
-    let secondList = false
+  test("runner で動作確認OK があれば実装依頼より先に返す", async () => {
+    let requestListed = false
     const startIssueComments = createIssueCommentStore()
     const runner = createRunner({
       github: {
@@ -122,13 +122,17 @@ describe("createRunner completion", () => {
           return VIEWER_LOGIN
         },
         async listIssues(query) {
-          if (query.labels?.includes(LABEL_VERIFIED)) {
-            secondList = true
+          if (query.labels?.includes(LABEL_REQUEST)) {
+            requestListed = true
+            return [issue({ number: 3 })]
           }
-          return [issue({ number: 3 })]
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            return [issue({ number: 8, labels: [LABEL_VERIFIED] })]
+          }
+          return []
         },
         async getIssue() {
-          return issue({ number: 3 })
+          return issue({ number: 8, labels: [LABEL_VERIFIED] })
         },
         async editLabels() {},
         async getDefaultBranch() {
@@ -177,8 +181,8 @@ describe("createRunner completion", () => {
       }),
     })
     const item = await runner.poll()
-    expect(item?.id).toBe("3")
-    expect(secondList).toBe(false)
+    expect(item?.id).toBe("8")
+    expect(requestListed).toBe(false)
   })
 
   test("runner で動作確認OK のみを返す", async () => {
@@ -190,11 +194,11 @@ describe("createRunner completion", () => {
           return VIEWER_LOGIN
         },
         async listIssues(query) {
-          if (query.labels?.includes(LABEL_REQUEST)) {
-            return []
+          if (query.labels?.includes(LABEL_VERIFIED)) {
+            secondAssignee = query.assignee
+            return [issue({ number: 8, labels: [LABEL_VERIFIED] })]
           }
-          secondAssignee = query.assignee
-          return [issue({ number: 8, labels: [LABEL_VERIFIED] })]
+          return []
         },
         async getIssue() {
           return issue({ number: 8, labels: [LABEL_VERIFIED] })

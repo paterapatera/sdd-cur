@@ -36,7 +36,7 @@ import {
   startMarker,
 } from "./runner.ts"
 describe("createRunner fix", () => {
-  test("poll は実装依頼を優先し動作確認OK・quick・実装完了の listIssues を呼ばない", async () => {
+  test("poll は実装依頼だけがあるとき動作確認OK・不具合修正・quick を先に探してから返す", async () => {
     let doneList = false
     let verifiedListed = false
     let quickListed = false
@@ -117,9 +117,9 @@ describe("createRunner fix", () => {
       }),
     })
     expect(await runner.poll()).toEqual({ id: "1" })
-    expect(verifiedListed).toBe(false)
-    expect(quickListed).toBe(false)
-    expect(doneList).toBe(false)
+    expect(verifiedListed).toBe(true)
+    expect(quickListed).toBe(true)
+    expect(doneList).toBe(true)
   })
 
   test("未処理の不具合がある課題を返す", async () => {
@@ -615,7 +615,7 @@ describe("createRunner fix", () => {
     })
     expect(await runner.poll()).toEqual({ id: "2" })
     expect(verifiedListed).toBe(true)
-    expect(quickListed).toBe(true)
+    expect(quickListed).toBe(false)
     expect(fixListed).toBe(true)
   })
 
