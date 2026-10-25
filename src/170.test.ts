@@ -515,6 +515,7 @@ describe("issue 170 data model and interface sections", () => {
   })
 })
 
+// 作業 11
 describe("issue 170 diagram section", () => {
   test("[6][48] 図だけ空本文", () => {
     const design = minimalDesign170({
@@ -598,6 +599,7 @@ graph LR
   })
 })
 
+// 作業 12
 describe("issue 170 skills and agents", () => {
   test("[17][18][19][20][41][42] skills の塊の置き場所と必須の節", () => {
     const skills = readFileSync(skillsConventionsPath, "utf8")
@@ -666,6 +668,7 @@ describe("issue 170 skills and agents", () => {
   })
 })
 
+// 作業 13
 describe("issue 170 canonical conventions", () => {
   const design = readFileSync(design170Path, "utf8")
   const conventionsCanonical = readFileSync(conventionsCanonicalPath, "utf8")
