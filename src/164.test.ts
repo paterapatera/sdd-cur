@@ -846,8 +846,11 @@ describe("164 doctor", () => {
     expect(docsDoc).toContain("## REQ-891")
     expect(docsDoc).toContain("## REQ-933")
     expect(docsDoc).toContain("## REQ-934")
-    expect(docsDoc).toContain("バッククォートで囲んだ `doctor` を含む")
+    expect(docsDoc).toContain(
+      "バッククォートで囲んだ `doctor` と `setup` を含む",
+    )
     expect(docsDoc).toContain("`bun src/cli.ts doctor` の行がある")
+    expect(docsDoc).toContain("`bun src/cli.ts setup` で始まる行がある")
   })
 
   test("[39] selectImplementationIssue は担当者の login で残す", () => {
