@@ -1215,6 +1215,28 @@ export function firstSectionBody(markdown: string, name: string): string | null 
   return bodies[0]
 }
 
+const MERMAID_FENCE_OPEN = "```mermaid"
+const MERMAID_FENCE_CLOSE = "```"
+
+export function countMermaidFences(body: string): number {
+  const lines = normalizeNewlines(body).split("\n")
+  let count = 0
+  let open = false
+  for (const line of lines) {
+    if (!open) {
+      if (line === MERMAID_FENCE_OPEN) {
+        open = true
+      }
+      continue
+    }
+    if (line === MERMAID_FENCE_CLOSE) {
+      count += 1
+      open = false
+    }
+  }
+  return count
+}
+
 type ParsedAcceptanceItem = {
   number: number
   line: string
