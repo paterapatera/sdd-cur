@@ -226,3 +226,5 @@ describe("167", () => {
 // sdd-cur task 4 marker
 
 // sdd-cur task 5 marker
+
+// sdd-cur task 6 marker
