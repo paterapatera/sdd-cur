@@ -75,6 +75,11 @@ const designAuthorOptionalLines = [
   "外から呼ばれる取り決めを足さず、変えないとき、`## インターフェース` を書かない。",
   "三つ以上の部品の関係を足さず、変えないとき、かつ、処理の順を足さず、変えないとき、`## 図` を書かない。",
   "課題の大きさでは、三つの節を書くかを判定しない。",
+  "「決定」に二つ以上の案を比べた結論があるとき、`## 検討した案` を書く。",
+  "`## 検討した案` には、各案と、選んだか退けたかと、理由を書く。",
+  "項目は、「案」「選んだか退けたか」「理由」が分かる一行である。",
+  "その一行の記法は、この課題の設計が決めた記法である。",
+  "「決定」に二つ以上の案を比べた結論が無いとき、`## 検討した案` を書かない。",
 ] as const
 
 const designReviewerOptionalLines = [
@@ -83,6 +88,10 @@ const designReviewerOptionalLines = [
   "- 節にだけ詳細があることは、食い違いにしない。",
   "- 書く条件を満たさない節があることだけでは、不合格にしない。",
   "- 任意節の過剰は指摘してもよい。",
+  "- 「決定」と「検討した案」が、同じ事項について、選んだ案、退けた案、または理由が矛盾する。",
+  "- 「決定」に二つ以上の案を比べた結論があるのに `## 検討した案` が無いことだけでは、不合格にしない、指摘してもよい。",
+  "- 節にだけ詳細があることは、「決定」との食い違いにしない。",
+  "- 書く条件を満たさないのに `## 検討した案` があることだけでは、不合格にしない。",
 ] as const
 
 const designReviewerOptionalBlock =
@@ -142,9 +151,20 @@ function expectLinesInOrder(haystack: string, lines: readonly string[]): void {
   }
 }
 
+const kenkyuSkillsLines = [
+  "印がある設計には、任意の節 `## 検討した案` を書いてよい。節が無いときは `validate` は失敗しない。節があるときは、本文が空でないことを検査する。",
+  "検討した案の本文が空のときの違反は `節の本文が空です: 検討した案` である。",
+  "`## 検討した案` の項目は、「案」「選んだか退けたか」「理由」が分かる一行である。一行の記法は、この課題の設計が決めた記法である。",
+] as const
+
 function skillsConventionsWithoutOptionalBlocks(text: string): string {
   let out = text.replace(`\n${optionalBlockHead}\n`, "\n")
+  out = out.replace(`\n\n${kenkyuSkillsLines[0]}\n`, "\n")
   out = out.replace(`\n\n${optionalBlockTail}\n`, "\n")
+  out = out.replace(
+    `\n\n${kenkyuSkillsLines[1]}\n${kenkyuSkillsLines[2]}\n`,
+    "\n",
+  )
   return out
 }
 
@@ -629,8 +649,10 @@ describe("issue 170 skills and agents", () => {
     expect(designAuthor).toContain("## 任意の節")
     const body = markdownSectionBody(designAuthor, "任意の節", "禁止")
     expectLinesInOrder(body, designAuthorOptionalLines)
+    const optionalSection170Lines = designAuthorOptionalLines.slice(0, 10)
+    const optionalSectionKenkyuLines = designAuthorOptionalLines.slice(10)
     expect(designAuthor).toContain(
-      `\n## 任意の節\n\n${designAuthorOptionalLines.join("\n")}\n\n## 禁止`,
+      `\n## 任意の節\n\n${optionalSection170Lines.join("\n")}\n\n${optionalSectionKenkyuLines.join("\n")}\n\n## 禁止`,
     )
     expect(
       sha256Hex(

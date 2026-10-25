@@ -1240,6 +1240,7 @@ export function countMermaidFences(body: string): number {
 const BASIC_OPTIONAL_SECTIONS: readonly string[] = [
   "データモデル",
   "インターフェース",
+  "検討した案",
 ]
 
 function isEmptyOptionalSectionBody(body: string): boolean {
