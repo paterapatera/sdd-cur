@@ -17,7 +17,15 @@ import {
   selectUnprocessedBugs,
 } from "./conventions.ts"
 import type { GitHubClient, Issue, IssueComment, PullRequest } from "./github.ts"
-import { messageHasSddCurTaskTrailer, type GitClient } from "./git.ts"
+import {
+  defaultBranchFromSymref,
+  defaultGitRunner,
+  messageHasSddCurTaskForNumber,
+  messageHasSddCurTaskTrailer,
+  shortCommitHash,
+  type GitClient,
+  type GitRunner,
+} from "./git.ts"
 import { workflowLabels } from "./labels.ts"
 import type { AgentLaunchCounts } from "./agent.ts"
 import {
@@ -110,6 +118,10 @@ type RunnerGitExtras = {
     remote: string,
     defaultBranch: string,
   ): Promise<readonly string[]>
+  branchOnlyCommitShas(
+    remote: string,
+    defaultBranch: string,
+  ): Promise<readonly string[]>
   checkoutLocalBranch(branch: string): Promise<void>
   localBranchNames(): Promise<readonly string[]>
 }
@@ -132,6 +144,8 @@ function normalizeRunnerGit(git: GitClient): GitClient & RunnerGitExtras {
       partial.commitMessage ?? (async () => "feat: agent\n"),
     branchOnlyCommitMessages:
       partial.branchOnlyCommitMessages ?? (async () => []),
+    branchOnlyCommitShas:
+      partial.branchOnlyCommitShas ?? (async () => []),
     checkoutLocalBranch:
       partial.checkoutLocalBranch ??
       (async () => rejectMissing("checkoutLocalBranch")),
@@ -444,6 +458,59 @@ export function collectTasks(
     return { error: NO_WORK_LIST_ITEMS }
   }
   return tasks
+}
+
+export function formatWorkListLine(
+  taskBody: string,
+  shaOrNull: string | null,
+): string {
+  if (shaOrNull !== null) {
+    return `- [x] ${taskBody} (${shortCommitHash(shaOrNull)})`
+  }
+  return `- [ ] ${taskBody}`
+}
+
+function resolveWorkListGitRunner(git: GitClient): GitRunner {
+  const candidate = git as GitClient & Partial<GitRunner>
+  if (candidate.run !== undefined) {
+    return { run: candidate.run }
+  }
+  return defaultGitRunner
+}
+
+export async function resolveWorkListLinesForPullRequest(
+  designMarkdown: string,
+  git: GitClient & RunnerGitExtras,
+  cwd: string,
+): Promise<string[]> {
+  const collected = collectTasks(designMarkdown)
+  if ("error" in collected) {
+    reject(collected.error)
+  }
+
+  const extras = runnerGitExtras(git)
+  const remote = await git.remoteName()
+  const defaultBranch = await defaultBranchFromSymref(
+    remote,
+    cwd,
+    resolveWorkListGitRunner(git),
+  )
+  const shas = await extras.branchOnlyCommitShas(remote, defaultBranch)
+
+  const lines: string[] = []
+  for (const task of collected) {
+    const taskBody = task.line.slice(2)
+    let matchedSha: string | null = null
+    for (const sha of shas) {
+      const message = await extras.commitMessage(sha)
+      if (messageHasSddCurTaskForNumber(message, task.number)) {
+        matchedSha = sha
+        break
+      }
+    }
+    lines.push(formatWorkListLine(taskBody, matchedSha))
+  }
+  return lines
 }
 
 export function pullRequestBody(issueUrl: string, payload: string): string {
