@@ -8,6 +8,7 @@ import { defaultSkillsSourceDir, installSkills } from "./install.ts"
 
 const repoRoot = path.join(import.meta.dir, "..")
 const designPath = path.join(repoRoot, "docs/issues/119/design.md")
+const design200Path = path.join(repoRoot, "docs/issues/200/design.md")
 const skillPath = path.join(repoRoot, "skills/sdd-cur-policy/SKILL.md")
 const readmePath = path.join(repoRoot, "README.md")
 const docsCanonicalPath = path.join(repoRoot, "docs/canonical/docs.md")
@@ -21,6 +22,7 @@ const expectedSkillDirOrder = [
   "sdd-cur-implement",
   "sdd-cur-policy",
   "sdd-cur-quick",
+  "sdd-cur-steering",
 ] as const
 
 const policyTemplateNonEmptyLines = policyTemplate
@@ -28,7 +30,7 @@ const policyTemplateNonEmptyLines = policyTemplate
   .filter((line) => line.trim() !== "")
 
 const expectedInstallSkillSentence =
-  "`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-policy`、`skills/sdd-cur-quick` である。"
+  "`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-policy`、`skills/sdd-cur-quick`、`skills/sdd-cur-steering` である。"
 
 const expectedDirectoryDiagramLine =
   "skills/sdd-cur-policy/        install がコピーする方針の下書きのスキル"
@@ -285,7 +287,7 @@ describe("課題 119", () => {
   })
 
   test("README のスキル列挙とディレクトリ図", async () => {
-    const design = await readFile(designPath, "utf8")
+    const design = await readFile(design200Path, "utf8")
     const readme = await readFile(readmePath, "utf8")
     const expectedSentence = fencedBlockAfter(
       design,
@@ -293,7 +295,7 @@ describe("課題 119", () => {
     ).trimEnd()
     const expectedDiagramLine = fencedBlockAfter(
       design,
-      "「ディレクトリ」のコードフェンスでは、`skills/sdd-cur-quick/` の行の直前に、次の行を置く。",
+      "「ディレクトリ」のコードフェンスでは、`skills/sdd-cur-quick/` の行の直後に、次の行を置く。",
     ).trimEnd()
 
     expect(readme).toContain(expectedSentence)
@@ -323,12 +325,10 @@ describe("課題 119", () => {
   })
 
   test("docs/canonical/docs.md の REQ-717", async () => {
-    const design = await readFile(designPath, "utf8")
+    const design = await readFile(design200Path, "utf8")
     const canonical = await readFile(docsCanonicalPath, "utf8")
     const diffSection = design.split("## 正本への差分")[1] ?? ""
-    const m = diffSection.match(
-      /^### 変更 docs REQ-717\n\n([\s\S]*?)(?=\n### )/m,
-    )
+    const m = diffSection.match(/^### 変更 docs REQ-717\n\n([\s\S]*)$/m)
     expect(m).not.toBeNull()
     const expectedBody = m![1].trimEnd()
     expect(reqBody(canonical, "REQ-717")).toBe(expectedBody)
