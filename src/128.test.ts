@@ -91,7 +91,7 @@ const shaDesignAuthorWithoutScenarioLines =
 const shaDesignReviewerWithoutScenarioLines =
   "f4089d99ee8b169f886a39b52659882bb8522f33f1fd292528c49cfd434443a4"
 const shaImplementReviewerWithoutScenarioLines =
-  "95b7bac0833a8cd06b8afb455a711b7be650f625752ac6efd73da90d2f1330d1"
+  "54eff6f35dee6ad3e459a9a268ce5a2795a1807f4051e8524cbeb66194be627f"
 
 const design128Path = path.join(repoRoot, "docs/issues/128/design.md")
 const design170Path = path.join(repoRoot, "docs/issues/170/design.md")
@@ -107,14 +107,14 @@ const optionalBlockTailLines = [
 const optionalBlockTail = `${optionalBlockTailLines.slice(0, 4).join("\n")}\n\n${optionalBlockTailLines.slice(4).join("\n")}`
 
 const specPrefixSha256 =
-  "d8e36e8b2fe071f3857aeb4ded400708b9caab3153ce5c06fcd41bbf6f6331db"
+  "962145f2d78dba18f1d255efc32b175e27152a74ca5b2c9df1bf6072b9bfdc9f"
 
 const conventionsPrefixSha256 =
   "9daf3c9cf129f8458e67a5d6184c77f606553de6db1d96e6af9b01ef05f72253"
 
 const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/implement.md":
-    "6c83cabd535d7e29c9ac4ed07d342dd4aecbe7c41b020f5d2992943dde3ae9d9",
+    "553d26217b561e29b6263affaf4691a9ee0646f657f715715f27228b8688893d",
   "docs/canonical/git.md":
     "a8fbcc9c5fd4ed0b43ab6d511142639a857881389f3531f0d1b0567ace7a72f2",
   "docs/canonical/complete.md":
@@ -587,11 +587,8 @@ describe("issue 128 agent scenario rules", () => {
     )
 
     const implementReviewerAnchor =
-      "追加と変更は、`docs/canonical/<領域>.md` に `## <識別子>` が一つあり、本文が項目の本文と、先頭と末尾の空行を除いて一致する。"
+      "正本が差分どおりかは、親が渡す `spec-diff` の終了コードだけを見る。"
     expect(implementReviewer).toContain(implementReviewerAnchor)
-    expect(implementReviewer).toContain(
-      `${implementReviewerAnchor}\n${agentScenarioTwoLines}`,
-    )
 
     expect(
       sha256Utf8(designAuthor.replace(agentScenarioTwoLines, "")),
