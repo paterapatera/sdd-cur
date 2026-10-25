@@ -2205,11 +2205,19 @@ async function readDesignForSpecDiff(
   }
 }
 
-export async function specDiff(options: {
+export function canonicalReqSectionMarkdown(id: string, body: string): string {
+  const heading = `## ${id}`
+  if (body.length === 0) {
+    return `${heading}\n`
+  }
+  return `${heading}\n${body}`
+}
+
+export async function expectedCanonicalMapForDesign(options: {
   cwd: string
   issueNumber: number
   git: GitRunner
-}): Promise<string[]> {
+}): Promise<Map<string, string>> {
   const { cwd, issueNumber, git } = options
   const paths = specPaths(issueNumber)
   const designPath = join(cwd, paths.design)
@@ -2218,7 +2226,39 @@ export async function specDiff(options: {
     ? parseDeltaItems(designFile.markdown)
     : []
   const baseline = await readBaselineCanonicalMap(git, cwd)
-  const expected = applyDeltaToBaseline(baseline, deltaItems)
+  return applyDeltaToBaseline(baseline, deltaItems)
+}
+
+export async function specApply(options: {
+  cwd: string
+  issueNumber: number
+  git: GitRunner
+}): Promise<string[]> {
+  const { cwd, issueNumber } = options
+  const paths = specPaths(issueNumber)
+  const designPath = join(cwd, paths.design)
+  const designFile = await readDesignForSpecDiff(designPath)
+  const deltaItems = designFile.exists
+    ? parseDeltaItems(designFile.markdown)
+    : []
+  if (deltaItems.length === 0) {
+    return []
+  }
+  void options.git
+  return []
+}
+
+export async function specDiff(options: {
+  cwd: string
+  issueNumber: number
+  git: GitRunner
+}): Promise<string[]> {
+  const { cwd, issueNumber, git } = options
+  const expected = await expectedCanonicalMapForDesign({
+    cwd,
+    issueNumber,
+    git,
+  })
   const worktree = await readWorktreeCanonicalMap(cwd)
   return compareCanonicalMaps(expected, worktree)
 }
