@@ -500,11 +500,13 @@ ${deleteOnlyDelta}`,
   })
 })
 
-const canonicalReflectProcedure =
+const canonicalReflectProcedure = "`sdd-cur spec-apply <番号>`"
+
+const canonicalReflectProcedureLegacy =
   "設計の `## 正本への差分` を、同じ作業ツリーの `docs/canonical/` へ反映する。"
 
 describe("196 触らない面", () => {
-  test("[18] docs/issues の spec-apply 言及は 196 だけ", async () => {
+  test("[18] docs/issues の spec-apply 言及は 196 と 197 だけ", async () => {
     const issuesDir = path.join(root, "docs/issues")
     const issueDirs = await readdir(issuesDir, { withFileTypes: true })
     for (const entry of issueDirs) {
@@ -521,28 +523,29 @@ describe("196 触らない面", () => {
         }
         const text = await readFile(filePath, "utf8")
         if (text.includes("spec-apply")) {
-          expect(issueNumber).toBe("196")
+          expect(["196", "197"]).toContain(issueNumber)
         }
       }
     }
   })
 
-  test("[20] 実装スキルに spec-apply は無く正本反映の手順は残る", async () => {
+  test("[20] 実装スキルは spec-apply を含み手で反映する字面は無い", async () => {
     const skill = await readFile(
       path.join(root, "skills/sdd-cur-implement/SKILL.md"),
       "utf8",
     )
-    expect(skill).not.toContain("spec-apply")
     expect(skill).toContain(canonicalReflectProcedure)
+    expect(skill).not.toContain(canonicalReflectProcedureLegacy)
   })
 
-  test("[20] 実装作成役は正本へ反映する手順のまま", async () => {
+  test("[20] 実装作成役は spec-apply を含まず正本を書かない", async () => {
     const author = await readFile(
       path.join(root, "agents/sdd-cur-implement-author.md"),
       "utf8",
     )
-    expect(author).not.toContain("spec-apply")
-    expect(author).toContain(canonicalReflectProcedure)
+    expect(author).not.toContain(canonicalReflectProcedure)
+    expect(author).not.toContain(canonicalReflectProcedureLegacy)
+    expect(author).toContain("`docs/canonical/` を書かない")
   })
 
   test("[16] validateCanonicalDelta の違反文言は既存のまま", () => {
