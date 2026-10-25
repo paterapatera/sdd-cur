@@ -8,6 +8,7 @@ import {
   issue167SupersededSddReqIds,
   issue168SupersededSddReqIds,
   issue176SupersededSddReqIds,
+  issue199SupersededSddReqIds,
 } from "./conventions.ts"
 
 const root = path.join(import.meta.dir, "..")
@@ -19,7 +20,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "82789b15e61200c3fee15ee90788ca1c1e9ebc7de0efc4b7a25d2fcf1619405e"
+  "1df7e4cd8f7e817cbc90dd375cdb721bd1a8f8e8036b2f3009a89a50b5a8d69e"
 
 const DELETED_IDS = [
   "REQ-166",
@@ -144,7 +145,11 @@ describe("124", () => {
   const design = readFileSync(designPath, "utf8")
   const requirements = parseRequirements(sdd)
   const { deleted, changed } = parseDesignDeltas(design)
-  const touched = new Set<string>([...deleted, ...changed.keys()])
+  const touched = new Set<string>([
+    ...deleted,
+    ...changed.keys(),
+    ...issue199SupersededSddReqIds(),
+  ])
   const scopeIds = new Set(
     requirements.filter((req) => requirementInScope(req.bodyLines)).map((r) => r.id),
   )
@@ -165,6 +170,7 @@ describe("124", () => {
       ...issue176SupersededSddReqIds(),
       ...issue167SupersededSddReqIds(),
       ...issue168SupersededSddReqIds(),
+      ...issue199SupersededSddReqIds(),
     ])
     for (const [id, designBody] of changed) {
       if (skipCanonicalMatch.has(id)) {
