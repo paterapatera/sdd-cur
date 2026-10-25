@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
-import { deltaSectionText } from "./conventions.ts"
+import { deltaSectionText, issue168SupersededSddReqIds } from "./conventions.ts"
 
 const root = path.join(import.meta.dir, "..")
 const skillDir = path.join(root, "skills/sdd-cur")
@@ -148,6 +148,10 @@ describe("168", () => {
     expect(newCombined).toContain(
       "`design.md` の `## 設計` の手順の先頭から",
     )
+  })
+
+  test("issue168SupersededSddReqIds が設計の変更を含む", () => {
+    expect(issue168SupersededSddReqIds().has("REQ-367")).toBe(true)
   })
 
   test("正本への差分", async () => {
