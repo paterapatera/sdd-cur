@@ -448,6 +448,7 @@ z
   })
 })
 
+// 作業 10
 describe("issue 170 data model and interface sections", () => {
   test("[4] データモデルだけ空本文", async () => {
     const design = minimalDesign170({
