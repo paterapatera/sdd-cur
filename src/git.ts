@@ -119,6 +119,7 @@ export function createGit(
   currentBranch(): Promise<string>
   localBranchNames(): Promise<readonly string[]>
   deleteLocalBranch(name: string): Promise<void>
+  checkoutLocalBranch(branch: string): Promise<void>
   commitTaskDone(issueNumber: number, taskNumber: number): Promise<void>
   defaultBranchTip(remote: string, defaultBranch: string): Promise<string>
   revListReachableNotFrom(
@@ -172,6 +173,20 @@ export function createGit(
     async checkoutFetched(branch) {
       const result = await run(["checkout", "-B", branch, "FETCH_HEAD"])
       assertGitOk(result)
+    },
+
+    async checkoutLocalBranch(branch) {
+      const showRefResult = await run([
+        "show-ref",
+        "--verify",
+        "--quiet",
+        `refs/heads/${branch}`,
+      ])
+      if (showRefResult.exitCode !== 0) {
+        reject(failReason(showRefResult))
+      }
+      const checkoutResult = await run(["checkout", branch])
+      assertGitOk(checkoutResult)
     },
 
     async mergeFetched() {

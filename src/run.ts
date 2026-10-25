@@ -138,6 +138,13 @@ export async function runLoop(deps: RunLoopDeps): Promise<0 | 1> {
   const intervalMs = deps.intervalMin * 60 * 1000
   const now = deps.now ?? Date.now
 
+  try {
+    await deps.runner.resumeInterruptedImplementationOnce()
+  } catch (error) {
+    deps.logError(errorLine(error))
+    return 1
+  }
+
   while (!deps.shouldStop()) {
     let item: WorkItem | null
     try {

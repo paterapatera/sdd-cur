@@ -532,6 +532,7 @@ async function cmdRun(args: string[]): Promise<number> {
   const git = createGit({ git: defaultGitRunner, cwd })
   const agent = createAgent({ agent: defaultAgentRunner, cwd })
   const runner = createRunner({
+    workDir: cwd,
     github,
     git,
     agent,

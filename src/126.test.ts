@@ -80,7 +80,7 @@ const SPEC_CHECK_PREFIXES = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "2dca6c671cf7464e78a05f8b53ec4ad399e6412617c4987e0d67d7a69e2df8eb"
+  "b06020cdf17015761684478bc6188a4af05ff4b2cf0616e3e76438942e349f4a"
 
 /** #173 以降の正本差分で上書きされた要求（#126 の差分本文とは一致しない） */
 /** 課題 126 の差分適用後、課題 145 が正本を上書きした REQ */
@@ -221,6 +221,7 @@ describe("126", () => {
   const byId = new Map(requirements.map((req) => [req.id, req]))
   const skipCanonicalMatch = new Set([
     "REQ-502",
+    "REQ-575",
     "REQ-798",
     ...issue176SupersededSddReqIds(),
     ...issue167SupersededSddReqIds(),

@@ -124,6 +124,7 @@ describe("runLoop", () => {
         processOptions = options
       },
       agentLaunches: zeroLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const logs: string[] = []
@@ -175,6 +176,7 @@ describe("runLoop", () => {
         processOptions = options
       },
       agentLaunches: zeroLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const logs: string[] = []
@@ -231,6 +233,7 @@ describe("runLoop", () => {
         processOptions = options
       },
       agentLaunches: zeroLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const logs: string[] = []
@@ -283,6 +286,7 @@ describe("runLoop", () => {
         },
         async process() {},
         agentLaunches: zeroLaunches,
+        resumeInterruptedImplementationOnce: async () => {},
       }
 
       const code = await runLoop({
@@ -351,6 +355,7 @@ describe("runLoop", () => {
       },
       async process() {},
       agentLaunches: zeroLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     await runLoop({
@@ -406,6 +411,7 @@ describe("runLoop", () => {
       },
       async process() {},
       agentLaunches: zeroLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const logs: string[] = []

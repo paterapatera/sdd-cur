@@ -139,6 +139,7 @@ describe("runLoop", () => {
       agentLaunches() {
         return { quick: 1, implement: 2, fix: 0 }
       },
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const logs: string[] = []
@@ -189,6 +190,7 @@ describe("runLoop", () => {
       agentLaunches() {
         return { quick: 1, implement: 0, fix: 0 }
       },
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const errors: string[] = []
@@ -240,6 +242,7 @@ describe("runLoop", () => {
       agentLaunches() {
         return { quick: 0, implement: 0, fix: 0 }
       },
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const errors: string[] = []
@@ -273,6 +276,7 @@ describe("runLoop", () => {
       agentLaunches() {
         return { quick: 0, implement: 0, fix: 0 }
       },
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const errors: string[] = []
@@ -306,6 +310,7 @@ describe("runLoop", () => {
       agentLaunches() {
         return { quick: 0, implement: 0, fix: 0 }
       },
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const errors: string[] = []
