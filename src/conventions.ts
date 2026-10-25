@@ -1533,6 +1533,8 @@ export function validateSpecForm(
   violations.push(...collectAmbiguousWordViolations(markdown))
 
   if (kind === "design") {
+    violations.push(...collectOptionalBasicSectionViolations(markdown))
+    violations.push(...collectOptionalDiagramSectionViolations(markdown))
     violations.push(...collectScenarioViolations(markdown))
   }
 
