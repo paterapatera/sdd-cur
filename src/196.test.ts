@@ -8,6 +8,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises"
+import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -475,6 +476,16 @@ ${deleteOnlyDelta}`,
     )
     expect(testIdx).toBeGreaterThan(-1)
     expect(applyIdx).toBe(testIdx - 1)
+  })
+
+  test("spec-apply 正本の docs.md SHA-256", () => {
+    const docsMd = readFileSync(
+      path.join(root, "docs/canonical/docs.md"),
+      "utf8",
+    )
+    expect(createHash("sha256").update(docsMd, "utf8").digest("hex")).toBe(
+      "282249a2d0a77f0c519cce2527806296a4d9e10274514acc60c64db14e500ff3",
+    )
   })
 
   test("[27] skills の仕様の正本に spec-apply の文", async () => {
