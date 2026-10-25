@@ -1237,6 +1237,30 @@ export function countMermaidFences(body: string): number {
   return count
 }
 
+const BASIC_OPTIONAL_SECTIONS: readonly string[] = [
+  "データモデル",
+  "インターフェース",
+]
+
+function isEmptyOptionalSectionBody(body: string): boolean {
+  return normalizeNewlines(body).trim().length === 0
+}
+
+export function collectOptionalBasicSectionViolations(
+  markdown: string,
+): string[] {
+  const violations: string[] = []
+  for (const name of BASIC_OPTIONAL_SECTIONS) {
+    const bodies = sectionBodies(markdown, name)
+    for (const body of bodies) {
+      if (isEmptyOptionalSectionBody(body)) {
+        violations.push(`節の本文が空です: ${name}`)
+      }
+    }
+  }
+  return violations
+}
+
 type ParsedAcceptanceItem = {
   number: number
   line: string
