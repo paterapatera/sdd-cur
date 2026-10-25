@@ -28,7 +28,8 @@ const usageText =
   "sdd-cur spec-check\n" +
   "sdd-cur tasks <番号>\n" +
   "sdd-cur task-done <番号> <作業番号>\n" +
-  "sdd-cur spec-diff <番号>\n"
+  "sdd-cur spec-diff <番号>\n" +
+  "sdd-cur spec-apply <番号>\n"
 
 describe("cli subprocess", () => {
   test("install が <temp>/.cursor/skills を作る", async () => {

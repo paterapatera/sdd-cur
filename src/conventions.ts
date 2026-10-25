@@ -1909,7 +1909,9 @@ function trimBodyEdges(bodyLines: readonly string[]): string {
   return bodyLines.slice(start, end).join("\n")
 }
 
-function canonicalReqBodiesFromMarkdown(markdown: string): Map<string, string> {
+export function canonicalReqBodiesFromMarkdown(
+  markdown: string,
+): Map<string, string> {
   const lines = normalizeNewlines(markdown).split("\n")
   const map = new Map<string, string>()
   let i = 0
@@ -2225,6 +2227,13 @@ function appendReqSectionToDomainFile(
   return `${markdown}${section}`
 }
 
+function canonicalReqBodyLines(body: string): string[] {
+  if (body.length === 0) {
+    return []
+  }
+  return normalizeNewlines(body).split("\n")
+}
+
 function spliceReqSectionInDomainFile(
   markdown: string,
   id: string,
@@ -2240,13 +2249,15 @@ function spliceReqSectionInDomainFile(
     while (j < lines.length && !lines[j].match(CANONICAL_REQ_HEADING)) {
       j += 1
     }
-    const newSectionLines =
-      replacement === null
-        ? []
-        : normalizeNewlines(replacement).split("\n")
-    return [...lines.slice(0, i), ...newSectionLines, ...lines.slice(j)].join(
-      "\n",
-    )
+    if (replacement === null) {
+      return [...lines.slice(0, i), ...lines.slice(j)].join("\n")
+    }
+    const newBodyLines = canonicalReqBodyLines(replacement)
+    return [
+      ...lines.slice(0, i + 1),
+      ...newBodyLines,
+      ...lines.slice(j),
+    ].join("\n")
   }
   return markdown
 }
@@ -2332,11 +2343,7 @@ export async function specApply(options: {
     }
     const next =
       item.kind === "change"
-        ? spliceReqSectionInDomainFile(
-            content,
-            item.id,
-            canonicalReqSectionMarkdown(item.id, item.body),
-          )
+        ? spliceReqSectionInDomainFile(content, item.id, item.body)
         : spliceReqSectionInDomainFile(content, item.id, null)
     await writeFile(filePath, next, "utf8")
   }

@@ -28,8 +28,15 @@ const sevenScenarioRuleLines = [
 
 const sevenScenarioRuleBlock = `${sevenScenarioRuleLines.join("\n")}\n`
 
+const specApplyRuleLines = [
+  "`sdd-cur spec-apply <番号>` は、設計の `## 正本への差分` を、作業ツリーの `docs/canonical/` に書く。差分対象の識別子だけを書き換える。",
+  "期待値の計算は `spec-diff` と同じ手順である。",
+] as const
+
+const specApplyRuleBlock = `${specApplyRuleLines.join("\n")}\n`
+
 const skillsConventionsWithoutScenarioBlockSha256 =
-  "b3c306a016db01b5a1a2a229a6ee4f9063f0a709c50d14b1be632c8260d059fd"
+  "bb80be47629b2e7256f075a1fc808a152e7bad7731129324bb28e09244b91ab3"
 
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
@@ -124,7 +131,7 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/install.md":
     "6436bf0febca526ad93286d0edf00588bbbcd9513f450c536d0801f4865aab49",
   "docs/canonical/docs.md":
-    "758a6c0b8316da353ea2fd316f683ef0cb39fbd261391018ea273b933737d8f6",
+    "2dca7c08d458af92f6d16d9e1ba1075b22a8b0fa3b6bfaa14cfe35dfb2fa3f25",
   "docs/canonical/init.md":
     "a4d5b9b20e69e86155c0926b8e31ba987d120c6a5f5c5cc2fc12b8c8b7825891",
 }
@@ -527,7 +534,7 @@ describe("issue 128 conventions and acceptance line form", () => {
     const specCanonTail =
       "課題ごとの `docs/issues/<番号>/requirements.md` と `docs/issues/<番号>/design.md` の置き場所は、「課題ごとのファイル」のままである。"
     expect(skills).toContain(
-      `${specCanonTail}\n\n${sevenScenarioRuleBlock}\n## レビューが読む範囲`,
+      `${specCanonTail}\n${specApplyRuleBlock}\n${sevenScenarioRuleBlock}\n## レビューが読む範囲`,
     )
     expect(skills.trimEnd()).toBe(
       `${skills.slice(0, skills.lastIndexOf(sevenScenarioRuleLines[0])).trimEnd()}\n\n${sevenScenarioRuleBlock.trimEnd()}\n\n${optionalBlockTail}`,
