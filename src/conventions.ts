@@ -2300,6 +2300,7 @@ export async function specApply(options: {
     return []
   }
 
+  // 項目があるときはファイルを書く前に validateCanonicalDelta で検査する。
   const canonicalIds = await readCanonicalIds(cwd)
   const violations = validateCanonicalDelta(designFile.markdown, canonicalIds)
   if (violations.length > 0) {
