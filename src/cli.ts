@@ -68,12 +68,16 @@ import {
 import { evaluateGate, parseGateStage, type GateStage } from "./gate.ts"
 import { checkSpec } from "./spec.ts"
 import { defaultCommandExists, runDoctor } from "./doctor.ts"
+import { runSetup } from "./setup.ts"
 
 export function printUsage(): void {
   console.error(
     "sdd-cur install [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]",
   )
   console.error("sdd-cur init [project-root]")
+  console.error(
+    "sdd-cur setup [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]",
+  )
   console.error("sdd-cur run [--interval-min <1 以上 1440 以下の整数>]")
   console.error("sdd-cur labels")
   console.error("sdd-cur candidates")
@@ -373,6 +377,36 @@ async function githubFromCwd() {
   return createGitHub({ gh: defaultGhRunner, repo, cwd })
 }
 
+async function runLabelsAtCwd(cwd: string): Promise<number> {
+  try {
+    const repo = await resolveRepo(defaultGhRunner, cwd)
+    const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
+    const results = await ensureWorkflowLabels(github)
+    for (const result of results) {
+      if (result.status === "created") {
+        console.log(`作成しました: ${result.name}`)
+      } else {
+        console.log(`既にあります: ${result.name}`)
+      }
+    }
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
+async function runDoctorAtCwd(cwd: string): Promise<number> {
+  return await runDoctor({
+    cwd,
+    homedir: homedir(),
+    skillsSourceDir: defaultSkillsSourceDir,
+    agentsSourceDir: defaultAgentsSourceDir,
+    commandExists: defaultCommandExists,
+    gh: defaultGhRunner,
+  })
+}
+
 async function cmdInstall(args: string[]): Promise<number> {
   const parsed = parseInstallArgs(args)
   if (!parsed.ok) {
@@ -454,6 +488,21 @@ async function cmdInit(args: string[]): Promise<number> {
   return 0
 }
 
+async function cmdSetup(args: string[]): Promise<number> {
+  return await runSetup({
+    args,
+    homedir: homedir(),
+    skillsSourceDir: defaultSkillsSourceDir,
+    agentsSourceDir: defaultAgentsSourceDir,
+    gh: defaultGhRunner,
+    commandExists: defaultCommandExists,
+    runInstall: (installArgs, _cwd) => cmdInstall(installArgs),
+    runInit: (initArgs, _cwd) => cmdInit(initArgs),
+    runLabels: runLabelsAtCwd,
+    runDoctor: runDoctorAtCwd,
+  })
+}
+
 async function cmdRun(args: string[]): Promise<number> {
   const parsed = parseRunArgs(args)
   if (!parsed.ok) {
@@ -516,21 +565,7 @@ async function cmdLabels(args: string[]): Promise<number> {
     return 1
   }
 
-  try {
-    const github = await githubFromCwd()
-    const results = await ensureWorkflowLabels(github)
-    for (const result of results) {
-      if (result.status === "created") {
-        console.log(`作成しました: ${result.name}`)
-      } else {
-        console.log(`既にあります: ${result.name}`)
-      }
-    }
-    return 0
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error))
-    return 1
-  }
+  return await runLabelsAtCwd(process.cwd())
 }
 
 async function cmdCandidates(args: string[]): Promise<number> {
@@ -977,14 +1012,7 @@ async function cmdDoctor(args: string[]): Promise<number> {
     return 1
   }
 
-  return await runDoctor({
-    cwd: process.cwd(),
-    homedir: homedir(),
-    skillsSourceDir: defaultSkillsSourceDir,
-    agentsSourceDir: defaultAgentsSourceDir,
-    commandExists: defaultCommandExists,
-    gh: defaultGhRunner,
-  })
+  return await runDoctorAtCwd(process.cwd())
 }
 
 async function cmdRequest(args: string[]): Promise<number> {
@@ -1084,6 +1112,8 @@ async function main(): Promise<number> {
       return await cmdInstall(rest)
     case "init":
       return await cmdInit(rest)
+    case "setup":
+      return await cmdSetup(rest)
     case "doctor":
       return await cmdDoctor(argv.slice(1))
     case "run":
