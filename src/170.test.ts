@@ -38,7 +38,7 @@ const bunExe = process.execPath
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
 const sddCanonicalSha256 =
-  "f964e4e5c74f154059104cf6f14669e0841ea8ac6de548c286a6122d9d40a3e3"
+  "b793e63ca1e247b36f78c518739eb714cf805feb8e1b8b4ba0e3f0204e372560"
 const skillsConventionsWithoutOptionalBlockSha256 =
   "1ac2fd2aac722b26dc5edf9942f23f80152243280762a0af297c6e2b450a6163"
 const shaDesignAuthorWithoutOptionalSection =

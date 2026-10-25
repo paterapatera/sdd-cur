@@ -130,7 +130,9 @@
 
 もとになった課題は #117 である。
 
-`install` は、スキルのディレクトリを、今どおり中身ごとコピーする。`skills/sdd-cur/conventions.md` は、導入先の `sdd-cur/conventions.md` になる。書き方の節は、コピーしたファイルに無い。`sdd-cur conventions` サブコマンドは、足さない。
+`install` は、スキルのディレクトリを、今どおり中身ごとコピーする。`skills/sdd-cur/conventions.md` は、導入先の `sdd-cur/conventions.md` になる。`skills/sdd-cur/` には、入口の `SKILL.md` と、着手・調べる・要件・設計・確認・回答・合格後の `start.md`、`explore.md`、`requirements.md`、`design.md`、`confirm.md`、`reflect.md`、`after-pass.md` がある。書き方の節は、コピーしたファイルに無い。`sdd-cur conventions` サブコマンドは、足さない。
+
+- シナリオ: 条件: `install` でスキルをコピーした 主体: 導入先 結果: `conventions.md` と七つの段ファイルが `sdd-cur/` にある
 
 ## REQ-885
 
@@ -187,3 +189,11 @@ high 種別は `sdd-cur-req-author`、`sdd-cur-design-author`、`sdd-cur-req-rev
 
 `setup` を足しても、`install`、`init`、`labels`、`doctor` を単体で実行したときの引数、入出力、終了コードは変えない。`doctor` はファイルもラベルも変えない。
 - シナリオ: 条件: `labels` を単体で実行する 主体: `labels` 結果: 挙動は `setup` 追加前と同じである
+
+## REQ-943
+
+もとになった課題は #168 である。
+
+`install` は、`skills/sdd-cur/` を中身ごとコピーする。導入先の `sdd-cur/` に、`start.md`、`explore.md`、`requirements.md`、`design.md`、`confirm.md`、`reflect.md`、`after-pass.md` があり、それぞれパッケージの同じパスのファイルと内容が一致する。入口の `SKILL.md` も同じ内容である。
+
+- シナリオ: 条件: プロジェクトで `install` を実行した 主体: 導入先の `sdd-cur/` 結果: 七つの段ファイルと `SKILL.md` がパッケージと一致する

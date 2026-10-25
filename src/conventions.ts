@@ -2278,6 +2278,22 @@ export function issue167SupersededSddReqIds(): Set<string> {
   return supersededReqIdsFromDesign(design, "sdd")
 }
 
+export function issue168SupersededSddReqIds(): Set<string> {
+  const design = readFileSync(
+    join(import.meta.dir, "..", "docs/issues/168/design.md"),
+    "utf8",
+  )
+  return supersededReqIdsFromDesign(design, "sdd")
+}
+
+export function issue168SupersededInstallReqIds(): Set<string> {
+  const design = readFileSync(
+    join(import.meta.dir, "..", "docs/issues/168/design.md"),
+    "utf8",
+  )
+  return supersededReqIdsFromDesign(design, "install")
+}
+
 export function issue145SupersededGitReqIds(): Set<string> {
   const design = readFileSync(
     join(import.meta.dir, "..", "docs/issues/145/design.md"),
