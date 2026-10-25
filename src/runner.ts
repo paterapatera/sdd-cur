@@ -513,9 +513,13 @@ export async function resolveWorkListLinesForPullRequest(
   return lines
 }
 
-export function pullRequestBody(issueUrl: string, payload: string): string {
+export function pullRequestBody(
+  issueUrl: string,
+  payload: string,
+  workListLines: string[],
+): string {
   const acceptance = acceptanceComment(payload)
-  return `${issueUrl}\n${acceptance}`
+  return `${issueUrl}\n${workListLines.join("\n")}\n${acceptance}`
 }
 
 function parseStartCommentBody(body: string): {
