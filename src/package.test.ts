@@ -34,6 +34,7 @@ const expectedPackageJson = {
 const usageText =
   "sdd-cur install [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]\n" +
   "sdd-cur init [project-root]\n" +
+  "sdd-cur setup [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]\n" +
   "sdd-cur run [--interval-min <1 以上 1440 以下の整数>]\n" +
   "sdd-cur labels\n" +
   "sdd-cur candidates\n" +
