@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test"
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises"
 import { readFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -8,6 +16,7 @@ import {
   canonicalReqSectionMarkdown,
   specApply,
   specDiff,
+  validateCanonicalDelta,
 } from "./conventions.ts"
 import type { GitRunner } from "./git.ts"
 
@@ -477,5 +486,100 @@ ${deleteOnlyDelta}`,
     expect(section).toContain("sdd-cur spec-apply")
     expect(section).toContain("docs/canonical/")
     expect(section).toContain("期待値の計算は `spec-diff` と同じ手順である。")
+  })
+})
+
+const canonicalReflectProcedure =
+  "設計の `## 正本への差分` を、同じ作業ツリーの `docs/canonical/` へ反映する。"
+
+describe("196 触らない面", () => {
+  test("[18] docs/issues の spec-apply 言及は 196 だけ", async () => {
+    const issuesDir = path.join(root, "docs/issues")
+    const issueDirs = await readdir(issuesDir, { withFileTypes: true })
+    for (const entry of issueDirs) {
+      if (!entry.isDirectory()) {
+        continue
+      }
+      const issueNumber = entry.name
+      for (const name of ["requirements.md", "design.md"] as const) {
+        const filePath = path.join(issuesDir, issueNumber, name)
+        try {
+          await access(filePath)
+        } catch {
+          continue
+        }
+        const text = await readFile(filePath, "utf8")
+        if (text.includes("spec-apply")) {
+          expect(issueNumber).toBe("196")
+        }
+      }
+    }
+  })
+
+  test("[20] 実装スキルに spec-apply は無く正本反映の手順は残る", async () => {
+    const skill = await readFile(
+      path.join(root, "skills/sdd-cur-implement/SKILL.md"),
+      "utf8",
+    )
+    expect(skill).not.toContain("spec-apply")
+    expect(skill).toContain(canonicalReflectProcedure)
+  })
+
+  test("[20] 実装作成役は正本へ反映する手順のまま", async () => {
+    const author = await readFile(
+      path.join(root, "agents/sdd-cur-implement-author.md"),
+      "utf8",
+    )
+    expect(author).not.toContain("spec-apply")
+    expect(author).toContain(canonicalReflectProcedure)
+  })
+
+  test("[16] validateCanonicalDelta の違反文言は既存のまま", () => {
+    const addMd = `# 題
+
+## 正本への差分
+
+### 追加 spec REQ-1
+
+本文
+`
+    expect(validateCanonicalDelta(addMd, ["REQ-1"])).toEqual([
+      "追加する識別子が正本にあります: REQ-1",
+    ])
+    const changeMd = `# 題
+
+## 正本への差分
+
+### 変更 spec REQ-2
+
+本文
+`
+    expect(validateCanonicalDelta(changeMd, [])).toEqual([
+      "変更する識別子が正本にありません: REQ-2",
+    ])
+    const removeMd = `# 題
+
+## 正本への差分
+
+### 削除 spec REQ-3
+
+本文
+`
+    expect(validateCanonicalDelta(removeMd, [])).toEqual([
+      "削除する識別子が正本にありません: REQ-3",
+    ])
+  })
+
+  test("[17] cmdSpecDiff の出力と終了コードの形は変わらない", () => {
+    const cli = readFileSync(cliPath, "utf8")
+    const block = cli.slice(
+      cli.indexOf("async function cmdSpecDiff"),
+      cli.indexOf("async function cmdSpecApply"),
+    )
+    expect(block).toContain("await specDiff({")
+    expect(block).toContain("for (const line of lines)")
+    expect(block).toContain("console.error(line)")
+    expect(block).toContain("return lines.length > 0 ? 1 : 0")
+    expect(block).not.toContain("specApply")
   })
 })
