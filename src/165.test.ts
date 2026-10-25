@@ -96,12 +96,13 @@ describe("165 setup", () => {
     return fixture
   }
 
-  async function runInProject(
+  async function runSetupAtCwd(
+    cwd: string,
     fixture: SetupFixture,
     args: string[],
     runners: RecordingRunners,
   ): Promise<number> {
-    process.chdir(fixture.projectRoot)
+    process.chdir(cwd)
     return await runSetup({
       args,
       homedir: fixture.fakeHome,
@@ -114,6 +115,14 @@ describe("165 setup", () => {
       runLabels: runners.runLabels,
       runDoctor: runners.runDoctor,
     })
+  }
+
+  async function runInProject(
+    fixture: SetupFixture,
+    args: string[],
+    runners: RecordingRunners,
+  ): Promise<number> {
+    return await runSetupAtCwd(fixture.projectRoot, fixture, args, runners)
   }
 
   function stepNames(calls: RecordedStep[]): StepName[] {
@@ -176,6 +185,91 @@ describe("165 setup", () => {
     const code = await runInProject(fixture, [], runners)
     expect(code).toBe(5)
     expect(stepNames(runners.calls)).toEqual(["install", "init", "labels"])
+  })
+
+  test("[21] ルート無しのとき install と init のルートは cwd の絶対パス、labels と doctor の cwd も同じ", async () => {
+    const fixture = await createFixture()
+    const runners = recordingRunners({})
+    const code = await runInProject(fixture, [], runners)
+    expect(code).toBe(0)
+    const root = path.resolve(fixture.projectRoot)
+    expect(runners.calls[0]).toEqual({
+      step: "install",
+      args: [root],
+      cwd: root,
+    })
+    expect(runners.calls[1]).toEqual({
+      step: "init",
+      args: [root],
+      cwd: root,
+    })
+    expect(runners.calls[2]).toEqual({ step: "labels", cwd: root })
+    expect(runners.calls[3]).toEqual({ step: "doctor", cwd: root })
+  })
+
+  test("[22] ルートありのとき install は解析文字列のまま、init・labels・doctor は解決済み絶対パス", async () => {
+    const fixture = await createFixture()
+    const parent = path.dirname(fixture.projectRoot)
+    const rootArg = path.basename(fixture.projectRoot)
+    const runners = recordingRunners({})
+    const code = await runSetupAtCwd(parent, fixture, [rootArg], runners)
+    expect(code).toBe(0)
+    const resolvedRoot = path.resolve(parent, rootArg)
+    const stepCwd = path.resolve(parent)
+    expect(runners.calls[0]).toEqual({
+      step: "install",
+      args: [rootArg],
+      cwd: stepCwd,
+    })
+    expect(runners.calls[1]).toEqual({
+      step: "init",
+      args: [resolvedRoot],
+      cwd: stepCwd,
+    })
+    expect(runners.calls[2]).toEqual({ step: "labels", cwd: resolvedRoot })
+    expect(runners.calls[3]).toEqual({ step: "doctor", cwd: resolvedRoot })
+  })
+
+  test("[3][19] ルート無しのときモデルフラグは install へ渡した順のまま先頭に解決済みルートが付く", async () => {
+    const fixture = await createFixture()
+    const runners = recordingRunners({})
+    const args = ["--high-model", "high-id", "--low-model", "low-id"]
+    const code = await runInProject(fixture, args, runners)
+    expect(code).toBe(0)
+    const root = path.resolve(fixture.projectRoot)
+    expect(runners.calls[0]).toEqual({
+      step: "install",
+      args: [root, "--high-model", "high-id", "--low-model", "low-id"],
+      cwd: root,
+    })
+    expect(runners.calls[1]).toEqual({
+      step: "init",
+      args: [root],
+      cwd: root,
+    })
+    expect(runners.calls[2]).toEqual({ step: "labels", cwd: root })
+    expect(runners.calls[3]).toEqual({ step: "doctor", cwd: root })
+  })
+
+  test("[3][19][22] ルートありのとき install へ渡す引数列はユーザーが渡した並びのまま", async () => {
+    const fixture = await createFixture()
+    const runners = recordingRunners({})
+    const args = ["--high-model", "high-id", ".", "--low-model", "low-id"]
+    const code = await runInProject(fixture, args, runners)
+    expect(code).toBe(0)
+    const root = path.resolve(fixture.projectRoot)
+    expect(runners.calls[0]).toEqual({
+      step: "install",
+      args: ["--high-model", "high-id", ".", "--low-model", "low-id"],
+      cwd: root,
+    })
+    expect(runners.calls[1]).toEqual({
+      step: "init",
+      args: [root],
+      cwd: root,
+    })
+    expect(runners.calls[2]).toEqual({ step: "labels", cwd: root })
+    expect(runners.calls[3]).toEqual({ step: "doctor", cwd: root })
   })
 
   test("[17] GhRunner を注入し一時ディレクトリだけを使う", async () => {
