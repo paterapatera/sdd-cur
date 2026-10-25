@@ -84,6 +84,14 @@ function parseDeltaBodies(
 }
 
 describe("168", () => {
+  test("requirements.md に要件の段がある", async () => {
+    const text = await readFile(
+      path.join(skillDir, "requirements.md"),
+      "utf8",
+    )
+    expect(text).toContain("## 要件")
+  })
+
   test("七段ファイルと入口 SKILL.md", async () => {
     for (const name of stageNames) {
       await expect(readFile(path.join(skillDir, name), "utf8")).resolves.toBeTypeOf(
