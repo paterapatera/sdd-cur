@@ -599,7 +599,7 @@ graph LR
   })
 })
 
-// 作業 12
+// 作業 12: skills と agents
 describe("issue 170 skills and agents", () => {
   test("[17][18][19][20][41][42] skills の塊の置き場所と必須の節", () => {
     const skills = readFileSync(skillsConventionsPath, "utf8")
