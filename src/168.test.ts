@@ -122,6 +122,12 @@ describe("168", () => {
     expect(reflect).not.toContain("\n### 満たされているかの判断\n")
   })
 
+  test("after-pass.md に判断と合格案内がある", async () => {
+    const text = await readFile(path.join(skillDir, "after-pass.md"), "utf8")
+    expect(text).toContain("### 満たされているかの判断")
+    expect(text).toContain("## 合格のあとの案内")
+  })
+
   test("移動のみで本文が一致する", async () => {
     const parts = await Promise.all(
       stageNames.map((name) => readFile(path.join(skillDir, name), "utf8")),
