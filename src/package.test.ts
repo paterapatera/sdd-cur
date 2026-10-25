@@ -16,7 +16,7 @@ const isolatedPath = path.dirname(bunExe)
 
 const expectedPackageJson = {
   name: "@paterapatera/sdd-cur",
-  version: "0.2.2",
+  version: "0.2.3",
   private: false,
   type: "module",
   bin: {
