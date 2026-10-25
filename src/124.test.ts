@@ -6,6 +6,7 @@ import { checkSpec } from "./spec.ts"
 import {
   deltaSectionText,
   issue167SupersededSddReqIds,
+  issue168SupersededSddReqIds,
   issue176SupersededSddReqIds,
 } from "./conventions.ts"
 
@@ -18,7 +19,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "1d7b229ba61515be6996471f1ff72a67577c7b8816981c2c5b65e0cf0f02c27b"
+  "f2d36157b20a0c021a1c175522433481c0d91e932e270b3c024536851a96fb59"
 
 const DELETED_IDS = [
   "REQ-166",
@@ -163,6 +164,7 @@ describe("124", () => {
     const skipCanonicalMatch = new Set([
       ...issue176SupersededSddReqIds(),
       ...issue167SupersededSddReqIds(),
+      ...issue168SupersededSddReqIds(),
     ])
     for (const [id, designBody] of changed) {
       if (skipCanonicalMatch.has(id)) {

@@ -1041,12 +1041,19 @@ describe("課題 91", () => {
     ] as const
 
     test("skills/sdd-cur/SKILL.md", async () => {
-      const text = await readFile(path.join(root, "skills/sdd-cur/SKILL.md"), "utf8")
+      const skillDir = path.join(root, "skills/sdd-cur")
+      const requirements = await readFile(
+        path.join(skillDir, "requirements.md"),
+        "utf8",
+      )
+      const design = await readFile(path.join(skillDir, "design.md"), "utf8")
+      const reflect = await readFile(path.join(skillDir, "reflect.md"), "utf8")
+      const combined = `${requirements}\n${design}\n${reflect}`
       for (const phrase of commonPhrases) {
-        expect(text).toContain(phrase)
+        expect(combined).toContain(phrase)
       }
-      expect(text).toContain("第1引数は `requirements`")
-      expect(text).toContain("第1引数は `reflect-design`")
+      expect(requirements).toContain("第1引数は `requirements`")
+      expect(reflect).toContain("第1引数は `reflect-design`")
 
       const removed = [
         "下から",
@@ -1058,8 +1065,7 @@ describe("課題 91", () => {
         "2 回連続",
         "直前の不合格レビュー",
       ]
-      const req = sectionBetween(text, "## 要件", "## 設計")
-      const design = sectionBetween(text, "## 設計", "## 確認")
+      const req = requirements
       for (const phrase of removed) {
         expect(req).not.toContain(phrase)
         expect(design).not.toContain(phrase)

@@ -313,25 +313,27 @@ describe("120 prepare-branch", () => {
   })
 
   test("スキル本文と runner", async () => {
-    const skill = await readFile(
-      path.join(root, "skills/sdd-cur/SKILL.md"),
+    const skillDir = path.join(root, "skills/sdd-cur")
+    const skill = await readFile(path.join(skillDir, "SKILL.md"), "utf8")
+    const requirements = await readFile(
+      path.join(skillDir, "requirements.md"),
       "utf8",
     )
-    const reqStart = skill.indexOf("## 要件")
-    const designStart = skill.indexOf("## 設計")
-    const reqSection = skill.slice(reqStart, designStart)
-    expect(skill).toContain(
+    const design = await readFile(path.join(skillDir, "design.md"), "utf8")
+    const combined = `${skill}\n${requirements}\n${design}`
+    const reqSection = requirements
+    expect(combined).toContain(
       "`sdd-cur prepare-branch <番号>` を実行し、終了コードが 0 以外なら止まる。",
     )
-    expect(skill).toContain("終了コードが 0 以外のとき、要求ファイルを変えない。")
-    expect(skill).toContain(
+    expect(combined).toContain("終了コードが 0 以外のとき、要求ファイルを変えない。")
+    expect(combined).toContain(
       "終了コードが 0 以外のとき、要求の段のサブエージェントを起動しない。",
     )
-    expect(skill).toContain(
+    expect(combined).toContain(
       "終了コードが 0 以外のとき、用意のための git を自ら実行しない。",
     )
-    expect(skill).toContain("終了コードが 0 のあとだけ、要求作成役を起動する。")
-    expect(skill).not.toContain("比較を通ったあとだけ、要求作成役を起動する。")
+    expect(combined).toContain("終了コードが 0 のあとだけ、要求作成役を起動する。")
+    expect(combined).not.toContain("比較を通ったあとだけ、要求作成役を起動する。")
     for (const word of [
       "git ls-remote",
       "git checkout",
@@ -341,14 +343,14 @@ describe("120 prepare-branch", () => {
     ]) {
       expect(reqSection).not.toContain(word)
     }
-    expect(skill).toContain("`sdd-cur gate <番号> design`")
-    expect(skill).not.toContain("sdd-cur branch <番号>")
-    expect(skill).toContain(
+    expect(combined).toContain("`sdd-cur gate <番号> design`")
+    expect(combined).not.toContain("sdd-cur branch <番号>")
+    expect(combined).toContain(
       "設計作成役を起動する前に、`sdd-cur prepare-branch <番号>` は実行しない。",
     )
-    expect(skill).toContain("checkout はしない。")
-    expect(skill).toContain("作業ブランチを新しく作らない。")
-    expect(skill).toContain("実装のランナーは、この用意をしない。")
+    expect(combined).toContain("checkout はしない。")
+    expect(combined).toContain("作業ブランチを新しく作らない。")
+    expect(combined).toContain("実装のランナーは、この用意をしない。")
 
     const runnerSource = await readFile(
       path.join(import.meta.dir, "runner.ts"),

@@ -5,10 +5,16 @@ import path from "node:path"
 import { deltaSectionText } from "./conventions.ts"
 
 const root = path.join(import.meta.dir, "..")
-const skillPath = path.join(root, "skills/sdd-cur/SKILL.md")
+const skillDir = path.join(root, "skills/sdd-cur")
+const skillPath = path.join(skillDir, "SKILL.md")
+const afterPassPath = path.join(skillDir, "after-pass.md")
+const requirementsPath = path.join(skillDir, "requirements.md")
+const designStagePath = path.join(skillDir, "design.md")
+const confirmPath = path.join(skillDir, "confirm.md")
+const reflectPath = path.join(skillDir, "reflect.md")
 const conventionsPath = path.join(root, "docs/conventions.md")
 const sddCanonicalPath = path.join(root, "docs/canonical/sdd.md")
-const designPath = path.join(root, "docs/issues/167/design.md")
+const design168Path = path.join(root, "docs/issues/168/design.md")
 
 const CONVENTIONS_SHA256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
@@ -18,13 +24,11 @@ function sectionBetween(
   startHeading: string,
   endHeading: string,
 ): string {
-  const startMarker = `\n${startHeading}\n`
-  const endMarker = `\n${endHeading}\n`
-  const start = text.indexOf(startMarker)
+  const start = text.indexOf(startHeading)
   expect(start).toBeGreaterThanOrEqual(0)
-  const end = text.indexOf(endMarker, start + startMarker.length)
+  const end = text.indexOf(endHeading, start + startHeading.length)
   expect(end).toBeGreaterThan(start)
-  return text.slice(start + 1, end)
+  return text.slice(start, end)
 }
 
 function skillBodyAfterFrontmatter(skill: string): string {
@@ -33,25 +37,25 @@ function skillBodyAfterFrontmatter(skill: string): string {
   return skill.slice(end + "\n---\n".length)
 }
 
-function passGuideSection(skill: string): string {
-  return sectionBetween(skill, "## 合格のあとの案内", "## 禁止")
-}
-
-function answerRequirementsSection(skill: string): string {
-  const answerStart = skill.indexOf("## 回答")
-  const boundary = "側が `design` のとき、第1引数は `reflect-design` である。"
-  const end = skill.indexOf(boundary, answerStart)
-  expect(end).toBeGreaterThan(answerStart)
-  return skill.slice(answerStart, end)
-}
-
-function answerDesignSection(skill: string): string {
-  const boundary = "側が `design` のとき、第1引数は `reflect-design` である。"
-  const start = skill.indexOf(boundary)
-  const end = skill.indexOf("### 満たされているかの判断", start)
+function passGuideSection(afterPass: string): string {
+  const start = afterPass.indexOf("## 合格のあとの案内")
   expect(start).toBeGreaterThanOrEqual(0)
-  expect(end).toBeGreaterThan(start)
-  return skill.slice(start, end)
+  return afterPass.slice(start)
+}
+
+function answerRequirementsSection(reflect: string): string {
+  const answerStart = reflect.indexOf("## 回答")
+  const boundary = "側が `design` のとき、第1引数は `reflect-design` である。"
+  const end = reflect.indexOf(boundary, answerStart)
+  expect(end).toBeGreaterThan(answerStart)
+  return reflect.slice(answerStart, end)
+}
+
+function answerDesignSection(reflect: string): string {
+  const boundary = "側が `design` のとき、第1引数は `reflect-design` である。"
+  const start = reflect.indexOf(boundary)
+  expect(start).toBeGreaterThanOrEqual(0)
+  return reflect.slice(start)
 }
 
 function reqBody(text: string, id: string): string {
@@ -84,8 +88,8 @@ function parseDeltaBodies(design: string): Map<string, string> {
   for (const match of section.matchAll(headingRe)) {
     headings.push({
       id: match[2],
-      start: match.index ?? 0,
       contentStart: (match.index ?? 0) + match[0].length,
+      start: match.index ?? 0,
     })
   }
   const bodies = new Map<string, string>()
@@ -102,27 +106,30 @@ function parseDeltaBodies(design: string): Map<string, string> {
 
 describe("167", () => {
   test("[1] 合格のあとの案内は一節だけ", async () => {
-    const skill = await readFile(skillPath, "utf8")
-    expect(skill.match(/^## 合格のあとの案内$/gm)?.length).toBe(1)
+    const afterPass = await readFile(afterPassPath, "utf8")
+    expect(afterPass.match(/^## 合格のあとの案内$/gm)?.length).toBe(1)
   })
 
   test("[10][11] 行数と一文一行", async () => {
     const skill = await readFile(skillPath, "utf8")
     const body = skillBodyAfterFrontmatter(skill)
     const lines = body.split("\n")
-    const mainBodyLineCount = 598
+    const mainBodyLineCount = 400
     expect(lines.length).toBeLessThan(mainBodyLineCount)
   })
 
   test("[3] 各節は合格のあとの案内に従う", async () => {
-    const skill = await readFile(skillPath, "utf8")
-    const req = sectionBetween(skill, "## 要件", "## 設計")
-    const design = sectionBetween(skill, "## 設計", "## 確認")
-    const answerReq = answerRequirementsSection(skill)
-    const answerDesign = answerDesignSection(skill)
-    const passGuide = passGuideSection(skill)
+    const req = await readFile(requirementsPath, "utf8")
+    const design = await readFile(designStagePath, "utf8")
+    const reflect = await readFile(reflectPath, "utf8")
+    const answerReq = answerRequirementsSection(reflect)
+    const answerDesign = answerDesignSection(reflect)
+    const afterPass = await readFile(afterPassPath, "utf8")
+    const passGuide = passGuideSection(afterPass)
     for (const section of [req, design, answerReq, answerDesign]) {
-      expect(section).toContain("合格のあとの案内に従う。")
+      expect(section).toContain(
+        "`after-pass.md` の `## 合格のあとの案内` に従う。",
+      )
       expect(section).not.toContain(
         "Cursor の質問機能で「設計に進む」",
       )
@@ -135,10 +142,10 @@ describe("167", () => {
   })
 
   test("[5][6] 質問中の禁止は一文", async () => {
-    const skill = await readFile(skillPath, "utf8")
-    const passGuide = passGuideSection(skill)
+    const afterPass = await readFile(afterPassPath, "utf8")
+    const passGuide = passGuideSection(afterPass)
     const judgment = sectionBetween(
-      skill,
+      afterPass,
       "### 満たされているかの判断",
       "## 合格のあとの案内",
     )
@@ -151,9 +158,8 @@ describe("167", () => {
   })
 
   test("[8] レビュー指摘と三つの値は各段一回", async () => {
-    const skill = await readFile(skillPath, "utf8")
-    const req = sectionBetween(skill, "## 要件", "## 設計")
-    const design = sectionBetween(skill, "## 設計", "## 確認")
+    const req = await readFile(requirementsPath, "utf8")
+    const design = await readFile(designStagePath, "utf8")
     expect(req.match(/レビューの指摘はどこにも置かない/g)?.length).toBe(1)
     expect(
       req.match(/段の開始時、`consecutiveFailures` は 0/g)?.length,
@@ -171,16 +177,15 @@ describe("167", () => {
   })
 
   test("[14][15][16] ゲートの位置", async () => {
-    const skill = await readFile(skillPath, "utf8")
-    const req = sectionBetween(skill, "## 要件", "## 設計")
-    const design = sectionBetween(skill, "## 設計", "## 確認")
-    const confirm = sectionBetween(skill, "## 確認", "## 回答")
-    const answer = skill.slice(skill.indexOf("## 回答"))
-    const answerDesign = answerDesignSection(skill)
+    const req = await readFile(requirementsPath, "utf8")
+    const design = await readFile(designStagePath, "utf8")
+    const confirm = await readFile(confirmPath, "utf8")
+    const reflect = await readFile(reflectPath, "utf8")
+    const answerDesign = answerDesignSection(reflect)
     expect(req).toContain("`sdd-cur gate <番号> requirements`")
     expect(design).toContain("`sdd-cur gate <番号> request`")
     expect(confirm).toContain("`sdd-cur gate <番号> confirm`")
-    expect(answer).toContain("`sdd-cur gate <番号> reflect`")
+    expect(reflect).toContain("`sdd-cur gate <番号> reflect`")
     expect(answerDesign).not.toContain("`sdd-cur gate <番号> request`")
     expect(design).toContain(
       "人が設計を依頼したとき、または要件の合格の案内で「設計に進む」を選んだとき",
@@ -188,16 +193,16 @@ describe("167", () => {
   })
 
   test("[9] 分割案を残さない", async () => {
-    const skill = await readFile(skillPath, "utf8")
-    const design = sectionBetween(skill, "## 設計", "## 確認")
+    const design = await readFile(designStagePath, "utf8")
     expect(design).toContain(
       "分割案をファイルにも課題コメントにも残さない。",
     )
   })
 
   test("[13][20] 代表フレーズは合格のあとの案内に一か所", async () => {
-    const skill = await readFile(skillPath, "utf8")
-    const passGuide = passGuideSection(skill)
+    const afterPass = await readFile(afterPassPath, "utf8")
+    const passGuide = passGuideSection(afterPass)
+    const stages = await readFile(requirementsPath, "utf8")
     const passGuideOnly = [
       "「設計に進む」と「ここで止める」の質問を出しているあいだ、人がどちらかを選ぶまで、設計の作成役と設計の修正役を起動しない。",
       "実装依頼は人が付ける。",
@@ -205,13 +210,13 @@ describe("167", () => {
     ]
     for (const phrase of passGuideOnly) {
       expect(passGuide).toContain(phrase)
-      const outside = skill.replace(passGuide, "")
+      const outside = `${stages}\n${afterPass.replace(passGuide, "")}`
       expect(outside).not.toContain(phrase)
     }
   })
 
   test("[24][25] 正本 REQ-947 と REQ-279", async () => {
-    const design = await readFile(designPath, "utf8")
+    const design = await readFile(design168Path, "utf8")
     const sdd = await readFile(sddCanonicalPath, "utf8")
     const deltas = parseDeltaBodies(design)
     expect(reqBody(sdd, "REQ-947")).toBe(deltas.get("REQ-947") ?? "")
