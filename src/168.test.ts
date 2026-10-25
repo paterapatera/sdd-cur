@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import { readFile } from "node:fs/promises"
+import { mkdtemp, readFile, rm } from "node:fs/promises"
+import os from "node:os"
 import path from "node:path"
 import { deltaSectionText, issue168SupersededSddReqIds } from "./conventions.ts"
 
@@ -173,5 +174,27 @@ describe("168", () => {
     }
     expect(reqBody(install, "REQ-943")).toBe(installDeltas.get("REQ-943") ?? "")
     expect(reqBody(install, "REQ-858")).toBe(installDeltas.get("REQ-858") ?? "")
+  })
+
+  test("install が七段ファイルをコピーする", async () => {
+    const temp = await mkdtemp(path.join(os.tmpdir(), "sdd-168-install-"))
+    const cliPath = path.join(import.meta.dir, "cli.ts")
+    try {
+      const proc = Bun.spawn(["bun", cliPath, "install", temp], {
+        stdout: "pipe",
+        stderr: "pipe",
+      })
+      expect(await proc.exited).toBe(0)
+      for (const name of stageNames) {
+        const copied = await readFile(
+          path.join(temp, ".cursor", "skills", "sdd-cur", name),
+          "utf8",
+        )
+        const source = await readFile(path.join(skillDir, name), "utf8")
+        expect(copied).toBe(source)
+      }
+    } finally {
+      await rm(temp, { recursive: true, force: true })
+    }
   })
 })
