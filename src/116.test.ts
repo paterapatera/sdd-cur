@@ -288,8 +288,11 @@ describe("issue 116 req reviewer agents", () => {
 
 describe("issue 116 requirements section in skills", () => {
   test("sdd-cur の要件の段", async () => {
-    const text = await readFile(path.join(skillsRoot, "sdd-cur/SKILL.md"), "utf8")
-    const section = sectionBetween(text, "## 要件", "## 設計")
+    const text = await readFile(
+      path.join(skillsRoot, "sdd-cur/requirements.md"),
+      "utf8",
+    )
+    const section = text
     for (const phrase of reqReviewFourSentences) {
       expect(section).toContain(phrase)
     }

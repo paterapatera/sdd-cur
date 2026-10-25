@@ -431,8 +431,22 @@ describe("課題 94", () => {
     )
     expect(readme).toContain("| 実装依頼 | 人 |")
 
-    const skill = await readFile(path.join(root, "skills/sdd-cur/SKILL.md"), "utf8")
-    expect(skill).not.toContain("bun src/cli.ts request")
+    const skillDir = path.join(root, "skills/sdd-cur")
+    const stageNames = [
+      "SKILL.md",
+      "start.md",
+      "explore.md",
+      "requirements.md",
+      "design.md",
+      "confirm.md",
+      "reflect.md",
+      "after-pass.md",
+    ]
+    let skillText = ""
+    for (const name of stageNames) {
+      skillText += await readFile(path.join(skillDir, name), "utf8")
+    }
+    expect(skillText).not.toContain("bun src/cli.ts request")
 
     const runnerSource = await readFile(path.join(root, "src/runner.ts"), "utf8")
     expect(runnerSource).not.toContain("requestImplementation")

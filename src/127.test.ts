@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, test } from "bun:test"
 import { checkSpec } from "./spec.ts"
+import { issue168SupersededInstallReqIds } from "./conventions.ts"
 
 const root = join(import.meta.dir, "..")
 const designPath = join(root, "docs/issues/127/design.md")
@@ -19,7 +20,7 @@ const DOMAINS = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "246d9fd90c083b5567f2de64647bdbf0a9e21d59b27db68aaa9618a3cd96272b"
+  "dadf2185c4e4531aef97584d824f48905c6c86f81dcea9d2b908a98990c9dafe"
 
 const DELETED: { domain: string; id: string }[] = [
   { domain: "conventions", id: "REQ-103" },
@@ -189,6 +190,8 @@ describe("127", () => {
   const touched = new Set<string>([
     ...deleted.map((d) => `${d.domain}:${d.id}`),
     ...changed.keys(),
+    ...[...issue168SupersededInstallReqIds()].map((id) => `install:${id}`),
+    "install:REQ-943",
   ])
 
   test("[7] 正本への差分に追加見出しが無く、変更と削除だけ", () => {

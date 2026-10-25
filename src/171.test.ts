@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 
 const root = path.join(import.meta.dir, "..")
-const skillPath = path.join(root, "skills/sdd-cur/SKILL.md")
+const designStagePath = path.join(root, "skills/sdd-cur/design.md")
+const requirementsStagePath = path.join(root, "skills/sdd-cur/requirements.md")
+const reflectStagePath = path.join(root, "skills/sdd-cur/reflect.md")
 const designReviewerPath = path.join(root, "agents/sdd-cur-design-reviewer.md")
 const reqReviewerPath = path.join(root, "agents/sdd-cur-req-reviewer.md")
 const reqReviewerHighPath = path.join(
@@ -80,17 +82,17 @@ function designDeltaItemBody(
   return trimLeadingTrailingEmptyLines(match[1])
 }
 
-const skill = readFileSync(skillPath, "utf8")
+const reflect = readFileSync(reflectStagePath, "utf8")
 const designReviewer = readFileSync(designReviewerPath, "utf8")
 const reqReviewer = readFileSync(reqReviewerPath, "utf8")
 const reqReviewerHigh = readFileSync(reqReviewerHighPath, "utf8")
 const designMarkdown = readFileSync(designPath, "utf8")
 const sddCanonical = readFileSync(sddCanonicalPath, "utf8")
-const designProcedure = sectionBetween(skill, "## 設計", "## 確認")
-const requirementsProcedure = sectionBetween(skill, "## 要件", "## 設計")
-const reflectDesignSlice = skill.slice(
-  skill.indexOf("側が `design` のとき"),
-  skill.indexOf("`action` が `合格` でないあいだは、設計の作成手順を続けない。"),
+const designProcedure = readFileSync(designStagePath, "utf8")
+const requirementsProcedure = readFileSync(requirementsStagePath, "utf8")
+const reflectDesignSlice = reflect.slice(
+  reflect.indexOf("側が `design` のとき"),
+  reflect.indexOf("`action` が `合格` でないあいだは、設計の作成手順を続けない。"),
 )
 
 describe("issue 171", () => {
@@ -126,8 +128,12 @@ describe("issue 171", () => {
   })
 
   test("[24] 反映後設計レビューが設計の節と同じ", () => {
-    expect(reflectDesignSlice).toContain("設計の節と同じである")
-    expect(reflectDesignSlice).toContain("分割案の止まりも、設計の節と同じである")
+    expect(reflectDesignSlice).toContain(
+      "`design.md` の `## 設計` と同じである",
+    )
+    expect(reflectDesignSlice).toContain(
+      "分割案の止まりも、`design.md` の `## 設計` と同じである",
+    )
   })
 
   test("[25] 要求レビュー役に分割案: が無い", () => {

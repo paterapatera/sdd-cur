@@ -5,6 +5,9 @@ import { subagentFileNames } from "./install.ts"
 
 const root = path.join(import.meta.dir, "..")
 const skillPath = path.join(root, "skills/sdd-cur/SKILL.md")
+const startPath = path.join(root, "skills/sdd-cur/start.md")
+const exploreSkillPath = path.join(root, "skills/sdd-cur/explore.md")
+const requirementsSkillPath = path.join(root, "skills/sdd-cur/requirements.md")
 const explorePath = path.join(root, "agents/sdd-cur-explore.md")
 const readmePath = path.join(root, "README.md")
 
@@ -33,17 +36,26 @@ function sectionBetween(text: string, startHeading: string, endHeading: string):
 describe("課題 90", () => {
   test("SDD スキル、explore サブエージェント、install、README", async () => {
     const skill = await readFile(skillPath, "utf8")
+    const start = await readFile(startPath, "utf8")
+    const exploreSkill = await readFile(exploreSkillPath, "utf8")
+    const requirementsSkill = await readFile(requirementsSkillPath, "utf8")
     const explore = await readFile(explorePath, "utf8")
     const readme = await readFile(readmePath, "utf8")
 
-    const idxChakushu = skill.indexOf("## 着手")
-    const idxShiraberu = skill.indexOf("## 調べる")
-    const idxYouken = skill.indexOf("## 要件")
-    expect(idxChakushu).toBeGreaterThanOrEqual(0)
-    expect(idxShiraberu).toBeGreaterThan(idxChakushu)
-    expect(idxYouken).toBeGreaterThan(idxShiraberu)
+    const stagePaths = [startPath, exploreSkillPath, requirementsSkillPath]
+    const idxChakushu = stagePaths.findIndex((p) => p.endsWith("start.md"))
+    const idxShiraberu = stagePaths.findIndex((p) => p.endsWith("explore.md"))
+    const idxYouken = stagePaths.findIndex((p) =>
+      p.endsWith("requirements.md"),
+    )
+    expect(idxChakushu).toBe(0)
+    expect(idxShiraberu).toBe(1)
+    expect(idxYouken).toBe(2)
+    expect(start).toContain("## 着手")
+    expect(exploreSkill).toContain("## 調べる")
+    expect(requirementsSkill).toContain("## 要件")
 
-    const beforeShiraberu = sectionBetween(skill, "## 着手", "## 調べる")
+    const beforeShiraberu = start
     for (const phrase of [
       "課題は閉じていると伝えて止まる",
       "実装のラベルが付いていると伝えて止まる",
@@ -52,7 +64,7 @@ describe("課題 90", () => {
       expect(beforeShiraberu).toContain(phrase)
     }
 
-    const shiraberuSection = sectionBetween(skill, "## 調べる", "## 要件")
+    const shiraberuSection = exploreSkill
     for (const phrase of [
       "人が調査を依頼したときだけ",
       "人が調査を依頼していないときは",

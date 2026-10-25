@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 
 const root = path.join(import.meta.dir, "..")
-const skillPath = path.join(root, "skills/sdd-cur/SKILL.md")
+const designStagePath = path.join(root, "skills/sdd-cur/design.md")
+const requirementsStagePath = path.join(root, "skills/sdd-cur/requirements.md")
 const designPath = path.join(root, "docs/issues/152/design.md")
 const sddCanonicalPath = path.join(root, "docs/canonical/sdd.md")
 
@@ -74,11 +75,10 @@ function designDeltaItemBody(
   return trimLeadingTrailingEmptyLines(match[1])
 }
 
-const skill = readFileSync(skillPath, "utf8")
 const designMarkdown = readFileSync(designPath, "utf8")
 const sddCanonical = readFileSync(sddCanonicalPath, "utf8")
-const designProcedure = sectionBetween(skill, "## 設計", "## 確認")
-const requirementsProcedure = sectionBetween(skill, "## 要件", "## 設計")
+const designProcedure = readFileSync(designStagePath, "utf8")
+const requirementsProcedure = readFileSync(requirementsStagePath, "utf8")
 
 describe("issue 152", () => {
   test("[1][28] 設計の手順に「設計レビューを起動しない」", () => {

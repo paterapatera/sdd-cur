@@ -26,8 +26,27 @@ import {
   writeSpecFile,
   isQuickTarget,
 } from "./sdd.ts"
-const skillPath = path.join(import.meta.dir, "../skills/sdd-cur/SKILL.md")
+const skillDir = path.join(import.meta.dir, "../skills/sdd-cur")
+const skillPath = path.join(skillDir, "SKILL.md")
+const stageFileNames = [
+  "start.md",
+  "explore.md",
+  "requirements.md",
+  "design.md",
+  "confirm.md",
+  "reflect.md",
+  "after-pass.md",
+] as const
 const cliPath = path.join(import.meta.dir, "cli.ts")
+
+async function readStage(name: (typeof stageFileNames)[number]): Promise<string> {
+  return readFile(path.join(skillDir, name), "utf8")
+}
+
+async function readAllStages(): Promise<string> {
+  const parts = await Promise.all(stageFileNames.map((name) => readStage(name)))
+  return parts.join("\n")
+}
 
 function sectionBetween(
   text: string,
@@ -44,6 +63,8 @@ function sectionBetween(
 describe("skills/sdd-cur/SKILL.md", () => {
   test("フロントマターと必須の文言", async () => {
     const text = await readFile(skillPath, "utf8")
+    const stages = await readAllStages()
+    const combined = `${text}\n${stages}`
     expect(text.startsWith(`---
 name: sdd-cur
 description: このプロジェクトの課題について、着手候補の提示、要件、設計、確認コメントの投稿、未反映の回答の取り込みを行う。着手、要件、設計、確認、回答の取り込みを依頼されたときに使う。課題は作らない。人が閉じるを選んだときに SDD スキルが閉じる場合を除き、課題は閉じない。ラベルの変更、実装、受け入れ手順、完了処理はしない。設計の合格の案内で人が「実装依頼する」を選んだときに \`sdd-cur request <番号>\` が「実装依頼」を付けることは、ラベルの変更をしない定めの例外である。そのときも、実装、受け入れ手順、完了処理はしない。
@@ -51,12 +72,9 @@ disable-model-invocation: true
 ---
 `)).toBe(true)
     const required = [
-      "## 着手",
-      "## 要件",
-      "## 設計",
-      "## 確認",
-      "## 回答",
       "## 禁止",
+      "start.md",
+      "after-pass.md",
       "sdd-cur",
       "sdd-cur/conventions.md",
       "決めるのは人",
@@ -171,24 +189,27 @@ disable-model-invocation: true
       "設計作成役を起動する前には `validate` を実行しない",
     ]
     for (const phrase of required) {
-      expect(text).toContain(phrase)
+      expect(combined).toContain(phrase)
     }
-    const requirementsStart = text.indexOf("## 要件")
-    const designStart = text.indexOf("## 設計")
-    expect(text.slice(requirementsStart, designStart)).toContain(
-      "sdd-cur validate <番号>",
-    )
-    const confirmStart = text.indexOf("## 確認")
-    expect(text.slice(designStart, confirmStart)).toContain(
-      "sdd-cur validate <番号>",
-    )
-    const requirementsSlice = text.slice(requirementsStart, designStart)
-    const designSlice = text.slice(designStart, confirmStart)
+    for (const heading of [
+      "## 着手",
+      "## 調べる",
+      "## 要件",
+      "## 設計",
+      "## 確認",
+      "## 回答",
+    ]) {
+      expect(stages).toContain(heading)
+    }
+    const requirementsSlice = await readStage("requirements.md")
+    const designSlice = await readStage("design.md")
+    expect(requirementsSlice).toContain("sdd-cur validate <番号>")
+    expect(designSlice).toContain("sdd-cur validate <番号>")
     expect(requirementsSlice).toContain(
       "（grok-4.7[context=256k,reasoning_effort=medium,fast=false]）",
     )
     expect(designSlice).toContain("（composer-2.5[fast=false]）")
-    expect(text).not.toContain(
+    expect(combined).not.toContain(
       "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
     )
     const sectionRequired = ["修正を起動しない"]
@@ -219,25 +240,24 @@ disable-model-invocation: true
     expect(designSlice).toContain(
       "設計作成役の返信から仕様の全文を読まない",
     )
-    expect(text).not.toContain("最後の非空行")
+    expect(combined).not.toContain("最後の非空行")
     for (const name of [
       "sdd-cur-req-fix-proposer",
       "sdd-cur-design-fix-proposer",
     ]) {
-      expect(text).not.toContain(name)
+      expect(combined).not.toContain(name)
     }
-    expect(text).not.toContain("createGitHub")
-    expect(text).not.toContain("src/sdd.ts")
-    expect(text).not.toContain(reflectedOpenLine)
+    expect(combined).not.toContain("createGitHub")
+    expect(combined).not.toContain("src/sdd.ts")
+    expect(combined).not.toContain(reflectedOpenLine)
   })
 
   test("[36][37][38][39][40][41][42][43][50][51] gate 各段と旧ゲート文の除去", async () => {
-    const text = await readFile(skillPath, "utf8")
-    const explore = sectionBetween(text, "## 調べる", "## 要件")
-    const requirements = sectionBetween(text, "## 要件", "## 設計")
-    const design = sectionBetween(text, "## 設計", "## 確認")
-    const confirm = sectionBetween(text, "## 確認", "## 回答")
-    const reflect = sectionBetween(text, "## 回答", "## 禁止")
+    const explore = await readStage("explore.md")
+    const requirements = await readStage("requirements.md")
+    const design = await readStage("design.md")
+    const confirm = await readStage("confirm.md")
+    const reflect = await readStage("reflect.md")
 
     for (const [slice, stage] of [
       [explore, "explore"],
@@ -290,6 +310,14 @@ disable-model-invocation: true
       )
       const source = await readFile(skillPath, "utf8")
       expect(copied).toBe(source)
+      for (const stageName of stageFileNames) {
+        const copiedStage = await readFile(
+          path.join(temp, ".cursor", "skills", "sdd-cur", stageName),
+          "utf8",
+        )
+        const stageSource = await readStage(stageName)
+        expect(copiedStage).toBe(stageSource)
+      }
       for (const name of subagentFileNames) {
         const copiedAgent = await readFile(
           path.join(temp, ".cursor", "agents", name),
