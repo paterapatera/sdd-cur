@@ -1,6 +1,7 @@
 import path from "node:path"
 import type { CommandExists } from "./doctor.ts"
 import type { GhRunner } from "./github.ts"
+import { printUsage } from "./cli.ts"
 import {
   assertDirectoryExists,
   parseInstallArgs,
@@ -38,7 +39,6 @@ export async function runSetup(options: RunSetupOptions): Promise<number> {
   if (!parsed.ok) {
     console.error(parsed.message)
     if (!parsed.message.startsWith("モデルの指定が不正です:")) {
-      const { printUsage } = await import("./cli.ts")
       printUsage()
     }
     return 1

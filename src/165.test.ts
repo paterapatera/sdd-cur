@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test"
-import { mkdtemp, rm } from "node:fs/promises"
+import { afterEach, describe, expect, spyOn, test } from "bun:test"
+import { mkdtemp, readFile, rm } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
+import { printUsage } from "./cli.ts"
 import type { CommandExists } from "./doctor.ts"
 import type { GhRunner } from "./github.ts"
 import {
@@ -9,6 +10,32 @@ import {
   defaultSkillsSourceDir,
 } from "./install.ts"
 import { runSetup } from "./setup.ts"
+
+const cliPath = path.join(import.meta.dir, "cli.ts")
+const setupPath = path.join(import.meta.dir, "setup.ts")
+const bunExe = process.execPath
+const isolatedPath = path.dirname(bunExe)
+
+const setupUsageLine =
+  "sdd-cur setup [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]"
+
+async function runCliSubcommand(
+  sub: "install" | "setup",
+  args: string[],
+  cwd: string,
+): Promise<{ code: number; stdout: string; stderr: string }> {
+  const proc = Bun.spawn([bunExe, cliPath, sub, ...args], {
+    stdout: "pipe",
+    stderr: "pipe",
+    cwd,
+    env: { ...process.env, PATH: isolatedPath },
+  })
+  const [stdout, stderr] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ])
+  return { code: await proc.exited, stdout, stderr }
+}
 
 type StepName = "install" | "init" | "labels" | "doctor"
 
@@ -123,6 +150,23 @@ describe("165 setup", () => {
     runners: RecordingRunners,
   ): Promise<number> {
     return await runSetupAtCwd(fixture.projectRoot, fixture, args, runners)
+  }
+
+  async function captureRunSetup(
+    fixture: SetupFixture,
+    args: string[],
+    runners: RecordingRunners,
+  ): Promise<{ code: number; stderr: string }> {
+    const stderrLines: string[] = []
+    const errSpy = spyOn(console, "error").mockImplementation((...parts: unknown[]) => {
+      stderrLines.push(parts.map(String).join(" "))
+    })
+    try {
+      const code = await runInProject(fixture, args, runners)
+      return { code, stderr: stderrLines.join("\n") }
+    } finally {
+      errSpy.mockRestore()
+    }
   }
 
   function stepNames(calls: RecordedStep[]): StepName[] {
@@ -281,5 +325,80 @@ describe("165 setup", () => {
     expect(fixture.projectRoot.startsWith(os.tmpdir())).toBe(true)
     expect(fixture.fakeHome).not.toBe(os.homedir())
     expect(typeof runSetup).toBe("function")
+  })
+
+  test("[20][23] 解析失敗のとき段は呼ばず stderr と終了コードは install と同じ", async () => {
+    const fixture = await createFixture()
+    for (const args of [["--model"], ["a", "b"]] as const) {
+      const installRef = await runCliSubcommand("install", [...args], fixture.projectRoot)
+      const runners = recordingRunners({})
+      const setupResult = await captureRunSetup(fixture, [...args], runners)
+      expect(setupResult.code).toBe(installRef.code)
+      expect(setupResult.stderr).toBe(installRef.stderr.trimEnd())
+      expect(runners.calls).toEqual([])
+    }
+  })
+
+  test("[24] 存在しないルートのとき段は呼ばず stderr と終了コードは install と同じ", async () => {
+    const fixture = await createFixture()
+    const missing = path.join(fixture.projectRoot, "missing")
+    const installRef = await runCliSubcommand("install", [missing], fixture.projectRoot)
+    const runners = recordingRunners({})
+    const setupResult = await captureRunSetup(fixture, [missing], runners)
+    expect(setupResult.code).toBe(installRef.code)
+    expect(setupResult.stderr.trim()).toBe(installRef.stderr.trim())
+    expect(runners.calls).toEqual([])
+  })
+
+  test("[16] setup --help は install も init も labels も doctor も実行せず終了コード 0", async () => {
+    const fixture = await createFixture()
+    for (const flag of ["--help", "-h"]) {
+      const proc = Bun.spawn([bunExe, cliPath, "setup", flag], {
+        stdout: "pipe",
+        stderr: "pipe",
+        cwd: fixture.projectRoot,
+        env: { ...process.env, PATH: isolatedPath },
+      })
+      const [stdout, stderr] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ])
+      expect(await proc.exited).toBe(0)
+      expect(stdout).toBe("")
+      expect(stderr.length).toBeGreaterThan(0)
+      expect(stderr).toContain(setupUsageLine)
+    }
+  })
+
+  test("[18] printUsage に setup 行が一つあり --model が無い", () => {
+    const lines: string[] = []
+    const errSpy = spyOn(console, "error").mockImplementation((msg: string) => {
+      lines.push(msg)
+    })
+    try {
+      printUsage()
+    } finally {
+      errSpy.mockRestore()
+    }
+    expect(lines.filter((line) => line === setupUsageLine)).toHaveLength(1)
+    for (const line of lines) {
+      if (line.includes("setup")) {
+        expect(line).not.toContain("--model")
+      }
+    }
+    const initIdx = lines.indexOf("sdd-cur init [project-root]")
+    expect(lines[initIdx + 1]).toBe(setupUsageLine)
+  })
+
+  test("[25] runSetup を export し cmdSetup が runSetup を呼ぶ", async () => {
+    const setupSource = await readFile(setupPath, "utf8")
+    expect(setupSource).toContain("export async function runSetup")
+    expect(setupSource).toContain("export type SetupStepRunner")
+    expect(typeof runSetup).toBe("function")
+
+    const cliSource = await readFile(cliPath, "utf8")
+    expect(cliSource).toContain('case "setup":')
+    expect(cliSource).toContain("async function cmdSetup")
+    expect(cliSource).toMatch(/return await runSetup\(/)
   })
 })
