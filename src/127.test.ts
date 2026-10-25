@@ -6,6 +6,7 @@ import { checkSpec } from "./spec.ts"
 import {
   issue168SupersededInstallReqIds,
   issue175SupersededConventionsReqIds,
+  issue199SupersededDocsReqIds,
 } from "./conventions.ts"
 
 const root = join(import.meta.dir, "..")
@@ -23,7 +24,7 @@ const DOMAINS = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "c81b4259ffd6fc68f366e4846d141f1bc066fa9ba1302993cbab58e4a039ee89"
+  "45fa2b829b19836d669343b720d94832d1c4afe0c61c23eed9edc3eca8ebf788"
 
 const DELETED: { domain: string; id: string }[] = [
   { domain: "conventions", id: "REQ-103" },
@@ -198,6 +199,7 @@ describe("127", () => {
       (id) => `conventions:${id}`,
     ),
     "install:REQ-943",
+    ...[...issue199SupersededDocsReqIds()].map((id) => `docs:${id}`),
   ])
 
   test("[7] 正本への差分に追加見出しが無く、変更と削除だけ", () => {

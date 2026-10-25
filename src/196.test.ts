@@ -484,7 +484,7 @@ ${deleteOnlyDelta}`,
       "utf8",
     )
     expect(createHash("sha256").update(docsMd, "utf8").digest("hex")).toBe(
-      "282249a2d0a77f0c519cce2527806296a4d9e10274514acc60c64db14e500ff3",
+      "bff55c12ce5fa5cc354a0e946d4382b6838341798d7e56297482c2dd7d7c4704",
     )
   })
 

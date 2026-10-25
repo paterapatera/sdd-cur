@@ -32,13 +32,13 @@ const bunExe = process.execPath
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
 const conventionsCanonicalSha256 =
-  "b5bb2077c286b5daff032116c2a53b3be6ed93956c4dcde4ef64f938abe6297d"
+  "e54fbfd7cbdd5c85d4fd5ebfc496a2b27055c7065758f68b743c6f56cbc77a94"
 const skillsConventionsWithoutKenkyuSha256 =
-  "38887ffe2c12d31688891e4f4d8e7effbc05adcab66f239e8828d2e8e5ba55e2"
+  "4f50f5bc97bff3033deac18761c7bc57f99c11cad8370db70dfc8f384dc80d73"
 const shaDesignAuthorWithoutKenkyu =
-  "16883340d36f2e05d24be2fcd9050cad840fb89f9d8b33e2d976e7c8e35427bc"
+  "0cceb774be0acf95f8adeb94370914e7b447a5692a18267f154a154f0b0ee633"
 const shaDesignReviewerWithoutKenkyu =
-  "e5891561509c968bf01c9485a1f33ec481ad778322da050f290b95675ac12aaf"
+  "b1beef4718288a7c454ed05aa96fdd618e0d7ba2a3ce752741230afe40863512"
 const shaDesignSkillWithoutKenkyu =
   "d323d9336abbdcbc0eca43f24cc5d407c4d4d3d35cdfaf7ee6e254c81968dd85"
 

@@ -29,7 +29,7 @@ const sevenScenarioRuleLines = [
 const sevenScenarioRuleBlock = `${sevenScenarioRuleLines.join("\n")}\n`
 
 const skillsConventionsWithoutScenarioBlockSha256 =
-  "4601f68fecda1bdf1ed1c3097c8c22c987ca0ffa80d0ec57d3512d3f658e13d7"
+  "49cd23fb97a3a270cdcf9da18031e184168784c8e6201a6d62b76dd9fcbdab51"
 
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
@@ -87,11 +87,11 @@ const agentReviewerScenarioFourLines = `- 追加または変更の項目の本�
 `
 
 const shaDesignAuthorWithoutScenarioLines =
-  "409f41eb7513c470d4f056530e4fa9df9b4aaef5dd3265180df0bbb4b8f3a1d4"
+  "907fc9f5fcf8b557520bc41afbd539cb7c832d9e410fe9ee1b89a79db6647884"
 const shaDesignReviewerWithoutScenarioLines =
-  "d7c55ce2810839db84b701ab1429baa0eb1e2987a7bd0c118241425ddd17d154"
+  "f4089d99ee8b169f886a39b52659882bb8522f33f1fd292528c49cfd434443a4"
 const shaImplementReviewerWithoutScenarioLines =
-  "53a839af45980842dcca97e385f14c0765ca784842be55101126d40e2921608e"
+  "95b7bac0833a8cd06b8afb455a711b7be650f625752ac6efd73da90d2f1330d1"
 
 const design128Path = path.join(repoRoot, "docs/issues/128/design.md")
 const design170Path = path.join(repoRoot, "docs/issues/170/design.md")
@@ -126,7 +126,7 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/install.md":
     "6436bf0febca526ad93286d0edf00588bbbcd9513f450c536d0801f4865aab49",
   "docs/canonical/docs.md":
-    "282249a2d0a77f0c519cce2527806296a4d9e10274514acc60c64db14e500ff3",
+    "bff55c12ce5fa5cc354a0e946d4382b6838341798d7e56297482c2dd7d7c4704",
   "docs/canonical/init.md":
     "a4d5b9b20e69e86155c0926b8e31ba987d120c6a5f5c5cc2fc12b8c8b7825891",
 }

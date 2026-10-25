@@ -9,6 +9,16 @@ import {
   subagentFileNames,
 } from "./install.ts"
 
+const STEERING_DOMAIN = /^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)$/
+
+export function steeringBasenameIsValid(filename: string): boolean {
+  if (!filename.endsWith(".md")) {
+    return false
+  }
+  const base = filename.slice(0, -".md".length)
+  return STEERING_DOMAIN.test(base)
+}
+
 export const doctorCheckLabels = [
   "`bun` がある",
   "`gh` があり、`gh auth status` が成功する",
@@ -165,6 +175,36 @@ async function isDirectory(dirPath: string): Promise<boolean> {
   }
 }
 
+export async function listSteeringNameWarningLines(cwd: string): Promise<string[]> {
+  const steeringDir = path.join(cwd, "docs/steering")
+  if (!(await isDirectory(steeringDir))) {
+    return []
+  }
+  const names = await readdir(steeringDir)
+  const relPaths: string[] = []
+  for (const name of names) {
+    const full = path.join(steeringDir, name)
+    let info: Awaited<ReturnType<typeof stat>>
+    try {
+      info = await stat(full)
+    } catch {
+      continue
+    }
+    if (!info.isFile()) {
+      continue
+    }
+    if (!name.endsWith(".md")) {
+      continue
+    }
+    if (steeringBasenameIsValid(name)) {
+      continue
+    }
+    relPaths.push(path.join("docs", "steering", name).split(path.sep).join("/"))
+  }
+  relPaths.sort((a, b) => a.localeCompare(b))
+  return relPaths.map((rel) => `WARN ${rel}`)
+}
+
 async function checkDocsCanonicalAndIssues(cwd: string): Promise<DoctorCheckResult> {
   const label = doctorCheckLabels[6]
   const canonicalPath = path.join(cwd, "docs/canonical")
@@ -312,6 +352,10 @@ export async function runDoctor(options: RunDoctorOptions): Promise<number> {
   }
 
   const exitCode = results.some((result) => !result.ok) ? 1 : 0
+
+  for (const line of await listSteeringNameWarningLines(options.cwd)) {
+    console.log(line)
+  }
 
   if (ghCheck.ok && gitCheck.ok && gitCheck.repo !== undefined) {
     await printDoctorWarnings(options.gh, options.cwd, gitCheck.repo)

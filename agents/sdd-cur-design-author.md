@@ -12,6 +12,12 @@ description: sdd-cur の設計ファイルを書く。人が設計の作成を�
 
 1. `docs/policy.md` が無いときは、止まって、`sdd-cur init` を案内する。
 `docs/policy.md` があるときは、起動時に `docs/policy.md` を読む。
+`docs/steering/` がディレクトリであるときは、そのあと `docs/steering/` 直下の名前が `.md` で終わるファイルを、ファイル名の昇順ですべて読む。
+`docs/steering/` がディレクトリでないときは、直下の `.md` を読まずに進む。
+`docs/steering/` のサブディレクトリの中の `.md` は読まない。
+`docs/steering/` 直下の、名前が `.md` で終わらないファイルは読まない。
+規則に合わない `<名前>.md` も読む。
+`docs/policy.md` と `docs/steering/` 直下の `.md` が食い違うとき、従うのは `docs/policy.md` である。
 2. 親が渡した課題番号、題、課題本文、その課題の要件、既存の設計ファイルを読む。
 3. 設計の状態が `missing` のときは、課題の題を最初の見出しにする。
 見出しは `# <番号> <題>` であり、題は課題の題と一文字も違わない。

@@ -2269,7 +2269,9 @@ CLI を実行するスキルは、`skills/sdd-cur/SKILL.md`、`skills/sdd-cur-qu
 
 もとになった課題は #118 である。
 
-`agents/sdd-cur-req-author.md`、`agents/sdd-cur-design-author.md`、`agents/sdd-cur-req-reviewer.md`、`agents/sdd-cur-req-reviewer-high.md`、`agents/sdd-cur-design-reviewer.md` は、`docs/policy.md` が無いとき、止まって、`sdd-cur init` を案内する、と書く。`docs/policy.md` があるとき、起動時に `docs/policy.md` を読む、と書く。
+`agents/sdd-cur-req-author.md`、`agents/sdd-cur-req-fixer.md`、`agents/sdd-cur-req-reviewer.md`、`agents/sdd-cur-req-reviewer-high.md`、`agents/sdd-cur-design-author.md`、`agents/sdd-cur-design-fixer.md`、`agents/sdd-cur-design-reviewer.md`、`agents/sdd-cur-implement-author.md`、`agents/sdd-cur-implement-fixer.md`、`agents/sdd-cur-implement-reviewer.md` は、`docs/policy.md` が無いとき、止まって、`sdd-cur init` を案内する、と書く。`docs/policy.md` があるとき、起動時に `docs/policy.md` を読み、そのあと `docs/steering/` がディレクトリであるときは `docs/steering/` 直下の名前が `.md` で終わるファイルを、ファイル名の昇順ですべて読む、と書く。`docs/steering/` がディレクトリでないときは、直下の `.md` を読まずに進む、と書く。
+
+- シナリオ: 条件: 十サブエージェントの定義を読む 主体: 正本 結果: 起動時に `docs/policy.md` のあと `docs/steering/` 直下の `.md` をすべて読むと書いてある
 
 ## REQ-887
 
@@ -2668,3 +2670,19 @@ SDD スキル `skills/sdd-cur/` は、入口の `SKILL.md` に共通の規則と
 
 - シナリオ: 条件: SDD スキルが要件のレビューに入る 主体: SDD スキル 結果: 共有のループ手順は `review-loop.md` を読み、第1引数と役名は `requirements.md` の `## 要件` に書いた値を使う
 - シナリオ: 条件: 実装スキルがレビューに入る 主体: 実装スキル 結果: 共有のループ手順は `review-loop.md` を読み、第1引数 `implement` と役名は `## レビュー` に書いた値を使う
+
+## REQ-960
+
+もとになった課題は #199 である。
+
+十サブエージェントは、`docs/policy.md` と `docs/steering/` 直下の `.md` が食い違うとき、従うのは `docs/policy.md` である、と書く。`docs/steering/` のサブディレクトリの中の `.md` は読まない、と書く。`docs/steering/` 直下の、名前が `.md` で終わらないファイルは読まない、と書く。`<名前>` が領域名の規則に合わない `docs/steering/<名前>.md` も読む、と書く。
+
+- シナリオ: 条件: `docs/policy.md` と steering の `.md` が食い違う 主体: 十サブエージェント 結果: 従うのは `docs/policy.md` であると書いてある
+
+## REQ-961
+
+もとになった課題は #199 である。
+
+`agents/sdd-cur-req-reviewer.md`、`agents/sdd-cur-req-reviewer-high.md`、`agents/sdd-cur-design-reviewer.md`、`agents/sdd-cur-implement-reviewer.md` は、`docs/policy.md` と `docs/steering/` 直下の `.md` が食い違う記述を指摘する、と書く。`agents/sdd-cur-req-reviewer.md` と `agents/sdd-cur-req-reviewer-high.md` は、レビューしている要求のうち、`docs/policy.md` の「破ってはいけない原則」と食い違う記述を指摘する、と書く。`agents/sdd-cur-design-reviewer.md` は、レビューしている設計のうち、`docs/policy.md` の「破ってはいけない原則」と食い違う記述を指摘する、と書く。
+
+- シナリオ: 条件: 要求レビュー役の定義を読む 主体: 正本 結果: steering と policy の食い違いと、破ってはいけない原則の食い違いの両方を指摘すると書いてある

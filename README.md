@@ -6,6 +6,8 @@
 
 要件と設計の置き場所と課題コメントの約束は [docs/conventions.md](docs/conventions.md) にある。
 
+任意で `docs/steering/<名前>.md` を `docs/steering/` 直下に置ける。`<名前>` は `docs/canonical/<領域>.md` の `<領域>` と同じ規則である。要求・設計・実装の作成役、修正役、レビュー役の十サブエージェントは、起動時に `docs/policy.md` を読んだあと、ディレクトリがあるときだけ `docs/steering/` 直下の `.md` をすべて読む。ディレクトリが無いときは読まずに進む。食い違うときは `docs/policy.md` を優先する。レビュー役は、`docs/policy.md` と `docs/steering/` 直下の `.md` の食い違いを指摘する。
+
 ## 他のプロジェクトで使う
 
 1. `bun add -g @paterapatera/sdd-cur`
@@ -89,7 +91,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 パスへ入ったあとは `sdd-cur install` と `sdd-cur run` で同じ入口を呼ぶ。
 
-導入の順は `install`、`init`、`labels` である。`sdd-cur doctor` は導入の前提を一つずつ確かめるコマンドである。
+導入の順は `install`、`init`、`labels` である。`sdd-cur doctor` は導入の前提を一つずつ確かめるコマンドである。`doctor` は `docs/steering/` があるとき、名前の規則に合わないファイルを一行ずつ知らせる。
 
 `install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-policy`、`skills/sdd-cur-quick` である。
 
