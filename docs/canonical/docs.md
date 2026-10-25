@@ -286,3 +286,19 @@ README に、`sdd-cur doctor` が導入の前提を一つずつ確かめるコ�
 
 README の最初の `##` 見出しは `他のプロジェクトで使う` である。その節に、次の六手順をこの順で書く。`bun add -g @paterapatera/sdd-cur`、プロジェクトのルートで `sdd-cur setup`、Cursor で `sdd-cur-policy` を起動して `docs/policy.md` の下書きを作る、`sdd-cur-create-issue` で課題を作り `sdd-cur` で要件と設計を進める、ランナー用に別ディレクトリへクローンして `sdd-cur run`、課題の担当者をランナーの `gh` のログインにする。
 - シナリオ: 条件: README の先頭の節を読む 主体: README 結果: 六手順がこの順である
+
+## REQ-965
+
+もとになった課題は #199 である。
+
+`docs/policy.md` の構成の表に `docs/steering/` の行がある。その行から、`<名前>.md` を任意で置けること、十サブエージェントが `docs/policy.md` のあと直下の `.md` をすべて読むこと、ディレクトリが無いときは読まずに進むこと、食い違うときは `docs/policy.md` を優先することが読める。`docs/policy.md` の四つの `##` 見出しと、「このファイルを変えるのは、課題を通したときだけである。」の文は変えない。
+
+- シナリオ: 条件: `docs/policy.md` の構成表を読む 主体: 人 結果: `docs/steering/` の行がある
+
+## REQ-966
+
+もとになった課題は #199 である。
+
+README は、次の六つを書く。`<名前>.md` を `docs/steering/` 直下に任意で置けること。`<名前>` が領域名と同じ規則であること。十サブエージェントが `docs/policy.md` のあと `docs/steering/` 直下の `.md` をすべて読むこと。ディレクトリが無いときは読まずに進むこと。食い違うときは `docs/policy.md` を優先すること。レビュー役が `docs/policy.md` と `docs/steering/` 直下の `.md` の食い違いを指摘すること。README は、`doctor` が `docs/steering/` があるとき、名前の規則に合わないファイルを一行ずつ知らせる、と書く。見出し `ディレクトリ` の「正本の表にあるパスは、ここには繰り返さない。」は変えない。
+
+- シナリオ: 条件: README の `doctor` の説明を読む 主体: 人 結果: steering の命名違反を知らせると書いてある

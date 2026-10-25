@@ -30,6 +30,7 @@ GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起�
 | `src/github.ts` | Issue の取得、コメント、ラベル、ブランチ、マージリクエスト、スカッシュマージ |
 | `src/labels.ts` | 業務フロー用ラベル名と `ensureWorkflowLabels` |
 | `docs/policy.md` | 誰のための道具か、技術の前提、構成、破ってはいけない原則の正本 |
+| `docs/steering/` | 任意で `<名前>.md` を直下に置ける。十サブエージェントは `docs/policy.md` のあと直下の `.md` をすべて読む。ディレクトリが無いときは読まずに進む。食い違うときは `docs/policy.md` を優先する。 |
 | `docs/conventions.md` | スキル、サブエージェント、テストの書き方は、このファイルを読む。 |
 | `skills/sdd-cur/conventions.md` | 要件・設計の置き場所と課題コメントの約束。 |
 | `src/conventions.ts` | 上記約束の判定（パス、種別、対応、反映済み、未反映） |
