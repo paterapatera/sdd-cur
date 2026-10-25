@@ -66,6 +66,10 @@ export function messageHasSddCurTaskForNumber(
   return false
 }
 
+export function shortCommitHash(sha: string): string {
+  return sha.slice(0, 7).toLowerCase()
+}
+
 function reject(message: string): never {
   throw new Error(message)
 }
