@@ -203,6 +203,12 @@ disable-model-invocation: true
     }
     const requirementsSlice = await readStage("requirements.md")
     const designSlice = await readStage("design.md")
+    const reviewLoopSlice = await readFile(
+      path.join(skillDir, "review-loop.md"),
+      "utf8",
+    )
+    const requirementsWithLoop = `${requirementsSlice}\n${reviewLoopSlice}`
+    const designWithLoop = `${designSlice}\n${reviewLoopSlice}`
     expect(requirementsSlice).toContain("sdd-cur validate <番号>")
     expect(designSlice).toContain("sdd-cur validate <番号>")
     expect(requirementsSlice).toContain(
@@ -214,8 +220,8 @@ disable-model-invocation: true
     )
     const sectionRequired = ["修正を起動しない"]
     for (const phrase of sectionRequired) {
-      expect(requirementsSlice).toContain(phrase)
-      expect(designSlice).toContain(phrase)
+      expect(requirementsWithLoop).toContain(phrase)
+      expect(designWithLoop).toContain(phrase)
     }
     const sectionCanon = [
       "返信から仕様の全文を読まない",
@@ -231,11 +237,11 @@ disable-model-invocation: true
       "要求作成役の返信から仕様の全文を読まない",
     )
     for (const phrase of [
-      "初回の起動が `sdd-cur-req-reviewer` である",
-      "返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する",
+      "要求レビュー役の初回の起動が、呼び出し側が書いたレビュー役の名前である",
+      "`review-next` のあと、返った `model` が空文字のときは、呼び出し側が書いたレビュー役の名前で起動する。空でないときは、呼び出し側が書いた上級レビュー役の名前で起動する",
       "要求レビュー役の起動で model を渡さない",
     ]) {
-      expect(requirementsSlice).toContain(phrase)
+      expect(requirementsWithLoop).toContain(phrase)
     }
     expect(designSlice).toContain(
       "設計作成役の返信から仕様の全文を読まない",

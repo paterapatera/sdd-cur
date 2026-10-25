@@ -188,29 +188,20 @@ agent は失敗で終える。
 このことだけでは不合格にしない。
 手順本文を書き直さない。
 
-第1引数は `implement` である。
-段の開始時、`consecutiveFailures` は 0、`previousFindings` は空文字、`brokenStampRetries` は 0 である。
-この一回の agent 起動の中だけ覚える。
-ファイルにも課題コメントにも書かない。
-ランナーが `implement` を再試行しても、回数は引き継がない。
-
 `sdd-cur` が見つからないときは、`bun add -g @paterapatera/sdd-cur` を含む一行を伝えて止まる。
 止まったあとは、`sdd-cur` を実行しない。
 
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next implement <番号>` の標準入力へ、JSON 一行で渡す。
+第1引数は `implement` である。
+`sdd-cur review-next implement <番号>` を使う。
+段の開始時の三つは、この一回の agent 起動の中だけ覚える。
+ランナーが `implement` を再試行しても、回数は引き継がない。
+レビュー役は `sdd-cur-implement-reviewer` である。
+修正役は `sdd-cur-implement-fixer` である。
+レビューの直前に validate コマンドは実行しない。
+`sdd-cur/review-loop.md` に従う。
+`review-loop.md` の `## レビューのループ` に、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` と `sdd-cur review-next` の分岐がある。
 返った一行 JSON の `action`、`model`、`kind` に従う。
-その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
-次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
-`response` は、その呼び出しで判定するレビュー応答の全文である。
-`model` が空文字のときは、レビュー役に model を渡さない。
-空でないときは、その文字列をレビュー役の model に渡す。
-修正役と作成役には、model を渡さない。
-
-`action` が `修正` のとき、修正役を起動する。差分だけを渡す。作成役は起動しない。修正のあと、レビューに戻る。
-`action` が `やり直し` のとき、レビュー役をもう一度起動する。修正役も作成役も起動しない。
 `rewriteProcedure` が `true` のときは、その起動の前に、親が同じパスの手順本文を書き直す。
-`action` が `合格` のとき、修正役も作成役も起動しない。
-`action` が `止まる` のとき、修正役を起動しない。
 
 `reason` があるとき、その文字列を失敗の理由にする。
 agent は失敗で終える。

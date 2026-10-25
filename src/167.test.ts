@@ -160,14 +160,19 @@ describe("167", () => {
   test("[8] レビュー指摘と三つの値は各段一回", async () => {
     const req = await readFile(requirementsPath, "utf8")
     const design = await readFile(designStagePath, "utf8")
-    expect(req.match(/レビューの指摘はどこにも置かない/g)?.length).toBe(1)
+    const reviewLoop = await readFile(
+      path.join(root, "skills/sdd-cur/review-loop.md"),
+      "utf8",
+    )
+    expect(reviewLoop.match(/レビューの指摘はどこにも置かない/g)?.length).toBe(
+      1,
+    )
     expect(
-      req.match(/段の開始時、`consecutiveFailures` は 0/g)?.length,
+      reviewLoop.match(/段の開始時、`consecutiveFailures` は 0/g)?.length,
     ).toBe(1)
-    expect(design.match(/レビューの指摘はどこにも置かない/g)?.length).toBe(1)
-    expect(
-      design.match(/段の開始時、`consecutiveFailures` は 0/g)?.length,
-    ).toBe(1)
+    expect(req).not.toContain("レビューの指摘はどこにも置かない")
+    expect(design).not.toContain("レビューの指摘はどこにも置かない")
+    expect(design).toContain("要件の段の三つとは別")
   })
 
   test("[12] docs/conventions.md は変えない", async () => {

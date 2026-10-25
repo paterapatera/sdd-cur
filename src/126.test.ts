@@ -81,7 +81,7 @@ const SPEC_CHECK_PREFIXES = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "3fa904ed10c3463f9979329833e1c30731bee062d8f03dcfb5ee817d166415d0"
+  "caba30ee431b1e7e25c428857786e86da0d35d7218f5c30f3a20433d6d4e00f4"
 
 /** #173 以降の正本差分で上書きされた要求（#126 の差分本文とは一致しない） */
 /** 課題 126 の差分適用後、課題 145 が正本を上書きした REQ */

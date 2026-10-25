@@ -24,15 +24,15 @@ const notFoundSentenceOne =
 const notFoundSentenceTwo = "止まったあとは、`sdd-cur` を実行しない。"
 
 const reqReviewFourSentences = [
-  "要求レビュー役の初回の起動が `sdd-cur-req-reviewer` である。",
-  "`review-next` のあと、返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する。",
+  "要求レビュー役の初回の起動が、呼び出し側が書いたレビュー役の名前である。",
+  "`review-next` のあと、返った `model` が空文字のときは、呼び出し側が書いたレビュー役の名前で起動する。空でないときは、呼び出し側が書いた上級レビュー役の名前で起動する。",
   "要求レビュー役を起動するとき model を渡さない。",
   "要求レビュー役の起動で model を渡さない。",
 ] as const
 
 const reqReviewAfterAnswerThree = [
-  "人が答えたあとに要求レビュー役を再び起動するとき、返った `model` が空文字なら `sdd-cur-req-reviewer` である。",
-  "返った `model` が空でないなら `sdd-cur-req-reviewer-high` である。",
+  "人が答えたあとに要求レビュー役を再び起動するとき、返った `model` が空文字なら、呼び出し側が書いたレビュー役の名前である。",
+  "返った `model` が空でないなら、呼び出し側が書いた上級レビュー役の名前である。",
   "この再起動は回数を増やさない。",
 ] as const
 
@@ -288,18 +288,22 @@ describe("issue 116 req reviewer agents", () => {
 
 describe("issue 116 requirements section in skills", () => {
   test("sdd-cur の要件の段", async () => {
-    const text = await readFile(
+    const requirements = await readFile(
       path.join(skillsRoot, "sdd-cur/requirements.md"),
       "utf8",
     )
-    const section = text
+    const reviewLoop = await readFile(
+      path.join(skillsRoot, "sdd-cur/review-loop.md"),
+      "utf8",
+    )
+    const combined = `${requirements}\n${reviewLoop}`
     for (const phrase of reqReviewFourSentences) {
-      expect(section).toContain(phrase)
+      expect(combined).toContain(phrase)
     }
     for (const phrase of reqReviewAfterAnswerThree) {
-      expect(section).toContain(phrase)
+      expect(reviewLoop).toContain(phrase)
     }
-    expect(section).not.toContain("その文字列をレビュー役の model に渡す")
+    expect(requirements).not.toContain("その文字列をレビュー役の model に渡す")
   })
 
   test("sdd-cur-quick の要件の段", async () => {
@@ -307,9 +311,14 @@ describe("issue 116 requirements section in skills", () => {
       path.join(skillsRoot, "sdd-cur-quick/SKILL.md"),
       "utf8",
     )
+    const reviewLoop = await readFile(
+      path.join(skillsRoot, "sdd-cur/review-loop.md"),
+      "utf8",
+    )
     const section = sectionBetween(text, "## 要件", "## 設計")
+    const combined = `${section}\n${reviewLoop}`
     for (const phrase of reqReviewFourSentences) {
-      expect(section).toContain(phrase)
+      expect(combined).toContain(phrase)
     }
     for (const phrase of reqReviewAfterAnswerThree) {
       expect(section).not.toContain(phrase)

@@ -112,7 +112,7 @@ const conventionsPrefixSha256 =
 
 const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/implement.md":
-    "f487340f74d361fdca7a2e6ecab857954c01f022395e3ddc4af976c92d4658a7",
+    "6c83cabd535d7e29c9ac4ed07d342dd4aecbe7c41b020f5d2992943dde3ae9d9",
   "docs/canonical/git.md":
     "a8fbcc9c5fd4ed0b43ab6d511142639a857881389f3531f0d1b0567ace7a72f2",
   "docs/canonical/complete.md":
