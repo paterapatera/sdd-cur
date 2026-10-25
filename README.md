@@ -6,6 +6,15 @@
 
 要件と設計の置き場所と課題コメントの約束は [docs/conventions.md](docs/conventions.md) にある。
 
+## 他のプロジェクトで使う
+
+1. `bun add -g @paterapatera/sdd-cur`
+2. プロジェクトのルートで `sdd-cur setup` を実行する。
+3. Cursor で `sdd-cur-policy` を起動し、`docs/policy.md` の下書きを作る。
+4. `sdd-cur-create-issue` で課題を作り、`sdd-cur` で要件と設計を進める。
+5. ランナー用に別のディレクトリへクローンし、そこで `sdd-cur run` を動かす。
+6. 課題の担当者を、ランナーの `gh` のログインにする。
+
 ## 前提
 
 技術の前提は [docs/policy.md](docs/policy.md) の「技術の前提」にある。
