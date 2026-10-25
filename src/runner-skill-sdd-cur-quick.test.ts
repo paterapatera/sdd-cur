@@ -71,12 +71,17 @@ disable-model-invocation: true
     const requirementsStart = text.indexOf("## 要件")
     const designStart = text.indexOf("## 設計")
     const requirementsSlice = text.slice(requirementsStart, designStart)
+    const reviewLoopSlice = await readFile(
+      path.join(path.dirname(quickSkillPath), "../sdd-cur/review-loop.md"),
+      "utf8",
+    )
+    const requirementsWithLoop = `${requirementsSlice}\n${reviewLoopSlice}`
     for (const phrase of [
-      "初回の起動が `sdd-cur-req-reviewer` である",
-      "返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する",
+      "要求レビュー役の初回の起動が、呼び出し側が書いたレビュー役の名前である",
+      "`review-next` のあと、返った `model` が空文字のときは、呼び出し側が書いたレビュー役の名前で起動する。空でないときは、呼び出し側が書いた上級レビュー役の名前で起動する",
       "要求レビュー役の起動で model を渡さない",
     ]) {
-      expect(requirementsSlice).toContain(phrase)
+      expect(requirementsWithLoop).toContain(phrase)
     }
   })
 

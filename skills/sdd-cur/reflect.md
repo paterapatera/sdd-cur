@@ -46,7 +46,13 @@
 `show` の `unanswered` と `nextAnswer` だけで、二つの案内を決めない。
 
 側が `requirements` のとき、第1引数は `requirements` である。
-反映後のレビューは、`requirements.md` の `## 要件` のレビューの段全体である。
+レビュー役は `sdd-cur-req-reviewer` である。
+上級レビュー役は `sdd-cur-req-reviewer-high` である。
+修正役は `sdd-cur-req-fixer` である。
+レビューの前に `validate` を実行する。
+要求レビュー役を起動するとき model を渡さない。
+`sdd-cur/review-loop.md` に従う。
+`action` が `修正` のとき、レビューに入る前に人が選んだ通常の回答を、人が決めた条件として渡す。
 この繰り返しのあいだ、`action` が `合格` になるまで、設計の作成役も設計の修正役も起動しない。
 設計に進める旨を伝えない。
 実装依頼に進める旨を伝えない。
@@ -66,9 +72,11 @@
 回答の手順は、設計のファイルを作らない。
 
 側が `design` のとき、第1引数は `reflect-design` である。
-設計のレビュー役を起動する。
-反映後のレビューは、`sdd-cur review-next reflect-design <番号>` に従う。
-`design.md` の `## 設計` にある `review-next requirements` は、この段では使わない。
+レビュー役は `sdd-cur-design-reviewer` である。
+修正役は `sdd-cur-design-fixer` である。
+レビューの前に `validate` を実行する。
+`sdd-cur/review-loop.md` に従う。
+`design.md` の `## 設計` にある第1引数 `requirements` は、この段では使わない。
 `課題全体が大きすぎる` の止まりと、返った `action` の扱いは、`design.md` の `## 設計` と同じである。
 分割案の止まりも、`design.md` の `## 設計` と同じである。
 `reflect-design` で `action` が `止まる` のとき、レスポンスを人に見せ、設計の修正役は起動しない。

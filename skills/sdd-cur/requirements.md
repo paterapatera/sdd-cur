@@ -83,32 +83,13 @@ frontmatter の `model` を使う。
 要求作成役を起動する前には `validate` を実行しない。
 検査を通ったあと、レビューと修正指示を起動する。
 修正指示は変える部分の差分だけであり、全文は書かない。
-レビューの指摘はどこにも置かない。ファイルにも課題コメントにも残さない。
-段の開始時、`consecutiveFailures` は 0、`previousFindings` は空文字、`brokenStampRetries` は 0 である。ファイルにも課題コメントにも残さない。
 第1引数は `requirements` である。
-
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next requirements <番号>` の標準入力へ、JSON 一行で渡す。
-返った一行 JSON の `action`、`model`、`kind` に従う。
-その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
-次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
-`response` は、その呼び出しで判定するレビュー応答の全文である。
-要求レビュー役の初回の起動が `sdd-cur-req-reviewer` である。
-`review-next` のあと、返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する。
-要求レビュー役を起動するとき model を渡さない。
-要求レビュー役の起動で model を渡さない。
-修正役と作成役には、model を渡さない。
-
-`action` が `修正` のとき、修正役を起動する。差分だけを渡す。作成役は起動しない。修正のあと、レビューに戻る。
-`action` が `やり直し` のとき、レビュー役をもう一度起動する。修正役も作成役も起動しない。
-`action` が `合格` のとき、修正役も作成役も起動しない。
-`action` が `止まる` のとき、修正役を起動しない。
-
-`validate` の失敗は、この標準入力へ渡さない。
-
-`kind` が `stopWaitConfirm` のとき、列挙された点を人に見せる。修正を起動しない。確認コメントは投稿しない。人が答えるまで、その部分は要求へ書かない。人が答えたあとに要求レビュー役を再び起動するとき、返った `model` が空文字なら `sdd-cur-req-reviewer` である。
-返った `model` が空でないなら `sdd-cur-req-reviewer-high` である。
-この再起動は回数を増やさない。
-`kind` が `stopBrokenStampTwice`、`stopSameFindingTwice`、`stopMissingConfirmLine` のときは、レスポンスを人に見せて止まる。修正を起動しない。レビューにも修正にも戻らない。
+レビュー役は `sdd-cur-req-reviewer` である。
+上級レビュー役は `sdd-cur-req-reviewer-high` である。
+修正役は `sdd-cur-req-fixer` である。
+レビューの前に `validate` を実行する。
+`sdd-cur/review-loop.md` に従う。
+`review-loop.md` にある「指摘はどこにも置かない」に従う。
 `action` が `修正` のとき、レビューに入る前に人が選んだ通常の回答を、人が決めた条件として渡す。要求作成役は起動しない。
 「作成から合格まで 1 回」および high の作成 1 回は、レビューに入る前の、要求作成役を medium の Grok で起動して行う初回の成果物作成（grok-4.7[context=256k,reasoning_effort=medium,fast=false]）を指す。
 要求の未記載の質問で人が通常の選択肢を選んだあとの要求作成役の再起動は、同じ要求の続きであり、作成の high の 2 回目に数えない。

@@ -59,29 +59,15 @@ Project A は使わない。
 この失敗は連続不合格に数えない。
 修正役が戻ったあとは、同じコマンドを再び実行する。
 
-レビューの指摘は、ファイルにも課題コメントにも残さない。
 第1引数は `quick` である。
-段の開始時、`consecutiveFailures` は 0、`previousFindings` は空文字、`brokenStampRetries` は 0 である。
-設計の段の三つとは別である。
+段の開始時の三つは、設計の段の三つとは別である。
 要求の段の三つを設計の段へ渡さない。
-
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next quick <番号>` の標準入力へ、JSON 一行で渡す。
-返った一行 JSON の `action`、`model`、`kind` に従う。
-その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
-次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
-`response` は、その呼び出しで判定するレビュー応答の全文である。
-要求レビュー役の初回の起動が `sdd-cur-req-reviewer` である。
-`review-next` のあと、返った `model` が空文字のときは `sdd-cur-req-reviewer` を、空でないときは `sdd-cur-req-reviewer-high` を起動する。
+レビュー役は `sdd-cur-req-reviewer` である。
+上級レビュー役は `sdd-cur-req-reviewer-high` である。
+修正役は `sdd-cur-req-fixer` である。
+レビューの前に `validate` を実行する。
 要求レビュー役を起動するとき model を渡さない。
-要求レビュー役の起動で model を渡さない。
-修正役と作成役には、model を渡さない。
-
-`action` が `修正` のとき、修正役を起動する。差分だけを渡す。作成役は起動しない。修正のあと、レビューに戻る。
-`action` が `やり直し` のとき、レビュー役をもう一度起動する。修正役も作成役も起動しない。
-`action` が `合格` のとき、修正役も作成役も起動しない。
-`action` が `止まる` のとき、修正役を起動しない。
-
-`validate` の失敗は、この標準入力へ渡さない。
+`sdd-cur/review-loop.md` に従う。
 
 `resultLine` があるとき、結果ファイルの最初の非空行はその文字列である。
 `kind` が `stopQuickConfirmListed` のとき、列挙された点を 2 行目以降に書く。
@@ -116,24 +102,11 @@ Project A は使わない。
 理由は `設計を書いていません` である。
 
 第1引数は `quick` である。
-段の開始時、`consecutiveFailures` は 0、`previousFindings` は空文字、`brokenStampRetries` は 0 である。
 要求の段の三つを設計の段へ渡さない。
-
-レビュー役のレスポンスを受け取ったら、`response`、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` を `sdd-cur review-next quick <番号>` の標準入力へ、JSON 一行で渡す。
-返った一行 JSON の `action`、`model`、`kind` に従う。
-その分岐が `reason`、`resultLine`、`rewriteProcedure` を含むときは、そのプロパティにも従う。
-次に `review-next` を呼ぶとき、`consecutiveFailures`、`previousFindings`、`brokenStampRetries` は、直前の成功の標準出力が返した同じプロパティである。
-`response` は、その呼び出しで判定するレビュー応答の全文である。
-`model` が空文字のときは、レビュー役に model を渡さない。
-空でないときは、その文字列をレビュー役の model に渡す。
-修正役と作成役には、model を渡さない。
-
-`action` が `修正` のとき、修正役を起動する。差分だけを渡す。作成役は起動しない。修正のあと、レビューに戻る。
-`action` が `やり直し` のとき、レビュー役をもう一度起動する。修正役も作成役も起動しない。
-`action` が `合格` のとき、修正役も作成役も起動しない。
-`action` が `止まる` のとき、修正役を起動しない。
-
-`validate` の失敗は、この標準入力へ渡さない。
+レビュー役は `sdd-cur-design-reviewer` である。
+修正役は `sdd-cur-design-fixer` である。
+レビューの前に `validate` を実行する。
+`sdd-cur/review-loop.md` に従う。
 
 `resultLine` があるとき、結果ファイルの最初の非空行はその文字列である。
 `kind` が `stopQuickConfirmListed` のとき、列挙された点を 2 行目以降に書く。

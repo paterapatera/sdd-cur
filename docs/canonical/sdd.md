@@ -1024,13 +1024,17 @@ installは`src/install.ts` は変えない。コピーされるのは、この�
 
 もとになった課題は #45 である。
 
-`skills/sdd-cur/SKILL.md` の要件のレビュー手順は、同じ指摘が 2 回連続したとき、2 回目の不合格レビューで人に見せて止まる。
+`skills/sdd-cur/requirements.md` の `## 要件` のレビューのループは、`skills/sdd-cur/review-loop.md` に従う。同じ指摘が 2 回連続したとき、2 回目の不合格レビューで人に見せて止まる挙動は、ループの意味として変わらない。
+
+- シナリオ: 条件: 要求レビューで同じ指摘が 2 回連続した 主体: SDD スキル 結果: 2 回目の不合格で人に見せて止まる
 
 ## REQ-320
 
 もとになった課題は #45 である。
 
-`skills/sdd-cur/SKILL.md` の設計のレビュー手順は、同じ指摘が 2 回連続したとき、2 回目の不合格レビューで人に見せて止まる。
+`skills/sdd-cur/design.md` の `## 設計` のレビューのループは、`skills/sdd-cur/review-loop.md` に従う。同じ指摘が 2 回連続したとき、2 回目の不合格レビューで人に見せて止まる挙動は、ループの意味として変わらない。
+
+- シナリオ: 条件: 設計レビューで同じ指摘が 2 回連続した 主体: SDD スキル 結果: 2 回目の不合格で人に見せて止まる
 
 ## REQ-321
 
@@ -1370,9 +1374,9 @@ reflectは「回答」の、書き込む全文を標準入力へ渡す手順は�
 
 もとになった課題は #53 である。
 
-`skills/sdd-cur/SKILL.md` の要件と設計の手順は、3 回目から渡す `model` を `grok-4.7-high` と書かない。3 回目以降の文字列は `review-next` の `model` であり、`grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である。1 回目と 2 回目は `model` を渡さない。合格まで渡す。中級相当の Composer には戻さない。
+`skills/sdd-cur/requirements.md` の `## 要件` と `skills/sdd-cur/design.md` の `## 設計` は、レビューのループで `review-next` の `model` に従う。3 回目から渡す `model` を `grok-4.7-high` と書かない。1 回目と 2 回目は、設計レビューでは `model` を渡さない。合格まで渡す。中級相当の Composer には戻さない。
 
-- シナリオ: 条件: 数えたレビューが 3 回目である 主体: `review-next` 結果: `model` は空文字ではない
+- シナリオ: 条件: 設計のレビューで数えた 3 回目である 主体: SDD スキル 結果: 返った `model` の文字列をレビュー役に渡す
 ## REQ-377
 
 もとになった課題は #53 である。
@@ -1513,9 +1517,9 @@ reflectは「回答」の、書き込む全文を標準入力へ渡す手順は�
 
 もとになった課題は #116 である。
 
-`review-next` が返す `model` は、1 回目と 2 回目は空文字である。3 回目以降は `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である。合格まで、空文字には戻さない。要求レビューでは、親は Task に `model` を渡さない。返った `model` が空文字なら `sdd-cur-req-reviewer` を、空でないなら `sdd-cur-req-reviewer-high` を起動する。`skills/sdd-cur/SKILL.md` は、この文字列を要求レビューの分岐の散文として書かない。設計レビューと実装レビューでは、返った `model` が空でないとき、その文字列をレビュー役の model に渡す。
+`review-next` が返す `model` は、1 回目と 2 回目は空文字である。3 回目以降は `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である。合格まで、空文字には戻さない。要求レビューでは、親は Task に `model` を渡さない。返った `model` が空文字なら `sdd-cur-req-reviewer` を、空でないなら `sdd-cur-req-reviewer-high` を起動する。`skills/sdd-cur/requirements.md` の `## 要件` は、この文字列を要求レビューの分岐の散文として書かない。設計レビューと実装レビューでは、返った `model` が空でないとき、その文字列をレビュー役の model に渡す。
 
-- シナリオ: 条件: `reviewModelFromRound3` の定義を読む 主体: `src/conventions.ts` 結果: `grok-4.7[context=256k,reasoning_effort=medium,fast=false]` である
+- シナリオ: 条件: 要求レビューで `review-next` が空でない `model` を返す 主体: SDD スキル 結果: `sdd-cur-req-reviewer-high` を起動する
 ## REQ-400
 
 もとになった課題は #55 である。
@@ -1527,7 +1531,9 @@ reflectは「回答」の、書き込む全文を標準入力へ渡す手順は�
 
 もとになった課題は #55 である。
 
-`skills/sdd-cur/SKILL.md` の「設計」のレビューの次の動作は、第1引数 `requirements` の `review-next` に従う。回数とモデルの規則は、要求のレビューと同じである。
+`skills/sdd-cur/design.md` の `## 設計` のレビューのループは、第1引数 `requirements` の `review-next` に従う。手順の置き場は `review-loop.md` である。回数とモデルの規則は、要求のレビューと同じである。
+
+- シナリオ: 条件: 設計のレビューで `review-next` を呼ぶ 主体: SDD スキル 結果: 第1引数は `requirements` である
 
 ## REQ-402
 
@@ -1540,7 +1546,9 @@ reflectは「回答」の、書き込む全文を標準入力へ渡す手順は�
 
 もとになった課題は #55 である。
 
-`skills/sdd-cur/SKILL.md` は、3 回目から渡すモデルの文字列を、分岐の散文に書かない。その文字列は `review-next` の `model` である。要求作成役の初回成果物作成を説明する括弧内のモデル表記は残す。`grok-4.7-high` は書かない。
+`skills/sdd-cur/requirements.md` の `## 要件` と `skills/sdd-cur/design.md` の `## 設計` は、3 回目から渡すモデルの文字列を、分岐の散文に書かない。その文字列は `review-next` の `model` である。`skills/sdd-cur/requirements.md` の要求作成役の初回成果物作成を説明する括弧内のモデル表記は残す。`grok-4.7-high` は書かない。
+
+- シナリオ: 条件: 要件の段の手順を読む 主体: 検査 結果: 3 回目以降の Grok 文字列を散文に書いていない
 
 ## REQ-404
 
@@ -2649,3 +2657,14 @@ SDD スキル `skills/sdd-cur/` は、入口の `SKILL.md` に共通の規則と
 
 - シナリオ: 条件: 人が要件の段だけを依頼した 主体: SDD スキル 結果: `SKILL.md` と `requirements.md` を読み、他の段ファイルは参照が無ければ読まない
 - シナリオ: 条件: 要件の段でレビューが合格した 主体: SDD スキル 結果: `after-pass.md` を読んで合格後の案内と判断に従う
+
+## REQ-957
+
+もとになった課題は #169 である。
+
+`review-next` を使うレビューのループの手順は、`skills/sdd-cur/review-loop.md` の `## レビューのループ` に一度だけ書く。
+各段のスキルは、ループに入る直前に、その段の第1引数、レビュー役、修正役、上級レビュー役（使う段だけ）、レビューの前に `validate` を実行するか、を書き、`review-loop.md` を読んで従う。
+`review-next` の入力と出力の意味と、各段のループの挙動は、本課題の前と同じである。
+
+- シナリオ: 条件: SDD スキルが要件のレビューに入る 主体: SDD スキル 結果: 共有のループ手順は `review-loop.md` を読み、第1引数と役名は `requirements.md` の `## 要件` に書いた値を使う
+- シナリオ: 条件: 実装スキルがレビューに入る 主体: 実装スキル 結果: 共有のループ手順は `review-loop.md` を読み、第1引数 `implement` と役名は `## レビュー` に書いた値を使う

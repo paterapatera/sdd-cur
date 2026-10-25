@@ -1048,11 +1048,17 @@ describe("課題 91", () => {
       )
       const design = await readFile(path.join(skillDir, "design.md"), "utf8")
       const reflect = await readFile(path.join(skillDir, "reflect.md"), "utf8")
-      const combined = `${requirements}\n${design}\n${reflect}`
+      const reviewLoop = await readFile(
+        path.join(skillDir, "review-loop.md"),
+        "utf8",
+      )
       for (const phrase of commonPhrases) {
-        expect(combined).toContain(phrase)
+        expect(reviewLoop).toContain(phrase)
       }
       expect(requirements).toContain("第1引数は `requirements`")
+      expect(requirements).toContain("review-loop.md")
+      expect(design).toContain("review-loop.md")
+      expect(reflect).toContain("review-loop.md")
       expect(reflect).toContain("第1引数は `reflect-design`")
 
       const removed = [
@@ -1083,9 +1089,14 @@ describe("課題 91", () => {
         path.join(root, "skills/sdd-cur-quick/SKILL.md"),
         "utf8",
       )
+      const reviewLoop = await readFile(
+        path.join(root, "skills/sdd-cur/review-loop.md"),
+        "utf8",
+      )
       for (const phrase of commonPhrases) {
-        expect(text).toContain(phrase)
+        expect(reviewLoop).toContain(phrase)
       }
+      expect(text).toContain("review-loop.md")
       expect(text).toContain("第1引数は `quick`")
       expect(text).not.toContain("grok-4.7[context=256k,reasoning_effort=high,fast=false]")
       expect(text).not.toContain("確認: あり")
@@ -1098,12 +1109,17 @@ describe("課題 91", () => {
         path.join(root, "skills/sdd-cur-implement/SKILL.md"),
         "utf8",
       )
+      const reviewLoop = await readFile(
+        path.join(root, "skills/sdd-cur/review-loop.md"),
+        "utf8",
+      )
       for (const phrase of commonPhrases) {
-        expect(text).toContain(phrase)
+        expect(reviewLoop).toContain(phrase)
       }
+      expect(text).toContain("review-loop.md")
       expect(text).toContain("第1引数は `implement`")
       const review = sectionBetween(text, "## レビュー", "## 禁止")
-      expect(text).not.toMatch(/`\s*validate\s*`|bun src\/cli\.ts validate/)
+      expect(review).not.toMatch(/`\s*validate\s*`|bun src\/cli\.ts validate/)
       for (const phrase of [
         "3回目",
         "grok-4.7[context=256k,reasoning_effort=high,fast=false]",
