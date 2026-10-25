@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { readdir, readFile, stat } from "node:fs/promises"
+import { mkdir, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import type { GitRunner } from "./git.ts"
 import type { IssueComment } from "./github.ts"
@@ -1909,7 +1909,9 @@ function trimBodyEdges(bodyLines: readonly string[]): string {
   return bodyLines.slice(start, end).join("\n")
 }
 
-function canonicalReqBodiesFromMarkdown(markdown: string): Map<string, string> {
+export function canonicalReqBodiesFromMarkdown(
+  markdown: string,
+): Map<string, string> {
   const lines = normalizeNewlines(markdown).split("\n")
   const map = new Map<string, string>()
   let i = 0
@@ -2205,7 +2207,95 @@ async function readDesignForSpecDiff(
   }
 }
 
-export async function specDiff(options: {
+export function canonicalReqSectionMarkdown(id: string, body: string): string {
+  const heading = `## ${id}`
+  if (body.length === 0) {
+    return `${heading}\n`
+  }
+  return `${heading}\n${body}`
+}
+
+function appendReqSectionToDomainFile(
+  markdown: string,
+  id: string,
+  body: string,
+): string {
+  const section = canonicalReqSectionMarkdown(id, body)
+  if (!markdown.endsWith("\n")) {
+    return `${markdown}\n${section}`
+  }
+  return `${markdown}${section}`
+}
+
+function canonicalReqBodyLines(body: string): string[] {
+  if (body.length === 0) {
+    return []
+  }
+  return normalizeNewlines(body).split("\n")
+}
+
+function spliceReqSectionInDomainFile(
+  markdown: string,
+  id: string,
+  replacement: string | null,
+): string {
+  const lines = normalizeNewlines(markdown).split("\n")
+  const heading = `## ${id}`
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i] !== heading) {
+      continue
+    }
+    let j = i + 1
+    while (j < lines.length && !lines[j].match(CANONICAL_REQ_HEADING)) {
+      j += 1
+    }
+    if (replacement === null) {
+      return [...lines.slice(0, i), ...lines.slice(j)].join("\n")
+    }
+    const newBodyLines = canonicalReqBodyLines(replacement)
+    return [
+      ...lines.slice(0, i + 1),
+      ...newBodyLines,
+      ...lines.slice(j),
+    ].join("\n")
+  }
+  return markdown
+}
+
+async function readDomainCanonicalFile(
+  filePath: string,
+): Promise<string | null> {
+  try {
+    return await readFile(filePath, "utf8")
+  } catch (err: unknown) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? (err as { code: string }).code
+        : ""
+    if (code === "ENOENT") {
+      return null
+    }
+    throw err
+  }
+}
+
+export async function expectedCanonicalMapForDesign(options: {
+  cwd: string
+  issueNumber: number
+  git: GitRunner
+}): Promise<Map<string, string>> {
+  const { cwd, issueNumber, git } = options
+  const paths = specPaths(issueNumber)
+  const designPath = join(cwd, paths.design)
+  const designFile = await readDesignForSpecDiff(designPath)
+  const deltaItems = designFile.exists
+    ? parseDeltaItems(designFile.markdown)
+    : []
+  const baseline = await readBaselineCanonicalMap(git, cwd)
+  return applyDeltaToBaseline(baseline, deltaItems)
+}
+
+export async function specApply(options: {
   cwd: string
   issueNumber: number
   git: GitRunner
@@ -2217,8 +2307,72 @@ export async function specDiff(options: {
   const deltaItems = designFile.exists
     ? parseDeltaItems(designFile.markdown)
     : []
-  const baseline = await readBaselineCanonicalMap(git, cwd)
-  const expected = applyDeltaToBaseline(baseline, deltaItems)
+  if (deltaItems.length === 0) {
+    return []
+  }
+
+  // 項目があるときはファイルを書く前に validateCanonicalDelta で検査する。
+  const canonicalIds = await readCanonicalIds(cwd)
+  const violations = validateCanonicalDelta(designFile.markdown, canonicalIds)
+  if (violations.length > 0) {
+    return violations
+  }
+
+  await expectedCanonicalMapForDesign({ cwd, issueNumber, git })
+
+  const canonicalDir = join(cwd, "docs/canonical")
+  const touchedDomains = new Set<string>()
+
+  for (const item of deltaItems) {
+    touchedDomains.add(item.domain)
+    const filePath = join(canonicalDir, `${item.domain}.md`)
+    if (item.kind === "add") {
+      const existing = await readDomainCanonicalFile(filePath)
+      const next =
+        existing === null
+          ? `# ${item.domain}\n${canonicalReqSectionMarkdown(item.id, item.body)}`
+          : appendReqSectionToDomainFile(existing, item.id, item.body)
+      await mkdir(canonicalDir, { recursive: true })
+      await writeFile(filePath, next, "utf8")
+      continue
+    }
+
+    const content = await readDomainCanonicalFile(filePath)
+    if (content === null) {
+      continue
+    }
+    const next =
+      item.kind === "change"
+        ? spliceReqSectionInDomainFile(content, item.id, item.body)
+        : spliceReqSectionInDomainFile(content, item.id, null)
+    await writeFile(filePath, next, "utf8")
+  }
+
+  for (const domain of touchedDomains) {
+    const filePath = join(canonicalDir, `${domain}.md`)
+    const content = await readDomainCanonicalFile(filePath)
+    if (content === null) {
+      continue
+    }
+    if (canonicalIdsFromMarkdown(content).length === 0) {
+      await unlink(filePath)
+    }
+  }
+
+  return []
+}
+
+export async function specDiff(options: {
+  cwd: string
+  issueNumber: number
+  git: GitRunner
+}): Promise<string[]> {
+  const { cwd, issueNumber, git } = options
+  const expected = await expectedCanonicalMapForDesign({
+    cwd,
+    issueNumber,
+    git,
+  })
   const worktree = await readWorktreeCanonicalMap(cwd)
   return compareCanonicalMaps(expected, worktree)
 }

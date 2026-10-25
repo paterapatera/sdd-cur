@@ -286,3 +286,30 @@ README に、`sdd-cur doctor` が導入の前提を一つずつ確かめるコ�
 
 README の最初の `##` 見出しは `他のプロジェクトで使う` である。その節に、次の六手順をこの順で書く。`bun add -g @paterapatera/sdd-cur`、プロジェクトのルートで `sdd-cur setup`、Cursor で `sdd-cur-policy` を起動して `docs/policy.md` の下書きを作る、`sdd-cur-create-issue` で課題を作り `sdd-cur` で要件と設計を進める、ランナー用に別ディレクトリへクローンして `sdd-cur run`、課題の担当者をランナーの `gh` のログインにする。
 - シナリオ: 条件: README の先頭の節を読む 主体: README 結果: 六手順がこの順である
+
+## REQ-967
+
+もとになった課題は #196 である。
+
+README の「開発中の起動」の、行全体が `bun test` である行の直前に、行全体が `bunx @paterapatera/sdd-cur spec-apply <番号>` である行を一つ足す。足す行以外の、その節の既存の文は一文字も変えない。
+- シナリオ: 条件: README の「開発中の起動」を見る 主体: README 結果: `spec-apply` の起動例が 1 行ある
+
+## REQ-968
+
+もとになった課題は #196 である。
+
+`skills/sdd-cur/conventions.md` の「仕様の正本」に、`spec-apply` が設計の `## 正本への差分` を作業ツリーの `docs/canonical/` に書く旨を、次の二行を足す。行のあいだに空行は入れない。足す行以外の既存の文は一文字も変えない。
+
+```
+`sdd-cur spec-apply <番号>` は、設計の `## 正本への差分` を、作業ツリーの `docs/canonical/` に書く。差分対象の識別子だけを書き換える。
+期待値の計算は `spec-diff` と同じ手順である。
+```
+
+- シナリオ: 条件: `skills/sdd-cur/conventions.md` の「仕様の正本」を見る 主体: その節 結果: `spec-apply` が正本へ書く旨の文がある
+
+## REQ-969
+
+もとになった課題は #196 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `spec-apply` を含む。`AGENTS.md` の「コマンド」の例に、行全体が `bun src/cli.ts spec-apply <番号>` である行がある。
+- シナリオ: 条件: `docs/policy.md` の構成の表を見る 主体: その行 結果: `spec-apply` を含む

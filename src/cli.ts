@@ -7,6 +7,7 @@ import {
   collectEvidenceViolationsAsync,
   reviewNext,
   sectionBodies,
+  specApply,
   specDiff,
   specPaths,
   validateSpecForm,
@@ -93,6 +94,7 @@ export function printUsage(): void {
   console.error("sdd-cur tasks <番号>")
   console.error("sdd-cur task-done <番号> <作業番号>")
   console.error("sdd-cur spec-diff <番号>")
+  console.error("sdd-cur spec-apply <番号>")
 }
 
 function isFenceDelimiterLine(line: string): boolean {
@@ -286,6 +288,37 @@ async function cmdSpecDiff(args: string[]): Promise<number> {
   const cwd = process.cwd()
   try {
     const lines = await specDiff({
+      cwd,
+      issueNumber,
+      git: defaultGitRunner,
+    })
+    for (const line of lines) {
+      console.error(line)
+    }
+    return lines.length > 0 ? 1 : 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
+async function cmdSpecApply(args: string[]): Promise<number> {
+  if (args.length !== 1) {
+    printUsage()
+    return 1
+  }
+
+  let issueNumber: number
+  try {
+    issueNumber = parseIssueNumberString(args[0])
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+
+  const cwd = process.cwd()
+  try {
+    const lines = await specApply({
       cwd,
       issueNumber,
       git: defaultGitRunner,
@@ -1088,6 +1121,8 @@ async function main(): Promise<number> {
       return await cmdTaskDone(rest)
     case "spec-diff":
       return await cmdSpecDiff(rest)
+    case "spec-apply":
+      return await cmdSpecApply(rest)
     default:
       printUsage()
       return 1

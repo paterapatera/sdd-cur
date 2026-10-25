@@ -481,11 +481,15 @@ describe("123 spec-diff", () => {
     const specIdx = agentsLines.findIndex(
       (line) => line === "bun src/cli.ts spec-diff <番号>",
     )
+    const specApplyIdx = agentsLines.findIndex(
+      (line) => line === "bun src/cli.ts spec-apply <番号>",
+    )
     const testIdx = agentsLines.findIndex((line) => line === "bun test")
     expect(tasksIdx).toBeGreaterThan(-1)
     expect(taskDoneIdx).toBe(tasksIdx + 1)
     expect(specIdx).toBe(taskDoneIdx + 1)
-    expect(testIdx).toBe(specIdx + 1)
+    expect(specApplyIdx).toBe(specIdx + 1)
+    expect(testIdx).toBe(specApplyIdx + 1)
   })
 
   test("[21][22] 実装スキル", async () => {
