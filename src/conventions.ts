@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { readdir, readFile, stat } from "node:fs/promises"
+import { mkdir, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import type { GitRunner } from "./git.ts"
 import type { IssueComment } from "./github.ts"
@@ -2213,6 +2213,61 @@ export function canonicalReqSectionMarkdown(id: string, body: string): string {
   return `${heading}\n${body}`
 }
 
+function appendReqSectionToDomainFile(
+  markdown: string,
+  id: string,
+  body: string,
+): string {
+  const section = canonicalReqSectionMarkdown(id, body)
+  if (!markdown.endsWith("\n")) {
+    return `${markdown}\n${section}`
+  }
+  return `${markdown}${section}`
+}
+
+function spliceReqSectionInDomainFile(
+  markdown: string,
+  id: string,
+  replacement: string | null,
+): string {
+  const lines = normalizeNewlines(markdown).split("\n")
+  const heading = `## ${id}`
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i] !== heading) {
+      continue
+    }
+    let j = i + 1
+    while (j < lines.length && !lines[j].match(CANONICAL_REQ_HEADING)) {
+      j += 1
+    }
+    const newSectionLines =
+      replacement === null
+        ? []
+        : normalizeNewlines(replacement).split("\n")
+    return [...lines.slice(0, i), ...newSectionLines, ...lines.slice(j)].join(
+      "\n",
+    )
+  }
+  return markdown
+}
+
+async function readDomainCanonicalFile(
+  filePath: string,
+): Promise<string | null> {
+  try {
+    return await readFile(filePath, "utf8")
+  } catch (err: unknown) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? (err as { code: string }).code
+        : ""
+    if (code === "ENOENT") {
+      return null
+    }
+    throw err
+  }
+}
+
 export async function expectedCanonicalMapForDesign(options: {
   cwd: string
   issueNumber: number
@@ -2234,7 +2289,7 @@ export async function specApply(options: {
   issueNumber: number
   git: GitRunner
 }): Promise<string[]> {
-  const { cwd, issueNumber } = options
+  const { cwd, issueNumber, git } = options
   const paths = specPaths(issueNumber)
   const designPath = join(cwd, paths.design)
   const designFile = await readDesignForSpecDiff(designPath)
@@ -2244,7 +2299,58 @@ export async function specApply(options: {
   if (deltaItems.length === 0) {
     return []
   }
-  void options.git
+
+  const canonicalIds = await readCanonicalIds(cwd)
+  const violations = validateCanonicalDelta(designFile.markdown, canonicalIds)
+  if (violations.length > 0) {
+    return violations
+  }
+
+  await expectedCanonicalMapForDesign({ cwd, issueNumber, git })
+
+  const canonicalDir = join(cwd, "docs/canonical")
+  const touchedDomains = new Set<string>()
+
+  for (const item of deltaItems) {
+    touchedDomains.add(item.domain)
+    const filePath = join(canonicalDir, `${item.domain}.md`)
+    if (item.kind === "add") {
+      const existing = await readDomainCanonicalFile(filePath)
+      const next =
+        existing === null
+          ? `# ${item.domain}\n${canonicalReqSectionMarkdown(item.id, item.body)}`
+          : appendReqSectionToDomainFile(existing, item.id, item.body)
+      await mkdir(canonicalDir, { recursive: true })
+      await writeFile(filePath, next, "utf8")
+      continue
+    }
+
+    const content = await readDomainCanonicalFile(filePath)
+    if (content === null) {
+      continue
+    }
+    const next =
+      item.kind === "change"
+        ? spliceReqSectionInDomainFile(
+            content,
+            item.id,
+            canonicalReqSectionMarkdown(item.id, item.body),
+          )
+        : spliceReqSectionInDomainFile(content, item.id, null)
+    await writeFile(filePath, next, "utf8")
+  }
+
+  for (const domain of touchedDomains) {
+    const filePath = join(canonicalDir, `${domain}.md`)
+    const content = await readDomainCanonicalFile(filePath)
+    if (content === null) {
+      continue
+    }
+    if (canonicalIdsFromMarkdown(content).length === 0) {
+      await unlink(filePath)
+    }
+  }
+
   return []
 }
 
