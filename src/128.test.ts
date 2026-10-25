@@ -126,7 +126,7 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/install.md":
     "6436bf0febca526ad93286d0edf00588bbbcd9513f450c536d0801f4865aab49",
   "docs/canonical/docs.md":
-    "bff55c12ce5fa5cc354a0e946d4382b6838341798d7e56297482c2dd7d7c4704",
+    "9e29cdd056131100841eacc57f38d02600b7d63bd88ef7a8b986db64517ec070",
   "docs/canonical/init.md":
     "a4d5b9b20e69e86155c0926b8e31ba987d120c6a5f5c5cc2fc12b8c8b7825891",
 }

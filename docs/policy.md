@@ -35,7 +35,7 @@ GitHub の操作は `createGitHub` から呼ぶ。`gh` を子プロセスで起�
 | `skills/sdd-cur/conventions.md` | 要件・設計の置き場所と課題コメントの約束。 |
 | `src/conventions.ts` | 上記約束の判定（パス、種別、対応、反映済み、未反映） |
 | `src/sdd.ts` | SDD スキル用の候補、表示、確認投稿、回答の反映 |
-| `skills/<名前>/` | `install` がコピーするスキル。直下のディレクトリだけが対象 |
+| `skills/<名前>/` | `install` がコピーするスキル。直下のディレクトリだけが対象。`sdd-cur-steering` は、人が明示して起動したとき、作業ツリーのソースコードと設定ファイルから `docs/steering/structure.md` と `docs/steering/terms.md` の下書きを書く。 |
 
 ## 破ってはいけない原則
 

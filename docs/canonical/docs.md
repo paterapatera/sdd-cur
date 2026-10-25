@@ -66,7 +66,10 @@ README が `install` のコピー対象のスキルとして書く範囲は、`s
 
 もとになった課題は #119 である。
 
-いまのディレクトリは`sdd-cur`、`sdd-cur-complete`、`sdd-cur-create-issue`、`sdd-cur-fix`、`sdd-cur-implement`、`sdd-cur-policy`、`sdd-cur-quick`。名前の昇順は、`skillNames.sort()` の既定の並びである
+いまのディレクトリは`sdd-cur`、`sdd-cur-complete`、`sdd-cur-create-issue`、`sdd-cur-fix`、`sdd-cur-implement`、`sdd-cur-policy`、`sdd-cur-quick`、`sdd-cur-steering`。名前の昇順は、`skillNames.sort()` の既定の並びである
+
+- シナリオ: 条件: `skills/` 直下に `sdd-cur-steering` がある 主体: `installSkills` 結果: そのディレクトリ名をコピーする
+- シナリオ: 条件: 正本の REQ-717 を読む 主体: 利用者 結果: いまのディレクトリの一覧に `sdd-cur-steering` が含まれる
 
 ## REQ-718
 

@@ -2504,3 +2504,11 @@ export function issue199SupersededDocsReqIds(): Set<string> {
   )
   return supersededReqIdsFromDesign(design, "docs")
 }
+
+export function issue200SupersededDocsReqIds(): Set<string> {
+  const design = readFileSync(
+    join(import.meta.dir, "..", "docs/issues/200/design.md"),
+    "utf8",
+  )
+  return supersededReqIdsFromDesign(design, "docs")
+}

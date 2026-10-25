@@ -93,7 +93,7 @@ bunx @paterapatera/sdd-cur run [--interval-min <分>]
 
 導入の順は `install`、`init`、`labels` である。`sdd-cur doctor` は導入の前提を一つずつ確かめるコマンドである。`doctor` は `docs/steering/` があるとき、名前の規則に合わないファイルを一行ずつ知らせる。
 
-`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-policy`、`skills/sdd-cur-quick` である。
+`install` は、コピーしたスキルが無いときも成功し、宛先の絶対パスを標準出力へ書く。`install` がコピーするスキルは `skills/sdd-cur`、`skills/sdd-cur-complete`、`skills/sdd-cur-create-issue`、`skills/sdd-cur-fix`、`skills/sdd-cur-implement`、`skills/sdd-cur-policy`、`skills/sdd-cur-quick`、`skills/sdd-cur-steering` である。
 
 `install` は、`skills/` 直下の各スキルディレクトリと、`agents/<名前>.md` の十一個をコピーする。引数を省くと `~/.cursor/skills` と `~/.cursor/agents`。プロジェクトのルートを一つ渡すと `<root>/.cursor/skills` と `<root>/.cursor/agents`。`--high-model`、`--medium-model`、`--low-model` で三種類を指定し、high は `sdd-cur-req-author` と `sdd-cur-design-author` と `sdd-cur-req-reviewer-high`、medium は `sdd-cur-req-reviewer` と `sdd-cur-design-reviewer` と `sdd-cur-implement-reviewer`、low は `sdd-cur-implement-author` と `sdd-cur-req-fixer` と `sdd-cur-design-fixer` と `sdd-cur-implement-fixer` と `sdd-cur-explore` のコピー先の `model:` に反映できる。
 
@@ -139,6 +139,7 @@ skills/sdd-cur-fix/           install がコピーする修正スキル
 skills/sdd-cur-implement/     install がコピーする実装スキル
 skills/sdd-cur-policy/        install がコピーする方針の下書きのスキル
 skills/sdd-cur-quick/         install がコピーする quick のスキル
+skills/sdd-cur-steering/      install がコピーする steering の下書きのスキル（docs/steering/structure.md と docs/steering/terms.md）
 ```
 
 設計は `docs/issues/<番号>/design.md` に置く。実装済みの設計は [パッケージ骨格](docs/issues/1/design.md)、[GitHub 接続](docs/issues/2/design.md)、[業務ラベル](docs/issues/3/design.md)、[specs とコメント種別](docs/issues/4/design.md)、[SDD スキル](docs/issues/5/design.md)、[課題ランナー](docs/issues/6/design.md)、[完了処理](docs/issues/7/design.md) である。
