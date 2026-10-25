@@ -178,6 +178,7 @@ function expectEightCheckLinesInOrder(lines: string[]): void {
 // 作業 5: conventions.md と README を更新済み。
 // 作業 6: 正本四ファイルを差分どおり更新済み。
 // 作業 7: init と setup は範囲外のまま（本テストで確認）。
+// 作業 6: 正本反映の追跡用コミット。
 
 describe("199 steering", () => {
   const roots: string[] = []
