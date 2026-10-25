@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
-import { deltaSectionText } from "./conventions.ts"
+import { deltaSectionText, specApply, specDiff } from "./conventions.ts"
 
 const root = path.join(import.meta.dir, "..")
 const implementSkillPath = path.join(root, "skills/sdd-cur-implement/SKILL.md")
@@ -16,6 +16,7 @@ const design197Path = path.join(root, "docs/issues/197/design.md")
 const specCanonicalPath = path.join(root, "docs/canonical/spec.md")
 const implementCanonicalPath = path.join(root, "docs/canonical/implement.md")
 const conventionsPath = path.join(root, "src/conventions.ts")
+const cliPath = path.join(root, "src/cli.ts")
 const runnerImplementTestPath = path.join(
   root,
   "src/runner-skill-sdd-cur-implement.test.ts",
@@ -251,6 +252,22 @@ describe("197 spec-apply と正本", () => {
     expect(sha256Hex(quick)).toBe(quickSkillSha256Before197)
     expect(sha256Hex(fix)).toBe(fixSkillSha256Before197)
     expect(quick).not.toContain("spec-apply")
+    expect(fix).not.toContain("spec-apply")
+  })
+
+  test("[8][14][15][19][26] 作業8: cli の spec コマンドと conventions export は触らない", async () => {
+    const cli = await readFile(cliPath, "utf8")
+    expect(cli).toContain('case "spec-diff":')
+    expect(cli).toContain('case "spec-apply":')
+    expect(typeof specApply).toBe("function")
+    expect(typeof specDiff).toBe("function")
+    const design = await readFile(design197Path, "utf8")
+    const changed = changedFilesFromDesign(design)
+    expect(changed).not.toContain("src/cli.ts")
+    expect(changed).not.toContain("src/conventions.ts")
+    expect(changed).not.toContain("skills/sdd-cur-quick/SKILL.md")
+    expect(changed).not.toContain("skills/sdd-cur-fix/SKILL.md")
+    const fix = await readFile(fixSkillPath, "utf8")
     expect(fix).not.toContain("spec-apply")
   })
 
