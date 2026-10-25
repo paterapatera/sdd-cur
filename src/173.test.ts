@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, spyOn, test } from "bun:test"
+import * as sdd from "./sdd.ts"
 import { execSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
@@ -17,6 +18,7 @@ import {
 import {
   createIssueCommentStore,
   issue,
+  pullRequestWorkListGitExtras,
   VIEWER_LOGIN,
 } from "./runner-test-support.ts"
 import { createRunner } from "./runner.ts"
@@ -339,7 +341,13 @@ describe("173 task-done and tasks", () => {
     expect(skill.split("\n").some((l) => l === "コミットしない。")).toBe(false)
   })
 
-  test("ランナー HEAD 確認と feat コミット分岐", async () => {
+  test(
+    "ランナー HEAD 確認と feat コミット分岐",
+    async () => {
+    const readSpecPairSpy = spyOn(sdd, "readSpecPair").mockResolvedValue({
+      requirements: { exists: true, markdown: "" },
+      design: { exists: true, markdown: minimalDesign },
+    })
     const procedurePath = "/tmp/sdd-cur-173-procedure.txt"
     await writeFile(procedurePath, "手順", "utf8")
     let headCalls = 0
@@ -375,6 +383,7 @@ describe("173 task-done and tasks", () => {
         },
       },
       git: {
+        ...pullRequestWorkListGitExtras(),
         async remoteName() {
           return "origin"
         },
@@ -446,6 +455,7 @@ describe("173 task-done and tasks", () => {
         },
       },
       git: {
+        ...pullRequestWorkListGitExtras(),
         async remoteName() {
           return "origin"
         },
@@ -515,6 +525,7 @@ describe("173 task-done and tasks", () => {
         },
       },
       git: {
+        ...pullRequestWorkListGitExtras(),
         async remoteName() {
           return "origin"
         },
@@ -577,6 +588,7 @@ describe("173 task-done and tasks", () => {
         },
       },
       git: {
+        ...pullRequestWorkListGitExtras(),
         async remoteName() {
           return "origin"
         },
@@ -611,7 +623,10 @@ describe("173 task-done and tasks", () => {
       "agent がブランチの先頭を変えました",
     )
     await rm(procedurePath, { force: true })
-  })
+    readSpecPairSpy.mockRestore()
+  },
+    { timeout: 20_000 },
+  )
 
   test("正本への差分の識別子", () => {
     const design = readFileSync(

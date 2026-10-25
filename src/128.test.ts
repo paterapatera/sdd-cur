@@ -29,7 +29,7 @@ const sevenScenarioRuleLines = [
 const sevenScenarioRuleBlock = `${sevenScenarioRuleLines.join("\n")}\n`
 
 const skillsConventionsWithoutScenarioBlockSha256 =
-  "90917879f533267154d58200bd4083a60af73eb1496378fe50a0886247cc8f8d"
+  "b3c306a016db01b5a1a2a229a6ee4f9063f0a709c50d14b1be632c8260d059fd"
 
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
