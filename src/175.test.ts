@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { execSync } from "node:child_process"
+import { readFileSync } from "node:fs"
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
@@ -400,4 +401,35 @@ describe("175 pull request work list", () => {
       resolveWorkListLinesForPullRequest(designFixture, gitClient, cwd),
     ).rejects.toThrow("git が失敗しました")
   })
+
+  test("[15] skills/sdd-cur/conventions.md のマージリクエストの本文の並び", () => {
+    const skillsPath = path.join(
+      import.meta.dir,
+      "..",
+      "skills/sdd-cur/conventions.md",
+    )
+    const text = readFileSync(skillsPath, "utf8")
+    const sectionStart = text.indexOf("## マージリクエストの本文")
+    expect(sectionStart).toBeGreaterThanOrEqual(0)
+    const nextSection = text.indexOf("\n## ", sectionStart + 1)
+    const section =
+      nextSection < 0
+        ? text.slice(sectionStart)
+        : text.slice(sectionStart, nextSection)
+    expectLinesInOrder(section, [
+      "課題の URL",
+      "作業の一覧",
+      "印 `sdd-cur: 受け入れ手順`",
+      "受け入れ手順",
+    ])
+  })
 })
+
+function expectLinesInOrder(haystack: string, lines: readonly string[]): void {
+  let from = 0
+  for (const line of lines) {
+    const index = haystack.indexOf(line, from)
+    expect(index).toBeGreaterThanOrEqual(0)
+    from = index + line.length
+  }
+}

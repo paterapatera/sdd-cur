@@ -46,7 +46,7 @@ const shaDesignAuthorWithoutOptionalSection =
 const shaDesignReviewerWithoutOptionalLines =
   "d3052e8fd417223a82ec94f7f2f8400cae87119bfe9842d2e7068db7b20961ca"
 const conventionsPrefixSha256 =
-  "a03f18d2c046ac8273af8cc136894a714752f8845c06ee221c779bedef9b823d"
+  "d0c9c60dc0d4ca43740ddb97220fce3a457eb9447e76be7c875beb538afa4913"
 
 const requiredDesignSectionsLine =
   "印がある設計の必須の節は「受け入れ条件」「範囲外」「決定」「テスト」である。"
