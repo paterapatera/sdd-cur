@@ -66,6 +66,10 @@ export function messageHasSddCurTaskForNumber(
   return false
 }
 
+export function shortCommitHash(sha: string): string {
+  return sha.slice(0, 7).toLowerCase()
+}
+
 function reject(message: string): never {
   throw new Error(message)
 }
@@ -400,6 +404,25 @@ export function parseDefaultBranchFromSymref(stdout: string): string | null {
     return match[1]
   }
   return null
+}
+
+export async function defaultBranchFromSymref(
+  remote: string,
+  cwd: string,
+  gitRunner: GitRunner,
+): Promise<string> {
+  const symrefResult = await gitRunner.run(
+    ["ls-remote", "--symref", remote, "HEAD"],
+    { cwd },
+  )
+  if (symrefResult.exitCode !== 0) {
+    reject(failReason(symrefResult))
+  }
+  const defaultBranch = parseDefaultBranchFromSymref(symrefResult.stdout)
+  if (defaultBranch === null) {
+    reject("デフォルトブランチを特定できません")
+  }
+  return defaultBranch
 }
 
 function remoteExistsOnHeads(stdout: string, branch: string): boolean {

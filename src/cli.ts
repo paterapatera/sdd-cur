@@ -5,9 +5,6 @@ import process from "node:process"
 import {
   collectChangeFilePathViolations,
   collectEvidenceViolationsAsync,
-  extractTestRefs,
-  firstSectionBody,
-  isWorkListItemLine,
   reviewNext,
   sectionBodies,
   specDiff,
@@ -35,18 +32,20 @@ import { ensureWorkflowLabels } from "./labels.ts"
 import { createAgent, defaultAgentRunner } from "./agent.ts"
 import {
   createGit,
+  defaultBranchFromSymref,
   defaultGitRunner,
   messageHasSddCurTaskForNumber,
-  parseDefaultBranchFromSymref,
   prepareBranch,
 } from "./git.ts"
 import { parseRunArgs, runLoop } from "./run.ts"
 import { restoreIssue } from "./restore.ts"
 import { requestImplementation } from "./request.ts"
 import {
+  collectTasks,
   createRunner,
   defaultCreateProcedureFile,
   implementationBranch,
+  type CollectedTask,
 } from "./runner.ts"
 import {
   applyIncorporatedAnswer,
@@ -95,9 +94,6 @@ export function printUsage(): void {
   console.error("sdd-cur task-done <番号> <作業番号>")
   console.error("sdd-cur spec-diff <番号>")
 }
-
-const NO_WORK_LIST_SECTION = "設計に作業の一覧がありません"
-const NO_WORK_LIST_ITEMS = "作業の一覧に作業がありません"
 
 function isFenceDelimiterLine(line: string): boolean {
   const trimmed = line.trimStart()
@@ -164,71 +160,8 @@ function collectTestCommands(markdown: string): string[] {
   return commands
 }
 
-type CollectedTask = {
-  number: number
-  line: string
-  refs: number[]
-}
-
 type TaskItem = CollectedTask & {
   done: boolean
-}
-
-async function defaultBranchFromSymref(
-  remote: string,
-  cwd: string,
-): Promise<string> {
-  const symrefResult = await defaultGitRunner.run(
-    ["ls-remote", "--symref", remote, "HEAD"],
-    { cwd },
-  )
-  if (symrefResult.exitCode !== 0) {
-    const fromStderr = symrefResult.stderr
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => line.length > 0)
-    if (fromStderr) {
-      throw new Error(fromStderr)
-    }
-    const fromStdout = symrefResult.stdout
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => line.length > 0)
-    if (fromStdout) {
-      throw new Error(fromStdout)
-    }
-    throw new Error("git が失敗しました")
-  }
-  const defaultBranch = parseDefaultBranchFromSymref(symrefResult.stdout)
-  if (defaultBranch === null) {
-    throw new Error("デフォルトブランチを特定できません")
-  }
-  return defaultBranch
-}
-
-function collectTasks(markdown: string): CollectedTask[] | { error: string } {
-  const workListBody = firstSectionBody(markdown, "作業の一覧")
-  if (workListBody === null) {
-    return { error: NO_WORK_LIST_SECTION }
-  }
-  const tasks: CollectedTask[] = []
-  for (const line of workListBody.split("\n")) {
-    if (!isWorkListItemLine(line)) {
-      continue
-    }
-    const afterDash = line.slice(2)
-    const dotIdx = afterDash.indexOf(". ")
-    const numStr = afterDash.slice(0, dotIdx)
-    tasks.push({
-      number: Number(numStr),
-      line,
-      refs: extractTestRefs(line),
-    })
-  }
-  if (tasks.length === 0) {
-    return { error: NO_WORK_LIST_ITEMS }
-  }
-  return tasks
 }
 
 async function cmdTasks(args: string[]): Promise<number> {
@@ -273,7 +206,7 @@ async function cmdTasks(args: string[]): Promise<number> {
 
   let defaultBranch: string
   try {
-    defaultBranch = await defaultBranchFromSymref(remote, cwd)
+    defaultBranch = await defaultBranchFromSymref(remote, cwd, defaultGitRunner)
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     return 1

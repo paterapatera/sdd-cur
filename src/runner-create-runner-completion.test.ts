@@ -1,4 +1,4 @@
-import { describe, expect, mock, spyOn, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 import {
   createIssueCommentStore,
   issue,
@@ -8,8 +8,10 @@ import {
   LABEL_MERGED,
   LABEL_REQUEST,
   LABEL_VERIFIED,
+  runnerTestDesignPair,
   VIEWER_LOGIN,
 } from "./runner-test-support.ts"
+import * as sdd from "./sdd.ts"
 import * as nodeCrypto from "node:crypto"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
@@ -25,7 +27,6 @@ import {
   createRunner,
   implementationBranch,
   issueHasFixLabels,
-  pullRequestBody,
   selectFixIssues,
   selectImplementationIssue,
   selectQuickIssue,
@@ -36,6 +37,18 @@ import {
   startMarker,
 } from "./runner.ts"
 describe("createRunner completion", () => {
+  let readSpecPairSpy: ReturnType<typeof spyOn>
+
+  beforeEach(() => {
+    readSpecPairSpy = spyOn(sdd, "readSpecPair").mockImplementation(
+      async (issueNumber: number) => runnerTestDesignPair(issueNumber),
+    )
+  })
+
+  afterEach(() => {
+    readSpecPairSpy.mockRestore()
+  })
+
   test("前段が空のとき動作確認OK を探す", async () => {
     let listCalls = 0
     let verifiedAssignee: string | undefined

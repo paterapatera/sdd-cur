@@ -40,13 +40,13 @@ const docsConventionsSha256 =
 const sddCanonicalSha256 =
   "b793e63ca1e247b36f78c518739eb714cf805feb8e1b8b4ba0e3f0204e372560"
 const skillsConventionsWithoutOptionalBlockSha256 =
-  "1ac2fd2aac722b26dc5edf9942f23f80152243280762a0af297c6e2b450a6163"
+  "6b695e04bd6c607a1bfe31371284fb18a139b1966dd1aa19a9268e3d3431b3a1"
 const shaDesignAuthorWithoutOptionalSection =
   "ba4d23fc803452c17a302283b98f0b3ff5821265ece28461699332d5ea3065a1"
 const shaDesignReviewerWithoutOptionalLines =
   "d3052e8fd417223a82ec94f7f2f8400cae87119bfe9842d2e7068db7b20961ca"
 const conventionsPrefixSha256 =
-  "a03f18d2c046ac8273af8cc136894a714752f8845c06ee221c779bedef9b823d"
+  "d0c9c60dc0d4ca43740ddb97220fce3a457eb9447e76be7c875beb538afa4913"
 
 const requiredDesignSectionsLine =
   "印がある設計の必須の節は「受け入れ条件」「範囲外」「決定」「テスト」である。"

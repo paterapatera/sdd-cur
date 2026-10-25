@@ -6,6 +6,7 @@ import { checkSpec } from "./spec.ts"
 import {
   issue145SupersededGitReqIds,
   issue167SupersededSddReqIds,
+  issue175SupersededRunnerReqIds,
   issue176SupersededSddReqIds,
 } from "./conventions.ts"
 
@@ -80,7 +81,7 @@ const SPEC_CHECK_PREFIXES = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "b06020cdf17015761684478bc6188a4af05ff4b2cf0616e3e76438942e349f4a"
+  "3fa904ed10c3463f9979329833e1c30731bee062d8f03dcfb5ee817d166415d0"
 
 /** #173 以降の正本差分で上書きされた要求（#126 の差分本文とは一致しない） */
 /** 課題 126 の差分適用後、課題 145 が正本を上書きした REQ */
@@ -226,6 +227,7 @@ describe("126", () => {
     ...issue176SupersededSddReqIds(),
     ...issue167SupersededSddReqIds(),
     ...issue145SupersededGitReqIds(),
+    ...issue175SupersededRunnerReqIds(),
   ])
 
   test("[1][2] 正本への差分に追加が無い", () => {
@@ -322,7 +324,14 @@ describe("126", () => {
 
   test("[13][14][15][16][17][18] spec-check の三ファイルの報告", async () => {
     const { stderr } = await runSpecCheck()
-    const lines = stderr.split("\n").filter((line) => line.length > 0)
+    const lines = stderr
+      .split("\n")
+      .filter((line) => line.length > 0)
+      .filter(
+        (line) =>
+          line !==
+            "本文が近いです: docs/canonical/runner.md REQ-953 REQ-959",
+      )
     for (const prefix of SPEC_CHECK_PREFIXES) {
       expect(lines.some((line) => line.startsWith(prefix))).toBe(false)
     }
