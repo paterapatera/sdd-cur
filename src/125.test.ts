@@ -18,7 +18,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "988b7fac81a70592bca0c58df18e78e5544586e9da09acae56de99c81af6b97e"
+  "93d8a45dfcedd6780959d349ba7e8cdd590c51bb6e7401ee40e57e3119a0ecc6"
 
 const DELETED_IDS = [
   "REQ-381",
@@ -192,7 +192,10 @@ describe("125", () => {
       "REQ-424",
       "REQ-436",
       "REQ-483",
+      "REQ-486",
+      "REQ-487",
       "REQ-489",
+      "REQ-494",
       ...issue176SupersededSddReqIds(),
       ...issue167SupersededSddReqIds(),
     ])
