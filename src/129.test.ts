@@ -44,15 +44,20 @@ const canonicalBodies: Record<string, string> = {
 README は、人が \`sdd-cur request <番号>\` で作業ブランチを push してから「実装依頼」を付ける、と書く。この文に \`bun src/cli.ts\` は無い。`,
 }
 
-const reqPassGuidePhrases = [
-  "人に伝える前に `show` を改めて実行する。",
-  "その案内を人に伝えるときは、Cursor の質問機能で「設計に進む」と「ここで止める」を、この順で出す。",
-  "この質問は、「満たされているかの判断」の節が案内を伝えるとしたときだけ出す。",
+const showBeforePassGuidePhrase = "人に伝える前に `show` を改めて実行する。"
+
+const reqPassGuideCorePhrases = [
+  "要件の合格の案内は、Cursor の質問機能で「設計に進む」と「ここで止める」を、この順で出すことである。",
+  "案内を人に伝えるときは、Cursor の質問機能で上の二択を出す。この質問は、「満たされているかの判断」の節が案内を伝えるとしたときだけ出す。",
   "「設計に進む」と「ここで止める」の質問を出しているあいだ、人がどちらかを選ぶまで、設計の手順に入らない。",
+  "「設計に進む」と「ここで止める」の質問を出しているあいだ、人がどちらかを選ぶまで、設計の作成役と設計の修正役を起動しない。",
   "「ここで止める」を選んだときは、その回は設計の手順に入らない。",
   "「ここで止める」を選んだときは、設計の作成役と設計の修正役を起動しない。",
   "「ここで止める」を選んだときは、設計の手順は、人が設計を依頼したときだけ始める。",
   "「設計に進む」を選んだときは、`## 設計` の手順の先頭から、人が設計を依頼したときと同じ手順に入る。",
+] as const
+
+const reqPassGuideBranchPhrases = [
   "`unanswered` が空でない、または `nextAnswer` が `null` でないときは、「設計に進む」と「ここで止める」の質問を出さない。",
   "そのときは、設計の手順に入らない。",
   "`action` が `合格` でないときは、「設計に進む」と「ここで止める」の質問を出さない。",
@@ -64,19 +69,19 @@ const answerReqExtraPhrases = [
   "回答の手順は、設計のファイルを作らない。",
 ] as const
 
-const designPassGuidePhrases = [
-  "人に伝える前に `show` を改めて実行する。",
-  "その案内を人に伝えるときは、Cursor の質問機能で「実装依頼する」と「ここで止める」を、この順で出す。",
-  "この質問は、「満たされているかの判断」の節が案内を伝えるとしたときだけ出す。",
-  "「実装依頼する」と「ここで止める」の質問を出しているあいだ、人がどちらかを選ぶまで、作業ブランチを push しない。",
-  "「実装依頼する」と「ここで止める」の質問を出しているあいだ、人がどちらかを選ぶまで、「実装依頼」を付けない。",
-  "「実装依頼する」と「ここで止める」の質問を出しているあいだ、人がどちらかを選ぶまで、`sdd-cur request <番号>` を実行しない。",
+const designPassGuideCorePhrases = [
+  "設計の合格の案内は、Cursor の質問機能で「実装依頼する」と「ここで止める」を、この順で出すことである。",
+  "「実装依頼する」と「ここで止める」の質問を出しているあいだ、人がどちらかを選ぶまで、作業ブランチを push しないし、「実装依頼」を付けないし、`sdd-cur request <番号>` を実行しない。",
   "「ここで止める」を選んだときは、作業ブランチを push しない。",
   "「ここで止める」を選んだときは、「実装依頼」を付けない。",
   "「ここで止める」を選んだときは、`sdd-cur request <番号>` を実行しない。",
   "「ここで止める」を選んだときは、ラベルは変えない。",
   "「ここで止める」を選んだときは、push は人が行う。",
   "「ここで止める」を選んだときは、「実装依頼」は人が付ける。",
+  "「ここで止める」を選んだときは、push するのは、要求と設計を含む作業ブランチである。",
+] as const
+
+const designPassGuideBranchPhrases = [
   "`unanswered` が空でない、または `nextAnswer` が `null` でないときは、次の段へ進む質問を出さない。",
   "そのときは、判断もしない。",
   "そのときは、作業ブランチを push しない。",
@@ -104,14 +109,8 @@ const noImplAcceptCompletePhrases = [
   "この経路でも、完了処理はしない。",
 ] as const
 
-const judgmentWhileClosePhrases = [
-  "`閉じる` と `閉じない` を出しているあいだは、「設計に進む」と「ここで止める」を出さない。",
-  "`閉じる` と `閉じない` を出しているあいだは、「実装依頼する」と「ここで止める」を出さない。",
-  "`閉じる` と `閉じない` を出しているあいだは、作業ブランチを push しない。",
-  "`閉じる` と `閉じない` を出しているあいだは、「実装依頼」を付けない。",
-  "`閉じる` と `閉じない` を出しているあいだは、`sdd-cur request <番号>` を実行しない。",
-  "`閉じる` と `閉じない` を出しているあいだは、設計の手順に入らない。",
-] as const
+const judgmentWhileClosePhrase =
+  "`閉じる` と `閉じない` を出しているあいだは、「設計に進む」と「ここで止める」を出さないし、「実装依頼する」と「ここで止める」を出さないし、作業ブランチを push しないし、「実装依頼」を付けないし、`sdd-cur request <番号>` を実行しないし、設計の手順に入らない。"
 
 const judgmentCloseChosenPhrases = [
   "「設計に進む」と「ここで止める」を出さない。",
@@ -122,10 +121,7 @@ const judgmentCloseChosenPhrases = [
 ] as const
 
 const prohibitionPhrases = [
-  "ラベルは変えない。",
-  "実装依頼は人が付ける。",
-  "push は人が行う。",
-  "設計の合格の案内で人が「実装依頼する」を選んだとき以外は、直前の三文に従う。",
+  "設計の合格の案内で人が「実装依頼する」を選んだとき以外は、`合格のあとの案内` に書く三つに従う。",
   "その案内で「実装依頼する」を選んだときは、スキルが `sdd-cur request <番号>` を実行する。",
   "そのときは、質問での選択を人が「実装依頼」を付けたこととみなす。",
   "そのときは、push はそのコマンドが行う。",
@@ -195,8 +191,12 @@ function answerDesignSection(skill: string): string {
   return skill.slice(start, end)
 }
 
+function passGuideSection(skill: string): string {
+  return sectionBetween(skill, "## 合格のあとの案内", "## 禁止")
+}
+
 function judgmentSection(skill: string): string {
-  return sectionBetween(skill, "### 満たされているかの判断", "## 禁止")
+  return sectionBetween(skill, "### 満たされているかの判断", "## 合格のあとの案内")
 }
 
 function prohibitionSection(skill: string): string {
@@ -247,6 +247,15 @@ function expectQuestionOrder(section: string, first: string, second: string): vo
   const b = section.indexOf(second)
   expect(a).toBeGreaterThanOrEqual(0)
   expect(b).toBeGreaterThan(a)
+}
+
+function expectSectionLacksPassGuidePhrases(
+  section: string,
+  phrases: readonly string[],
+): void {
+  for (const phrase of phrases) {
+    expect(section).not.toContain(phrase)
+  }
 }
 
 describe("129", () => {
@@ -323,10 +332,15 @@ describe("129", () => {
   test("[1][18] 要件の節 合格案内", async () => {
     const skill = await readFile(skillPath, "utf8")
     const section = sectionBetween(skill, "## 要件", "## 設計")
-    expectContainsAll(section, reqPassGuidePhrases)
+    const passGuide = passGuideSection(skill)
+    expect(section).toContain("合格のあとの案内に従う。")
+    expectSectionLacksPassGuidePhrases(section, reqPassGuideCorePhrases)
+    expectContainsAll(passGuide, reqPassGuideCorePhrases)
+    expectContainsAll(section, reqPassGuideBranchPhrases)
+    expect(section).toContain(showBeforePassGuidePhrase)
     expectQuestionOrder(
-      section,
-      "Cursor の質問機能で「設計に進む」と「ここで止める」を、この順で出す",
+      passGuide,
+      "「設計に進む」と「ここで止める」を、この順で出すことである",
       "「設計に進む」と「ここで止める」の質問を出しているあいだ",
     )
   })
@@ -349,45 +363,58 @@ describe("129", () => {
   test("[5][22][23][24] 設計の節 合格案内", async () => {
     const skill = await readFile(skillPath, "utf8")
     const section = sectionBetween(skill, "## 設計", "## 確認")
-    expectContainsAll(
-      section,
-      designPassGuidePhrases.filter(
-        (phrase) =>
-          phrase !== "そのときは、`sdd-cur request <番号>` を実行しない。",
-      ),
-    )
-    expect(section).toContain(
-      "「ここで止める」を選んだときは、push するのは、要求と設計を含む作業ブランチである。",
-    )
+    const passGuide = passGuideSection(skill)
+    expect(section).toContain("合格のあとの案内に従う。")
+    expect(section).toContain("`sdd-cur gate <番号> request` を実行し、終了コードが 0 以外なら止まる。")
+    expectSectionLacksPassGuidePhrases(section, designPassGuideCorePhrases)
+    expectContainsAll(passGuide, designPassGuideCorePhrases)
+    expectContainsAll(section, designPassGuideBranchPhrases.filter(
+      (phrase) => phrase !== "そのときは、`sdd-cur request <番号>` を実行しない。",
+    ))
+    expect(section).toContain(showBeforePassGuidePhrase)
     expectQuestionOrder(
-      section,
-      "Cursor の質問機能で「実装依頼する」と「ここで止める」を、この順で出す",
+      passGuide,
+      "「実装依頼する」と「ここで止める」を、この順で出すことである",
       "「実装依頼する」と「ここで止める」の質問を出しているあいだ",
     )
   })
 
   test("[10][37][38][39][40][41][42][43][44] 設計の節 実装依頼する", async () => {
     const skill = await readFile(skillPath, "utf8")
-    const section = sectionBetween(skill, "## 設計", "## 確認")
-    expectContainsAll(section, requestWhenChosenPhrases)
-    expectContainsAll(section, noImplAcceptCompletePhrases)
+    const passGuide = passGuideSection(skill)
+    expectContainsAll(passGuide, requestWhenChosenPhrases)
+    expectContainsAll(passGuide, noImplAcceptCompletePhrases)
   })
 
   test("[1][4][8][21][33] 回答の要件側 合格案内", async () => {
     const skill = await readFile(skillPath, "utf8")
     const section = answerRequirementsSection(skill)
-    expectContainsAll(section, reqPassGuidePhrases)
-    expectContainsAll(section, answerReqExtraPhrases)
+    const passGuide = passGuideSection(skill)
+    expect(section).toContain("合格のあとの案内に従う。")
+    expectSectionLacksPassGuidePhrases(section, reqPassGuideCorePhrases)
+    expectContainsAll(section, reqPassGuideBranchPhrases)
+    expect(section).toContain(showBeforePassGuidePhrase)
+    expect(passGuide).toContain(
+      answerReqExtraPhrases[0],
+    )
+    expect(section).not.toContain(answerReqExtraPhrases[0])
+    expect(section).toContain(answerReqExtraPhrases[1])
   })
 
   test("[5][7][9][30][31][32][34][35][36] 回答の設計側 合格案内", async () => {
     const skill = await readFile(skillPath, "utf8")
     const section = answerDesignSection(skill)
+    const passGuide = passGuideSection(skill)
     expect(section).toContain("修正を起動しない。")
     expect(section).toContain("作成も起動しない。")
-    expectContainsAll(section, designPassGuidePhrases)
-    expectContainsAll(section, requestWhenChosenPhrases)
-    expectContainsAll(section, noImplAcceptCompletePhrases)
+    expect(section).toContain("合格のあとの案内に従う。")
+    expectSectionLacksPassGuidePhrases(section, designPassGuideCorePhrases)
+    expectContainsAll(passGuide, designPassGuideCorePhrases)
+    expectContainsAll(section, designPassGuideBranchPhrases)
+    expect(section).toContain(showBeforePassGuidePhrase)
+    expect(section).not.toContain("`sdd-cur gate <番号> request`")
+    expectContainsAll(passGuide, requestWhenChosenPhrases)
+    expectContainsAll(passGuide, noImplAcceptCompletePhrases)
   })
 
   test("[13][14][54][55][56][57][58][59][60][61][62] 満たされているかの判断", async () => {
@@ -401,7 +428,7 @@ describe("129", () => {
     )
     expect(section).toContain("選択肢の文言は `閉じる` と `閉じない` である。")
     expect(section).toContain("`sdd-cur close <番号>`")
-    expectContainsAll(section, judgmentWhileClosePhrases)
+    expect(section).toContain(judgmentWhileClosePhrase)
     const closeChosen = paragraphFrom(
       skill,
       "`閉じる` を選んだときは、`sdd-cur close <番号>` を実行する。",
@@ -419,12 +446,24 @@ describe("129", () => {
     expect(shimenai).not.toContain(
       "人が設計の完了を伝えたときの push と「実装依頼」は、今どおり人が行う。",
     )
-    expectContainsAll(shimenai, requestWhenChosenPhrases)
-    expectContainsAll(shimenai, noImplAcceptCompletePhrases)
+    expect(shimenai).toContain("合格のあとの案内に従う。")
+    for (const phrase of requestWhenChosenPhrases) {
+      expect(shimenai).not.toContain(phrase)
+    }
+    for (const phrase of noImplAcceptCompletePhrases) {
+      expect(shimenai).not.toContain(phrase)
+    }
     expect(section).toContain(
+      "合格の案内の二択と、その選択のあとと、質問を出しているあいだの禁止は、`合格のあとの案内` に書く。",
+    )
+    expect(section).not.toContain(
       "要件の合格の案内は、Cursor の質問機能で「設計に進む」と「ここで止める」を、この順で出すことである。",
     )
-    expect(section).toContain(
+    const passGuide = passGuideSection(skill)
+    expect(passGuide).toContain(
+      "要件の合格の案内は、Cursor の質問機能で「設計に進む」と「ここで止める」を、この順で出すことである。",
+    )
+    expect(passGuide).toContain(
       "設計の合格の案内は、Cursor の質問機能で「実装依頼する」と「ここで止める」を、この順で出すことである。",
     )
   })
@@ -433,6 +472,8 @@ describe("129", () => {
     const skill = await readFile(skillPath, "utf8")
     const section = prohibitionSection(skill)
     expectContainsAll(section, prohibitionPhrases)
+    expect(section).not.toContain("直前の三文")
+    expect(section).toContain("`合格のあとの案内`")
   })
 
   test("[15][63][64][65][66][67][68][69] 正本 git REQ-635 REQ-801 REQ-803（REQ-641 は無い）", async () => {

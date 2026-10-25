@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test"
 import { checkSpec } from "./spec.ts"
 import {
   issue145SupersededGitReqIds,
+  issue167SupersededSddReqIds,
   issue176SupersededSddReqIds,
 } from "./conventions.ts"
 
@@ -222,6 +223,7 @@ describe("126", () => {
     "REQ-502",
     "REQ-798",
     ...issue176SupersededSddReqIds(),
+    ...issue167SupersededSddReqIds(),
     ...issue145SupersededGitReqIds(),
   ])
 

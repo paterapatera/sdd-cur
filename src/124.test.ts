@@ -5,6 +5,7 @@ import path from "node:path"
 import { checkSpec } from "./spec.ts"
 import {
   deltaSectionText,
+  issue167SupersededSddReqIds,
   issue176SupersededSddReqIds,
 } from "./conventions.ts"
 
@@ -17,7 +18,7 @@ const SCOPE_ISSUE_NUMBERS = new Set([
 ])
 
 const UNTOUCHED_SHA256 =
-  "fe2575dc0c4ce0616feb27177966d3799dee885efdcf26f3994db479f24041e9"
+  "55bea032730a5868b2ce0daf344c29916d6091b9cecd54e1b6c0fc4536cde41c"
 
 const DELETED_IDS = [
   "REQ-166",
@@ -159,7 +160,10 @@ describe("124", () => {
 
   test("[4][6][14] 変更した要求の非空行が正本への差分と一致する", () => {
     const byId = new Map(requirements.map((req) => [req.id, req]))
-    const skipCanonicalMatch = issue176SupersededSddReqIds()
+    const skipCanonicalMatch = new Set([
+      ...issue176SupersededSddReqIds(),
+      ...issue167SupersededSddReqIds(),
+    ])
     for (const [id, designBody] of changed) {
       if (skipCanonicalMatch.has(id)) {
         continue
