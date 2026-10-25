@@ -68,6 +68,7 @@ import {
 import { evaluateGate, parseGateStage, type GateStage } from "./gate.ts"
 import { checkSpec } from "./spec.ts"
 import { defaultCommandExists, runDoctor } from "./doctor.ts"
+import { runSetup } from "./setup.ts"
 
 export function printUsage(): void {
   console.error(
@@ -452,6 +453,47 @@ async function cmdInit(args: string[]): Promise<number> {
     console.log(rel)
   }
   return 0
+}
+
+async function cmdSetup(args: string[]): Promise<number> {
+  const home = homedir()
+  return await runSetup({
+    args,
+    homedir: home,
+    skillsSourceDir: defaultSkillsSourceDir,
+    agentsSourceDir: defaultAgentsSourceDir,
+    gh: defaultGhRunner,
+    commandExists: defaultCommandExists,
+    runInstall: (installArgs, _cwd) => cmdInstall(installArgs),
+    runInit: (initArgs, _cwd) => cmdInit(initArgs),
+    runLabels: async (cwd) => {
+      try {
+        const repo = await resolveRepo(defaultGhRunner, cwd)
+        const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
+        const results = await ensureWorkflowLabels(github)
+        for (const result of results) {
+          if (result.status === "created") {
+            console.log(`作成しました: ${result.name}`)
+          } else {
+            console.log(`既にあります: ${result.name}`)
+          }
+        }
+        return 0
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        return 1
+      }
+    },
+    runDoctor: (cwd) =>
+      runDoctor({
+        cwd,
+        homedir: home,
+        skillsSourceDir: defaultSkillsSourceDir,
+        agentsSourceDir: defaultAgentsSourceDir,
+        commandExists: defaultCommandExists,
+        gh: defaultGhRunner,
+      }),
+  })
 }
 
 async function cmdRun(args: string[]): Promise<number> {
@@ -1084,6 +1126,8 @@ async function main(): Promise<number> {
       return await cmdInstall(rest)
     case "init":
       return await cmdInit(rest)
+    case "setup":
+      return await cmdSetup(rest)
     case "doctor":
       return await cmdDoctor(argv.slice(1))
     case "run":
