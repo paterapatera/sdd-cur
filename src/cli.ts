@@ -5,9 +5,6 @@ import process from "node:process"
 import {
   collectChangeFilePathViolations,
   collectEvidenceViolationsAsync,
-  extractTestRefs,
-  firstSectionBody,
-  isWorkListItemLine,
   reviewNext,
   sectionBodies,
   specDiff,
@@ -44,9 +41,11 @@ import { parseRunArgs, runLoop } from "./run.ts"
 import { restoreIssue } from "./restore.ts"
 import { requestImplementation } from "./request.ts"
 import {
+  collectTasks,
   createRunner,
   defaultCreateProcedureFile,
   implementationBranch,
+  type CollectedTask,
 } from "./runner.ts"
 import {
   applyIncorporatedAnswer,
@@ -95,9 +94,6 @@ export function printUsage(): void {
   console.error("sdd-cur task-done <番号> <作業番号>")
   console.error("sdd-cur spec-diff <番号>")
 }
-
-const NO_WORK_LIST_SECTION = "設計に作業の一覧がありません"
-const NO_WORK_LIST_ITEMS = "作業の一覧に作業がありません"
 
 function isFenceDelimiterLine(line: string): boolean {
   const trimmed = line.trimStart()
@@ -164,12 +160,6 @@ function collectTestCommands(markdown: string): string[] {
   return commands
 }
 
-type CollectedTask = {
-  number: number
-  line: string
-  refs: number[]
-}
-
 type TaskItem = CollectedTask & {
   done: boolean
 }
@@ -204,31 +194,6 @@ async function defaultBranchFromSymref(
     throw new Error("デフォルトブランチを特定できません")
   }
   return defaultBranch
-}
-
-function collectTasks(markdown: string): CollectedTask[] | { error: string } {
-  const workListBody = firstSectionBody(markdown, "作業の一覧")
-  if (workListBody === null) {
-    return { error: NO_WORK_LIST_SECTION }
-  }
-  const tasks: CollectedTask[] = []
-  for (const line of workListBody.split("\n")) {
-    if (!isWorkListItemLine(line)) {
-      continue
-    }
-    const afterDash = line.slice(2)
-    const dotIdx = afterDash.indexOf(". ")
-    const numStr = afterDash.slice(0, dotIdx)
-    tasks.push({
-      number: Number(numStr),
-      line,
-      refs: extractTestRefs(line),
-    })
-  }
-  if (tasks.length === 0) {
-    return { error: NO_WORK_LIST_ITEMS }
-  }
-  return tasks
 }
 
 async function cmdTasks(args: string[]): Promise<number> {

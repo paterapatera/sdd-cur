@@ -9,7 +9,10 @@ import {
 } from "./complete.ts"
 import {
   commentMarkers,
+  extractTestRefs,
+  firstSectionBody,
   fixComment,
+  isWorkListItemLine,
   parsePullRequestComment,
   selectUnprocessedBugs,
 } from "./conventions.ts"
@@ -405,6 +408,42 @@ export function acceptanceComment(payload: string): string {
     reject(MARKER_IN_ACCEPTANCE)
   }
   return `${commentMarkers.acceptance}\n${payload}`
+}
+
+export const NO_WORK_LIST_SECTION = "設計に作業の一覧がありません"
+export const NO_WORK_LIST_ITEMS = "作業の一覧に作業がありません"
+
+export type CollectedTask = {
+  number: number
+  line: string
+  refs: number[]
+}
+
+export function collectTasks(
+  markdown: string,
+): CollectedTask[] | { error: string } {
+  const workListBody = firstSectionBody(markdown, "作業の一覧")
+  if (workListBody === null) {
+    return { error: NO_WORK_LIST_SECTION }
+  }
+  const tasks: CollectedTask[] = []
+  for (const line of workListBody.split("\n")) {
+    if (!isWorkListItemLine(line)) {
+      continue
+    }
+    const afterDash = line.slice(2)
+    const dotIdx = afterDash.indexOf(". ")
+    const numStr = afterDash.slice(0, dotIdx)
+    tasks.push({
+      number: Number(numStr),
+      line,
+      refs: extractTestRefs(line),
+    })
+  }
+  if (tasks.length === 0) {
+    return { error: NO_WORK_LIST_ITEMS }
+  }
+  return tasks
 }
 
 export function pullRequestBody(issueUrl: string, payload: string): string {

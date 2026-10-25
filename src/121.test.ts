@@ -109,11 +109,12 @@ describe("121 tasks", () => {
     const cli = readFileSync(cliPath, "utf8")
     expect(cli).toContain('case "tasks":')
     expect(cli).toContain("sdd-cur tasks <番号>")
-    expect(cli).toContain("firstSectionBody")
+    expect(cli).toContain("collectTasks")
     expect(cli).toContain("sectionBodies")
     expect(cli).not.toMatch(/function isWorkListItemLine/)
     expect(cli).not.toMatch(/function firstSectionBody/)
     expect(cli).not.toMatch(/function extractTestRefs/)
+    expect(cli).not.toMatch(/function collectTasks/)
   })
 
   test("例の design.md", async () => {
