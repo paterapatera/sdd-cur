@@ -218,3 +218,5 @@ describe("167", () => {
     expect(reqBody(sdd, "REQ-279")).toBe(deltas.get("REQ-279") ?? "")
   })
 })
+
+// sdd-cur task 2 marker
