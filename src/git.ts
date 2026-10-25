@@ -402,6 +402,25 @@ export function parseDefaultBranchFromSymref(stdout: string): string | null {
   return null
 }
 
+export async function defaultBranchFromSymref(
+  remote: string,
+  cwd: string,
+  gitRunner: GitRunner,
+): Promise<string> {
+  const symrefResult = await gitRunner.run(
+    ["ls-remote", "--symref", remote, "HEAD"],
+    { cwd },
+  )
+  if (symrefResult.exitCode !== 0) {
+    reject(failReason(symrefResult))
+  }
+  const defaultBranch = parseDefaultBranchFromSymref(symrefResult.stdout)
+  if (defaultBranch === null) {
+    reject("デフォルトブランチを特定できません")
+  }
+  return defaultBranch
+}
+
 function remoteExistsOnHeads(stdout: string, branch: string): boolean {
   const target = `refs/heads/${branch}`
   for (const line of stdout.split(/\r?\n/)) {
