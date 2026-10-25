@@ -29,7 +29,7 @@ const sevenScenarioRuleLines = [
 const sevenScenarioRuleBlock = `${sevenScenarioRuleLines.join("\n")}\n`
 
 const skillsConventionsWithoutScenarioBlockSha256 =
-  "9919c9c0ee5b52946acf3fea224a2fe39beda6acc48737c3fa15d04deb736dfd"
+  "90917879f533267154d58200bd4083a60af73eb1496378fe50a0886247cc8f8d"
 
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
@@ -87,13 +87,22 @@ const agentReviewerScenarioFourLines = `- 追加または変更の項目の本�
 `
 
 const shaDesignAuthorWithoutScenarioLines =
-  "4ab80fb99a43b08da6a8735de1635f31e22694ee33a2da54b0cc1328f93842d7"
+  "0c4e0c400375e508c7837767d65d5f47d5e592b26db0ab31c81d821627396307"
 const shaDesignReviewerWithoutScenarioLines =
-  "706101f0b51aa8b5df73168860fe87312f746f9d19f6e83e517741511bbeafd2"
+  "63f4fa56e6fab97714d6cf201e9eb970c092fda90968bee288806a3a0331679c"
 const shaImplementReviewerWithoutScenarioLines =
   "53a839af45980842dcca97e385f14c0765ca784842be55101126d40e2921608e"
 
 const design128Path = path.join(repoRoot, "docs/issues/128/design.md")
+const design170Path = path.join(repoRoot, "docs/issues/170/design.md")
+
+const optionalBlockTailLines = [
+  "本文は、見出しの次の行から、行が `## ` で始まる次の行の直前までであり、空白と改行だけなら空である。出現する各節の本文をそれぞれ検査する。",
+  "本文が空のときの違反は `節の本文が空です: <節名>` であり、節名はデータモデル、インターフェース、図である。",
+  "Mermaid の囲みは、行全体がバッククォート三つの直後に `mermaid` を続けたものと一致する開始行で開き、行全体がバッククォート三つと一致する行で閉じたブロックを一つと数える。行頭の空白は無い。中身が空でも数える。",
+  "囲みが無いときの違反は `図に Mermaid の囲みがありません` である。",
+] as const
+const optionalBlockTail = optionalBlockTailLines.join("\n")
 
 const specPrefixSha256 =
   "d8e36e8b2fe071f3857aeb4ded400708b9caab3153ce5c06fcd41bbf6f6331db"
@@ -121,10 +130,16 @@ const unchangedCanonicalSha256: Record<string, string> = {
 }
 
 const REQ857_SCENARIO_LINE =
-  "- シナリオ: 条件: 「仕様の正本」と「要件と設計の形式」へ足したシナリオの規則の文以外の、配る節の既存の文を見る 主体: その文 結果: 一文字も変えない"
+  "- シナリオ: 条件: 「仕様の正本」と「要件と設計の形式」へ足したシナリオの規則の文と、任意の三節の規則の文以外の、配る節の既存の文を見る 主体: その文 結果: 一文字も変えない"
 
 const REQ857_CHANGED_SENTENCE =
+  "「仕様の正本」と「要件と設計の形式」へシナリオの規則の文を足すこと、および「要件と設計の形式」へ受け入れ条件 17、受け入れ条件 18、受け入れ条件 41、受け入れ条件 42 で足す文を足すことを除き、これらの節の既存の文は変えない。"
+
+const REQ857_CHANGED_SENTENCE_128 =
   "「仕様の正本」と「要件と設計の形式」へシナリオの規則の文を足すことを除き、これらの節の既存の文は変えない。"
+
+const REQ857_SCENARIO_LINE_128 =
+  "- シナリオ: 条件: 「仕様の正本」と「要件と設計の形式」へ足したシナリオの規則の文以外の、配る節の既存の文を見る 主体: その文 結果: 一文字も変えない"
 
 const REQ857_ORIGINAL_SENTENCE = "これらの節の文言は変えない。"
 
@@ -151,7 +166,9 @@ function conventionsPrefixBytesForSha(text: string): string {
   }
   let prefix = `${text.slice(0, index)}\n`
   prefix = prefix.replace(REQ857_CHANGED_SENTENCE, REQ857_ORIGINAL_SENTENCE)
+  prefix = prefix.replace(REQ857_CHANGED_SENTENCE_128, REQ857_ORIGINAL_SENTENCE)
   prefix = prefix.replace(`\n${REQ857_SCENARIO_LINE}\n`, "\n")
+  prefix = prefix.replace(`\n${REQ857_SCENARIO_LINE_128}\n`, "\n")
   return prefix
 }
 
@@ -513,7 +530,7 @@ describe("issue 128 conventions and acceptance line form", () => {
       `${specCanonTail}\n\n${sevenScenarioRuleBlock}\n## レビューが読む範囲`,
     )
     expect(skills.trimEnd()).toBe(
-      `${skills.slice(0, skills.lastIndexOf(sevenScenarioRuleLines[0])).trimEnd()}\n\n${sevenScenarioRuleBlock.trimEnd()}`,
+      `${skills.slice(0, skills.lastIndexOf(sevenScenarioRuleLines[0])).trimEnd()}\n\n${sevenScenarioRuleBlock.trimEnd()}\n\n${optionalBlockTail}`,
     )
   })
 
@@ -595,6 +612,7 @@ describe("issue 128 agent scenario rules", () => {
 
 describe("issue 128 canonical bodies and unchanged bytes", () => {
   const design = readFileSync(design128Path, "utf8")
+  const design170 = readFileSync(design170Path, "utf8")
   const specCanonical = readFileSync(
     path.join(repoRoot, "docs/canonical/spec.md"),
     "utf8",
@@ -657,7 +675,10 @@ describe("issue 128 canonical bodies and unchanged bytes", () => {
         path.join(repoRoot, "docs/canonical", file),
         "utf8",
       )
-      const expected = design128DeltaItemBody(design, kind, domain, id)
+      const expected =
+        domain === "conventions" && id === "REQ-857"
+          ? design128DeltaItemBody(design170, "変更", domain, id)
+          : design128DeltaItemBody(design, kind, domain, id)
       const actual = reqBodyInCanonical(canonical, id)
       expect(actual).toBe(expected)
       expect(hasScenarioLine(actual)).toBe(true)
