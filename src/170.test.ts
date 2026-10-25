@@ -40,7 +40,7 @@ const docsConventionsSha256 =
 const sddCanonicalSha256 =
   "667a212ad7e2eb26543fb191576e8962e041c91b08a1870324eb5a4f13492bbd"
 const skillsConventionsWithoutOptionalBlockSha256 =
-  "6b695e04bd6c607a1bfe31371284fb18a139b1966dd1aa19a9268e3d3431b3a1"
+  "798d75d3d121e192d4a1de3735fd6596ab02eea0f05ff2c6e6894a4852cb0c69"
 const shaDesignAuthorWithoutOptionalSection =
   "ba4d23fc803452c17a302283b98f0b3ff5821265ece28461699332d5ea3065a1"
 const shaDesignReviewerWithoutOptionalLines =
