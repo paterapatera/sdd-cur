@@ -1261,6 +1261,26 @@ export function collectOptionalBasicSectionViolations(
   return violations
 }
 
+const DIAGRAM_OPTIONAL_SECTION = "図"
+
+export function collectOptionalDiagramSectionViolations(
+  markdown: string,
+): string[] {
+  const violations: string[] = []
+  const bodies = sectionBodies(markdown, DIAGRAM_OPTIONAL_SECTION)
+  for (const body of bodies) {
+    const empty = isEmptyOptionalSectionBody(body)
+    const fenceCount = countMermaidFences(body)
+    if (empty) {
+      violations.push(`節の本文が空です: ${DIAGRAM_OPTIONAL_SECTION}`)
+      violations.push("図に Mermaid の囲みがありません")
+    } else if (fenceCount === 0) {
+      violations.push("図に Mermaid の囲みがありません")
+    }
+  }
+  return violations
+}
+
 type ParsedAcceptanceItem = {
   number: number
   line: string
