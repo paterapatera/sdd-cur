@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import {
@@ -37,6 +37,7 @@ export type Runner = {
     options?: { skipWork?: boolean },
   ) => Promise<void>
   agentLaunches: () => AgentLaunchCounts
+  resumeInterruptedImplementationOnce: () => Promise<void>
 }
 
 const EMPTY_ACCEPTANCE = "受け入れ手順が空です"
@@ -106,6 +107,8 @@ type RunnerGitExtras = {
     remote: string,
     defaultBranch: string,
   ): Promise<readonly string[]>
+  checkoutLocalBranch(branch: string): Promise<void>
+  localBranchNames(): Promise<readonly string[]>
 }
 
 function runnerGitExtras(git: GitClient): RunnerGitExtras {
@@ -114,6 +117,9 @@ function runnerGitExtras(git: GitClient): RunnerGitExtras {
 
 function normalizeRunnerGit(git: GitClient): GitClient & RunnerGitExtras {
   const partial = git as GitClient & Partial<RunnerGitExtras>
+  const rejectMissing = (name: string): never => {
+    reject(`git の ${name} がありません`)
+  }
   return {
     ...git,
     commitsAfterExclusive:
@@ -123,6 +129,10 @@ function normalizeRunnerGit(git: GitClient): GitClient & RunnerGitExtras {
       partial.commitMessage ?? (async () => "feat: agent\n"),
     branchOnlyCommitMessages:
       partial.branchOnlyCommitMessages ?? (async () => []),
+    checkoutLocalBranch:
+      partial.checkoutLocalBranch ??
+      (async () => rejectMissing("checkoutLocalBranch")),
+    localBranchNames: partial.localBranchNames ?? (async () => []),
   }
 }
 
@@ -511,6 +521,139 @@ export function decideStartClaim(
   return "yield"
 }
 
+export function cloneIdFilePath(workDir: string): string {
+  return path.join(workDir, ".sdd-cur", "clone-id")
+}
+
+function parseCloneIdLine(content: string): string | null {
+  const normalized = normalizeNewlines(content)
+  const withoutTrailingNewline = normalized.endsWith("\n")
+    ? normalized.slice(0, -1)
+    : normalized
+  if (withoutTrailingNewline.includes("\n")) {
+    return null
+  }
+  const trimmed = withoutTrailingNewline.trim()
+  if (trimmed.length === 0 || /\s/.test(trimmed)) {
+    return null
+  }
+  return trimmed
+}
+
+export async function readCloneIdFile(workDir: string): Promise<string | null> {
+  try {
+    const content = await readFile(cloneIdFilePath(workDir), "utf8")
+    return parseCloneIdLine(content)
+  } catch {
+    return null
+  }
+}
+
+export async function writeCloneIdFile(
+  workDir: string,
+  cloneId: string,
+): Promise<void> {
+  if (cloneId.length === 0 || /\s/.test(cloneId)) {
+    reject(INVALID_CLONE_ID)
+  }
+  const dir = path.join(workDir, ".sdd-cur")
+  await mkdir(dir, { recursive: true })
+  await writeFile(cloneIdFilePath(workDir), `${cloneId}\n`, "utf8")
+}
+
+export async function loadOrCreateCloneId(workDir: string): Promise<string> {
+  const existing = await readCloneIdFile(workDir)
+  if (existing !== null) {
+    return existing
+  }
+  const cloneId = randomUUID()
+  await writeCloneIdFile(workDir, cloneId)
+  return cloneId
+}
+
+export type LatestStartEntry = {
+  cloneId: string
+  createdAt: string
+  id: string
+}
+
+export function latestStartEntry(
+  comments: readonly IssueComment[],
+): LatestStartEntry | null {
+  const entries: LatestStartEntry[] = []
+  for (const comment of comments) {
+    const parsed = parseStartCommentBody(comment.body)
+    if (!parsed.isStart || parsed.cloneId === null) {
+      continue
+    }
+    entries.push({
+      cloneId: parsed.cloneId,
+      createdAt: comment.createdAt,
+      id: comment.id,
+    })
+  }
+  if (entries.length === 0) {
+    return null
+  }
+  const sorted = [...entries].sort((a, b) => {
+    if (a.createdAt !== b.createdAt) {
+      return a.createdAt < b.createdAt ? 1 : -1
+    }
+    if (a.id !== b.id) {
+      return a.id < b.id ? 1 : -1
+    }
+    return 0
+  })
+  return sorted[0]
+}
+
+export function isResumableImplementationIssue(
+  issue: Issue,
+  _login: string,
+  cloneId: string,
+  latestStart: LatestStartEntry | null,
+  isQuick: boolean,
+  prCount: number,
+  hasLocalBranch: boolean,
+): boolean {
+  if (issue.state !== "open") {
+    return false
+  }
+  if (!issue.labels.includes(LABEL_IN_PROGRESS)) {
+    return false
+  }
+  if (isQuick) {
+    return false
+  }
+  if (latestStart === null || latestStart.cloneId !== cloneId) {
+    return false
+  }
+  if (prCount > 0) {
+    return false
+  }
+  if (!hasLocalBranch) {
+    return false
+  }
+  return true
+}
+
+export function selectResumableImplementationIssue(
+  candidates: readonly Issue[],
+): Issue | null {
+  if (candidates.length === 0) {
+    return null
+  }
+  const sorted = [...candidates].sort((a, b) => a.number - b.number)
+  return sorted[0]
+}
+
+export function formatResumeFailureLine(
+  issueNumber: number,
+  reason: string,
+): string {
+  return `${issueNumber}: ${reason}`
+}
+
 export async function defaultCreateProcedureFile(): Promise<{
   path: string
   remove(): Promise<void>
@@ -527,6 +670,7 @@ export async function defaultCreateProcedureFile(): Promise<{
 }
 
 type RunnerDeps = {
+  workDir: string
   github: {
     viewerLogin: GitHubClient["viewerLogin"]
     listIssues: GitHubClient["listIssues"]
@@ -645,14 +789,27 @@ async function ensureStartClaim(
   return true
 }
 
-export function createRunner(rawDeps: RunnerDeps): Runner {
+export function createRunner(
+  rawDeps: Omit<RunnerDeps, "workDir"> & { workDir?: string },
+): Runner {
+  const workDir =
+    rawDeps.workDir ??
+    path.join(os.tmpdir(), `sdd-cur-runner-${randomUUID()}`)
   const deps: RunnerDeps = {
     ...rawDeps,
+    workDir,
     git: normalizeRunnerGit(rawDeps.git),
   }
-  const cloneId = randomUUID()
+  const cloneIdPromise = loadOrCreateCloneId(deps.workDir)
+  const resumeState = { attempted: false }
   return {
+    async resumeInterruptedImplementationOnce() {
+      const cloneId = await cloneIdPromise
+      await resumeInterruptedImplementationOnce(deps, cloneId, resumeState)
+    },
+
     async poll() {
+      const cloneId = await cloneIdPromise
       const login = await withRetry(() => deps.github.viewerLogin())
 
       const completionIssues = await withRetry(() =>
@@ -700,6 +857,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     },
 
     async process(item, options) {
+      const cloneId = await cloneIdPromise
       deps.agent.resetLaunchCounts?.()
       if (options?.skipWork) {
         return
@@ -962,32 +1120,14 @@ async function mergeDefaultBranchIntoWorkBranch(
   return deps.git.mergeFetched()
 }
 
-async function runImplementation(
+async function continueImplementationOnBranch(
   deps: RunnerDeps,
   issueNumber: number,
   issue: Issue,
-  cloneId: string,
+  remote: string,
+  branch: string,
+  defaultBranch: string,
 ): Promise<void> {
-  if (
-    !(await ensureStartClaim(deps, issueNumber, cloneId, null, true))
-  ) {
-    return
-  }
-
-  await withRetry(() =>
-    deps.github.editLabels(issueNumber, {
-      remove: [LABEL_REQUEST],
-      add: [LABEL_IN_PROGRESS],
-    }),
-  )
-
-  const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
-  const branch = implementationBranch(issueNumber)
-
-  const remote = await withRetry(() => deps.git.remoteName())
-  await withRetry(() => deps.git.fetch(remote, branch))
-  await withRetry(() => deps.git.checkoutFetched(branch))
-
   const mergeResult = await mergeDefaultBranchIntoWorkBranch(
     deps,
     remote,
@@ -1058,6 +1198,130 @@ async function runImplementation(
       // ignore cleanup errors
     }
     throw error
+  }
+}
+
+async function runImplementation(
+  deps: RunnerDeps,
+  issueNumber: number,
+  issue: Issue,
+  cloneId: string,
+): Promise<void> {
+  if (
+    !(await ensureStartClaim(deps, issueNumber, cloneId, null, true))
+  ) {
+    return
+  }
+
+  await withRetry(() =>
+    deps.github.editLabels(issueNumber, {
+      remove: [LABEL_REQUEST],
+      add: [LABEL_IN_PROGRESS],
+    }),
+  )
+
+  const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
+  const branch = implementationBranch(issueNumber)
+
+  const remote = await withRetry(() => deps.git.remoteName())
+  await withRetry(() => deps.git.fetch(remote, branch))
+  await withRetry(() => deps.git.checkoutFetched(branch))
+
+  await continueImplementationOnBranch(
+    deps,
+    issueNumber,
+    issue,
+    remote,
+    branch,
+    defaultBranch,
+  )
+}
+
+async function resumeImplementation(
+  deps: RunnerDeps,
+  issueNumber: number,
+  issue: Issue,
+): Promise<void> {
+  const defaultBranch = await withRetry(() => deps.github.getDefaultBranch())
+  const branch = implementationBranch(issueNumber)
+  const remote = await withRetry(() => deps.git.remoteName())
+  await withRetry(() => runnerGitExtras(deps.git).checkoutLocalBranch(branch))
+  await continueImplementationOnBranch(
+    deps,
+    issueNumber,
+    issue,
+    remote,
+    branch,
+    defaultBranch,
+  )
+}
+
+function resumeFailureReason(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  return String(error)
+}
+
+async function resumeInterruptedImplementationOnce(
+  deps: RunnerDeps,
+  cloneId: string,
+  resumeState: { attempted: boolean },
+): Promise<void> {
+  if (resumeState.attempted) {
+    return
+  }
+  resumeState.attempted = true
+
+  const login = await withRetry(() => deps.github.viewerLogin())
+  const issues = await withRetry(() =>
+    deps.github.listIssues({
+      state: "open",
+      labels: [LABEL_IN_PROGRESS],
+      limit: 100,
+    }),
+  )
+
+  const candidates: Issue[] = []
+  const gitExtras = runnerGitExtras(deps.git)
+  const localBranches = new Set(await withRetry(() => gitExtras.localBranchNames()))
+
+  for (const issue of issues) {
+    const comments = await withRetry(() =>
+      deps.github.listComments(issue.number),
+    )
+    const latest = latestStartEntry(comments)
+    const branch = implementationBranch(issue.number)
+    const pullRequests = await withRetry(() =>
+      deps.github.listPullRequests({ head: branch, limit: 100 }),
+    )
+    const hasLocalBranch = localBranches.has(branch)
+    if (
+      isResumableImplementationIssue(
+        issue,
+        login,
+        cloneId,
+        latest,
+        isQuickTarget(issue),
+        pullRequests.length,
+        hasLocalBranch,
+      )
+    ) {
+      candidates.push(issue)
+    }
+  }
+
+  const selected = selectResumableImplementationIssue(candidates)
+  if (selected === null) {
+    return
+  }
+
+  try {
+    await resumeImplementation(deps, selected.number, selected)
+  } catch (error) {
+    throw new Error(
+      formatResumeFailureLine(selected.number, resumeFailureReason(error)),
+    )
   }
 }
 

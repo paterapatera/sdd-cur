@@ -80,6 +80,7 @@ describe("runLoop", () => {
       },
       async process() {},
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const logs: string[] = []
@@ -114,6 +115,7 @@ describe("runLoop", () => {
         await processGate.promise
       },
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     let stop = false
@@ -149,6 +151,7 @@ describe("runLoop", () => {
       },
       async process() {},
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     let stop = false
@@ -183,6 +186,7 @@ describe("runLoop", () => {
         await processGate.promise
       },
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const loopPromise = runLoop({
@@ -211,6 +215,7 @@ describe("runLoop", () => {
       },
       async process() {},
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     await runLoop({
@@ -244,6 +249,7 @@ describe("runLoop", () => {
         processCalled = true
       },
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const logs: string[] = []
@@ -271,6 +277,7 @@ describe("runLoop", () => {
       },
       async process() {},
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
     let commentCalled = false
     expect(
@@ -299,6 +306,7 @@ describe("runLoop", () => {
         throw new Error("process failed")
       },
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
     expect(
       await runLoop({
@@ -328,6 +336,7 @@ describe("runLoop", () => {
         throw new Error("process failed")
       },
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const code = await runLoop({
@@ -362,6 +371,7 @@ describe("runLoop", () => {
         throw new Error("process failed")
       },
       agentLaunches: zeroAgentLaunches,
+      resumeInterruptedImplementationOnce: async () => {},
     }
 
     const code = await runLoop({
