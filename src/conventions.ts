@@ -1215,6 +1215,72 @@ export function firstSectionBody(markdown: string, name: string): string | null 
   return bodies[0]
 }
 
+const MERMAID_FENCE_OPEN = "```mermaid"
+const MERMAID_FENCE_CLOSE = "```"
+
+export function countMermaidFences(body: string): number {
+  const lines = normalizeNewlines(body).split("\n")
+  let count = 0
+  let open = false
+  for (const line of lines) {
+    if (!open) {
+      if (line === MERMAID_FENCE_OPEN) {
+        open = true
+      }
+      continue
+    }
+    if (line === MERMAID_FENCE_CLOSE) {
+      count += 1
+      open = false
+    }
+  }
+  return count
+}
+
+const BASIC_OPTIONAL_SECTIONS: readonly string[] = [
+  "データモデル",
+  "インターフェース",
+]
+
+function isEmptyOptionalSectionBody(body: string): boolean {
+  return normalizeNewlines(body).trim().length === 0
+}
+
+export function collectOptionalBasicSectionViolations(
+  markdown: string,
+): string[] {
+  const violations: string[] = []
+  for (const name of BASIC_OPTIONAL_SECTIONS) {
+    const bodies = sectionBodies(markdown, name)
+    for (const body of bodies) {
+      if (isEmptyOptionalSectionBody(body)) {
+        violations.push(`節の本文が空です: ${name}`)
+      }
+    }
+  }
+  return violations
+}
+
+const DIAGRAM_OPTIONAL_SECTION = "図"
+
+export function collectOptionalDiagramSectionViolations(
+  markdown: string,
+): string[] {
+  const violations: string[] = []
+  const bodies = sectionBodies(markdown, DIAGRAM_OPTIONAL_SECTION)
+  for (const body of bodies) {
+    const empty = isEmptyOptionalSectionBody(body)
+    const fenceCount = countMermaidFences(body)
+    if (empty) {
+      violations.push(`節の本文が空です: ${DIAGRAM_OPTIONAL_SECTION}`)
+      violations.push("図に Mermaid の囲みがありません")
+    } else if (fenceCount === 0) {
+      violations.push("図に Mermaid の囲みがありません")
+    }
+  }
+  return violations
+}
+
 type ParsedAcceptanceItem = {
   number: number
   line: string
@@ -1467,6 +1533,8 @@ export function validateSpecForm(
   violations.push(...collectAmbiguousWordViolations(markdown))
 
   if (kind === "design") {
+    violations.push(...collectOptionalBasicSectionViolations(markdown))
+    violations.push(...collectOptionalDiagramSectionViolations(markdown))
     violations.push(...collectScenarioViolations(markdown))
   }
 
