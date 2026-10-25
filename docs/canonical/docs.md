@@ -302,3 +302,30 @@ README の最初の `##` 見出しは `他のプロジェクトで使う` であ
 README は、次の六つを書く。`<名前>.md` を `docs/steering/` 直下に任意で置けること。`<名前>` が領域名と同じ規則であること。十サブエージェントが `docs/policy.md` のあと `docs/steering/` 直下の `.md` をすべて読むこと。ディレクトリが無いときは読まずに進むこと。食い違うときは `docs/policy.md` を優先すること。レビュー役が `docs/policy.md` と `docs/steering/` 直下の `.md` の食い違いを指摘すること。README は、`doctor` が `docs/steering/` があるとき、名前の規則に合わないファイルを一行ずつ知らせる、と書く。見出し `ディレクトリ` の「正本の表にあるパスは、ここには繰り返さない。」は変えない。
 
 - シナリオ: 条件: README の `doctor` の説明を読む 主体: 人 結果: steering の命名違反を知らせると書いてある
+
+## REQ-967
+
+もとになった課題は #196 である。
+
+README の「開発中の起動」の、行全体が `bun test` である行の直前に、行全体が `bunx @paterapatera/sdd-cur spec-apply <番号>` である行を一つ足す。足す行以外の、その節の既存の文は一文字も変えない。
+- シナリオ: 条件: README の「開発中の起動」を見る 主体: README 結果: `spec-apply` の起動例が 1 行ある
+
+## REQ-968
+
+もとになった課題は #196 である。
+
+`skills/sdd-cur/conventions.md` の「仕様の正本」に、`spec-apply` が設計の `## 正本への差分` を作業ツリーの `docs/canonical/` に書く旨を、次の二行を足す。行のあいだに空行は入れない。足す行以外の既存の文は一文字も変えない。
+
+```
+`sdd-cur spec-apply <番号>` は、設計の `## 正本への差分` を、作業ツリーの `docs/canonical/` に書く。差分対象の識別子だけを書き換える。
+期待値の計算は `spec-diff` と同じ手順である。
+```
+
+- シナリオ: 条件: `skills/sdd-cur/conventions.md` の「仕様の正本」を見る 主体: その節 結果: `spec-apply` が正本へ書く旨の文がある
+
+## REQ-969
+
+もとになった課題は #196 である。
+
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `spec-apply` を含む。`AGENTS.md` の「コマンド」の例に、行全体が `bun src/cli.ts spec-apply <番号>` である行がある。
+- シナリオ: 条件: `docs/policy.md` の構成の表を見る 主体: その行 結果: `spec-apply` を含む

@@ -24,7 +24,7 @@ const DOMAINS = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "6ece9e15d710cf42db0726c534781b9e30b6763f52743a6fb3176c8f7c7d128e"
+  "45fa2b829b19836d669343b720d94832d1c4afe0c61c23eed9edc3eca8ebf788"
 
 const DELETED: { domain: string; id: string }[] = [
   { domain: "conventions", id: "REQ-103" },

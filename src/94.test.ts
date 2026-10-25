@@ -30,7 +30,8 @@ const usageText =
   "sdd-cur spec-check\n" +
   "sdd-cur tasks <番号>\n" +
   "sdd-cur task-done <番号> <作業番号>\n" +
-  "sdd-cur spec-diff <番号>\n"
+  "sdd-cur spec-diff <番号>\n" +
+  "sdd-cur spec-apply <番号>\n"
 
 const LABEL_REQUEST = workflowLabels[0].name
 const LABEL_IN_PROGRESS = workflowLabels[1].name

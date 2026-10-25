@@ -16,6 +16,11 @@ const skillSubcommandOrder = [
   "close",
 ] as const
 
+const skillExampleSubcommandOrder = [
+  ...skillSubcommandOrder,
+  "spec-apply",
+] as const
+
 const excludedFromSkillExamples = [
   "install",
   "run",
@@ -40,6 +45,7 @@ const expectedBunxLines = [
   `${bunxPrefix} review-next implement <番号>`,
   `${bunxPrefix} complete <番号>`,
   `${bunxPrefix} close <番号>`,
+  `${bunxPrefix} spec-apply <番号>`,
   "bun test",
 ] as const
 
@@ -204,7 +210,7 @@ describe("課題 115 README のコマンド表記", () => {
       expect(fromFences.has(excluded)).toBe(false)
     }
     expect(fromFences.has("bun test")).toBe(false)
-    expect([...fromFences]).toEqual([...skillSubcommandOrder])
+    expect([...fromFences]).toEqual([...skillExampleSubcommandOrder])
   })
 
   test("開発中の起動の表のサブコマンド名", () => {

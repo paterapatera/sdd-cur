@@ -42,6 +42,7 @@ bunx @paterapatera/sdd-cur review-next quick <番号>
 bunx @paterapatera/sdd-cur review-next implement <番号>
 bunx @paterapatera/sdd-cur complete <番号>
 bunx @paterapatera/sdd-cur close <番号>
+bunx @paterapatera/sdd-cur spec-apply <番号>
 bun test
 ```
 

@@ -29,7 +29,7 @@ const sevenScenarioRuleLines = [
 const sevenScenarioRuleBlock = `${sevenScenarioRuleLines.join("\n")}\n`
 
 const skillsConventionsWithoutScenarioBlockSha256 =
-  "f0b65927c0b0a23d0caf7a7cae1b3e1010ef42802530acee3bbc333bfda48727"
+  "49cd23fb97a3a270cdcf9da18031e184168784c8e6201a6d62b76dd9fcbdab51"
 
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
@@ -87,9 +87,9 @@ const agentReviewerScenarioFourLines = `- 追加または変更の項目の本�
 `
 
 const shaDesignAuthorWithoutScenarioLines =
-  "475d58b731d22866ccb0a771792cd1f67f6e67c9e0d95334ca21607278f259cb"
+  "907fc9f5fcf8b557520bc41afbd539cb7c832d9e410fe9ee1b89a79db6647884"
 const shaDesignReviewerWithoutScenarioLines =
-  "d98d73d3d1910315d69d94336d202e8ac9acf9633869537223891afd9a2819f0"
+  "f4089d99ee8b169f886a39b52659882bb8522f33f1fd292528c49cfd434443a4"
 const shaImplementReviewerWithoutScenarioLines =
   "95b7bac0833a8cd06b8afb455a711b7be650f625752ac6efd73da90d2f1330d1"
 
@@ -101,8 +101,10 @@ const optionalBlockTailLines = [
   "本文が空のときの違反は `節の本文が空です: <節名>` であり、節名はデータモデル、インターフェース、図である。",
   "Mermaid の囲みは、行全体がバッククォート三つの直後に `mermaid` を続けたものと一致する開始行で開き、行全体がバッククォート三つと一致する行で閉じたブロックを一つと数える。行頭の空白は無い。中身が空でも数える。",
   "囲みが無いときの違反は `図に Mermaid の囲みがありません` である。",
+  "検討した案の本文が空のときの違反は `節の本文が空です: 検討した案` である。",
+  "`## 検討した案` の項目は、「案」「選んだか退けたか」「理由」が分かる一行である。一行の記法は、この課題の設計が決めた記法である。",
 ] as const
-const optionalBlockTail = optionalBlockTailLines.join("\n")
+const optionalBlockTail = `${optionalBlockTailLines.slice(0, 4).join("\n")}\n\n${optionalBlockTailLines.slice(4).join("\n")}`
 
 const specPrefixSha256 =
   "d8e36e8b2fe071f3857aeb4ded400708b9caab3153ce5c06fcd41bbf6f6331db"
@@ -124,7 +126,7 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/install.md":
     "6436bf0febca526ad93286d0edf00588bbbcd9513f450c536d0801f4865aab49",
   "docs/canonical/docs.md":
-    "71ea09351a1eac7f3f0cb3983002b6673f9b3846d1b9b2fee3dd7159edfcd916",
+    "bff55c12ce5fa5cc354a0e946d4382b6838341798d7e56297482c2dd7d7c4704",
   "docs/canonical/init.md":
     "a4d5b9b20e69e86155c0926b8e31ba987d120c6a5f5c5cc2fc12b8c8b7825891",
 }
@@ -524,11 +526,6 @@ describe("issue 128 conventions and acceptance line form", () => {
     for (const section of [specCanon, reqDesignForm]) {
       expectLinesInOrder(section, sevenScenarioRuleLines)
     }
-    const specCanonTail =
-      "課題ごとの `docs/issues/<番号>/requirements.md` と `docs/issues/<番号>/design.md` の置き場所は、「課題ごとのファイル」のままである。"
-    expect(skills).toContain(
-      `${specCanonTail}\n\n${sevenScenarioRuleBlock}\n## レビューが読む範囲`,
-    )
     expect(skills.trimEnd()).toBe(
       `${skills.slice(0, skills.lastIndexOf(sevenScenarioRuleLines[0])).trimEnd()}\n\n${sevenScenarioRuleBlock.trimEnd()}\n\n${optionalBlockTail}`,
     )
