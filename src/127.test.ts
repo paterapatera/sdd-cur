@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, test } from "bun:test"
 import { checkSpec } from "./spec.ts"
-import { issue168SupersededInstallReqIds } from "./conventions.ts"
+import {
+  issue168SupersededInstallReqIds,
+  issue175SupersededConventionsReqIds,
+} from "./conventions.ts"
 
 const root = join(import.meta.dir, "..")
 const designPath = join(root, "docs/issues/127/design.md")
@@ -20,7 +23,7 @@ const DOMAINS = [
 ] as const
 
 const UNTOUCHED_SHA256 =
-  "dadf2185c4e4531aef97584d824f48905c6c86f81dcea9d2b908a98990c9dafe"
+  "c98307955c509c9e677bbf618b954baaef35c02dee9369fe4af63b2534f7dff1"
 
 const DELETED: { domain: string; id: string }[] = [
   { domain: "conventions", id: "REQ-103" },
@@ -191,6 +194,9 @@ describe("127", () => {
     ...deleted.map((d) => `${d.domain}:${d.id}`),
     ...changed.keys(),
     ...[...issue168SupersededInstallReqIds()].map((id) => `install:${id}`),
+    ...[...issue175SupersededConventionsReqIds()].map(
+      (id) => `conventions:${id}`,
+    ),
     "install:REQ-943",
   ])
 
@@ -231,6 +237,12 @@ describe("127", () => {
         if (!key.startsWith(`${domain}:`)) continue
         if (key === "docs:REQ-713") continue
         const id = key.slice(domain.length + 1)
+        if (
+          domain === "conventions" &&
+          issue175SupersededConventionsReqIds().has(id)
+        ) {
+          continue
+        }
         const req = byId.get(id)
         expect(req).toBeDefined()
         expect(nonEmptyLines(req!.bodyLines)).toEqual(

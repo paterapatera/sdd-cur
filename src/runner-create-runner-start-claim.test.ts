@@ -1,4 +1,4 @@
-import { describe, expect, mock, spyOn, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 import {
   createIssueCommentStore,
   ic,
@@ -9,9 +9,11 @@ import {
   LABEL_MERGED,
   LABEL_REQUEST,
   LABEL_VERIFIED,
+  runnerTestDesignPair,
   startCommentBody,
   VIEWER_LOGIN,
 } from "./runner-test-support.ts"
+import * as sdd from "./sdd.ts"
 import * as nodeCrypto from "node:crypto"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
@@ -27,7 +29,6 @@ import {
   createRunner,
   implementationBranch,
   issueHasFixLabels,
-  pullRequestBody,
   selectFixIssues,
   selectImplementationIssue,
   selectQuickIssue,
@@ -38,6 +39,18 @@ import {
   startMarker,
 } from "./runner.ts"
 describe("createRunner start claim", () => {
+  let readSpecPairSpy: ReturnType<typeof spyOn>
+
+  beforeEach(() => {
+    readSpecPairSpy = spyOn(sdd, "readSpecPair").mockImplementation(
+      async (issueNumber: number) => runnerTestDesignPair(issueNumber),
+    )
+  })
+
+  afterEach(() => {
+    readSpecPairSpy.mockRestore()
+  })
+
   test("実装の着手は listComments と着手 addComment のあと editLabels", async () => {
     const ghLog: string[] = []
     const procedurePath = "/tmp/start-claim-proc.txt"

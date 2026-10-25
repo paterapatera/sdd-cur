@@ -1,4 +1,4 @@
-import { describe, expect, mock, spyOn, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 import {
   createIssueCommentStore,
   issue,
@@ -8,8 +8,11 @@ import {
   LABEL_MERGED,
   LABEL_REQUEST,
   LABEL_VERIFIED,
+  runnerTestDesignPair,
+  runnerTestPullRequestBody,
   VIEWER_LOGIN,
 } from "./runner-test-support.ts"
+import * as sdd from "./sdd.ts"
 import * as nodeCrypto from "node:crypto"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
@@ -25,7 +28,6 @@ import {
   createRunner,
   implementationBranch,
   issueHasFixLabels,
-  pullRequestBody,
   selectFixIssues,
   selectImplementationIssue,
   selectQuickIssue,
@@ -36,6 +38,18 @@ import {
   startMarker,
 } from "./runner.ts"
 describe("createRunner", () => {
+  let readSpecPairSpy: ReturnType<typeof spyOn>
+
+  beforeEach(() => {
+    readSpecPairSpy = spyOn(sdd, "readSpecPair").mockImplementation(
+      async (issueNumber: number) => runnerTestDesignPair(issueNumber),
+    )
+  })
+
+  afterEach(() => {
+    readSpecPairSpy.mockRestore()
+  })
+
   test("poll は listIssues を動作確認OKから順に呼び候補が無いとき null", async () => {
     let calls = 0
     const startIssueComments = createIssueCommentStore()
@@ -511,7 +525,7 @@ describe("createRunner", () => {
           expect(input.base).toBe("main")
           expect(input.head).toBe("task-1")
           expect(input.body).toBe(
-            pullRequestBody("https://issue/1", "手順本文"),
+            runnerTestPullRequestBody("https://issue/1", "手順本文"),
           )
           expect(input.body).not.toContain("Fixes")
           expect(input.body).not.toContain("Closes")
@@ -582,13 +596,14 @@ describe("createRunner", () => {
       "checkoutFetched:task-1",
       "fetch:origin:main",
       "mergeFetched",
+      "remoteName",
       "headCommit",
       "implement",
       "headCommit",
       "hasChanges",
       "commitAll",
       "push",
-      `createPullRequest:${pullRequestBody("https://issue/1", "手順本文")}`,
+      `createPullRequest:${runnerTestPullRequestBody("https://issue/1", "手順本文")}`,
       "addComment:https://pr",
       "editLabels:done",
     ])
@@ -1672,7 +1687,9 @@ describe("createRunner", () => {
           log.push("createPullRequest")
           expect(input.head).toBe("task-56")
           expect(input.base).toBe("main")
-          expect(input.body).toBe(pullRequestBody("https://issue/56", "手順"))
+          expect(input.body).toBe(
+            runnerTestPullRequestBody("https://issue/56", "手順"),
+          )
           expect(input.body).not.toContain("Fixes")
           expect(input.body).not.toContain("Closes")
           return { number: 1, url: "https://pr" }
@@ -1760,6 +1777,9 @@ describe("createRunner", () => {
       "headCommit",
       "quick",
       "headCommit",
+      "fetch:origin:main",
+      "mergeFetched",
+      "remoteName",
       "headCommit",
       "implement",
       "headCommit",
