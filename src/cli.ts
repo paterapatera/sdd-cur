@@ -75,6 +75,9 @@ export function printUsage(): void {
     "sdd-cur install [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]",
   )
   console.error("sdd-cur init [project-root]")
+  console.error(
+    "sdd-cur setup [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]",
+  )
   console.error("sdd-cur run [--interval-min <1 以上 1440 以下の整数>]")
   console.error("sdd-cur labels")
   console.error("sdd-cur candidates")
