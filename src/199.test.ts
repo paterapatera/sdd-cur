@@ -174,7 +174,7 @@ function expectEightCheckLinesInOrder(lines: string[]): void {
   }
 }
 
-// 作業 3–7: 十役・policy・conventions・README・正本・init/setup 確認は同一ブランチで反映済み。
+// 作業 3: 十サブエージェントの起動時とレビュー指摘を更新済み。
 
 describe("199 steering", () => {
   const roots: string[] = []
