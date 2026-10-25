@@ -374,6 +374,36 @@ async function githubFromCwd() {
   return createGitHub({ gh: defaultGhRunner, repo, cwd })
 }
 
+async function runLabelsAtCwd(cwd: string): Promise<number> {
+  try {
+    const repo = await resolveRepo(defaultGhRunner, cwd)
+    const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
+    const results = await ensureWorkflowLabels(github)
+    for (const result of results) {
+      if (result.status === "created") {
+        console.log(`作成しました: ${result.name}`)
+      } else {
+        console.log(`既にあります: ${result.name}`)
+      }
+    }
+    return 0
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    return 1
+  }
+}
+
+async function runDoctorAtCwd(cwd: string): Promise<number> {
+  return await runDoctor({
+    cwd,
+    homedir: homedir(),
+    skillsSourceDir: defaultSkillsSourceDir,
+    agentsSourceDir: defaultAgentsSourceDir,
+    commandExists: defaultCommandExists,
+    gh: defaultGhRunner,
+  })
+}
+
 async function cmdInstall(args: string[]): Promise<number> {
   const parsed = parseInstallArgs(args)
   if (!parsed.ok) {
@@ -456,43 +486,17 @@ async function cmdInit(args: string[]): Promise<number> {
 }
 
 async function cmdSetup(args: string[]): Promise<number> {
-  const home = homedir()
   return await runSetup({
     args,
-    homedir: home,
+    homedir: homedir(),
     skillsSourceDir: defaultSkillsSourceDir,
     agentsSourceDir: defaultAgentsSourceDir,
     gh: defaultGhRunner,
     commandExists: defaultCommandExists,
     runInstall: (installArgs, _cwd) => cmdInstall(installArgs),
     runInit: (initArgs, _cwd) => cmdInit(initArgs),
-    runLabels: async (cwd) => {
-      try {
-        const repo = await resolveRepo(defaultGhRunner, cwd)
-        const github = createGitHub({ gh: defaultGhRunner, repo, cwd })
-        const results = await ensureWorkflowLabels(github)
-        for (const result of results) {
-          if (result.status === "created") {
-            console.log(`作成しました: ${result.name}`)
-          } else {
-            console.log(`既にあります: ${result.name}`)
-          }
-        }
-        return 0
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        return 1
-      }
-    },
-    runDoctor: (cwd) =>
-      runDoctor({
-        cwd,
-        homedir: home,
-        skillsSourceDir: defaultSkillsSourceDir,
-        agentsSourceDir: defaultAgentsSourceDir,
-        commandExists: defaultCommandExists,
-        gh: defaultGhRunner,
-      }),
+    runLabels: runLabelsAtCwd,
+    runDoctor: runDoctorAtCwd,
   })
 }
 
@@ -558,21 +562,7 @@ async function cmdLabels(args: string[]): Promise<number> {
     return 1
   }
 
-  try {
-    const github = await githubFromCwd()
-    const results = await ensureWorkflowLabels(github)
-    for (const result of results) {
-      if (result.status === "created") {
-        console.log(`作成しました: ${result.name}`)
-      } else {
-        console.log(`既にあります: ${result.name}`)
-      }
-    }
-    return 0
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error))
-    return 1
-  }
+  return await runLabelsAtCwd(process.cwd())
 }
 
 async function cmdCandidates(args: string[]): Promise<number> {
@@ -1019,14 +1009,7 @@ async function cmdDoctor(args: string[]): Promise<number> {
     return 1
   }
 
-  return await runDoctor({
-    cwd: process.cwd(),
-    homedir: homedir(),
-    skillsSourceDir: defaultSkillsSourceDir,
-    agentsSourceDir: defaultAgentsSourceDir,
-    commandExists: defaultCommandExists,
-    gh: defaultGhRunner,
-  })
+  return await runDoctorAtCwd(process.cwd())
 }
 
 async function cmdRequest(args: string[]): Promise<number> {
