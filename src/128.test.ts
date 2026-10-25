@@ -29,7 +29,7 @@ const sevenScenarioRuleLines = [
 const sevenScenarioRuleBlock = `${sevenScenarioRuleLines.join("\n")}\n`
 
 const skillsConventionsWithoutScenarioBlockSha256 =
-  "bb80be47629b2e7256f075a1fc808a152e7bad7731129324bb28e09244b91ab3"
+  "4601f68fecda1bdf1ed1c3097c8c22c987ca0ffa80d0ec57d3512d3f658e13d7"
 
 const docsConventionsSha256 =
   "945ea61a9cee5825e57bfe371dc1c8e6bbe341fbad463f6b8758483073c937d2"
@@ -87,9 +87,9 @@ const agentReviewerScenarioFourLines = `- 追加または変更の項目の本�
 `
 
 const shaDesignAuthorWithoutScenarioLines =
-  "0c4e0c400375e508c7837767d65d5f47d5e592b26db0ab31c81d821627396307"
+  "409f41eb7513c470d4f056530e4fa9df9b4aaef5dd3265180df0bbb4b8f3a1d4"
 const shaDesignReviewerWithoutScenarioLines =
-  "63f4fa56e6fab97714d6cf201e9eb970c092fda90968bee288806a3a0331679c"
+  "d7c55ce2810839db84b701ab1429baa0eb1e2987a7bd0c118241425ddd17d154"
 const shaImplementReviewerWithoutScenarioLines =
   "53a839af45980842dcca97e385f14c0765ca784842be55101126d40e2921608e"
 
@@ -101,8 +101,10 @@ const optionalBlockTailLines = [
   "本文が空のときの違反は `節の本文が空です: <節名>` であり、節名はデータモデル、インターフェース、図である。",
   "Mermaid の囲みは、行全体がバッククォート三つの直後に `mermaid` を続けたものと一致する開始行で開き、行全体がバッククォート三つと一致する行で閉じたブロックを一つと数える。行頭の空白は無い。中身が空でも数える。",
   "囲みが無いときの違反は `図に Mermaid の囲みがありません` である。",
+  "検討した案の本文が空のときの違反は `節の本文が空です: 検討した案` である。",
+  "`## 検討した案` の項目は、「案」「選んだか退けたか」「理由」が分かる一行である。一行の記法は、この課題の設計が決めた記法である。",
 ] as const
-const optionalBlockTail = optionalBlockTailLines.join("\n")
+const optionalBlockTail = `${optionalBlockTailLines.slice(0, 4).join("\n")}\n\n${optionalBlockTailLines.slice(4).join("\n")}`
 
 const specPrefixSha256 =
   "d8e36e8b2fe071f3857aeb4ded400708b9caab3153ce5c06fcd41bbf6f6331db"
