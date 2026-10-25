@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import process from "node:process"
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
@@ -1103,67 +1104,14 @@ async function runQuick(
 
     await assertSpecsReadyForImplement(issueNumber)
 
-    const procedure = await deps.createProcedureFile()
-    try {
-      let headBefore: string
-      try {
-        headBefore = await runAgentWithHeadCheck(deps, () =>
-          deps.agent.implement({
-            issueNumber,
-            procedurePath: procedure.path,
-          }),
-        )
-      } catch (error) {
-        await procedure.remove()
-        throw error
-      }
-
-      let prBody: string
-      try {
-        const payload = await readFile(procedure.path, "utf8")
-        prBody = pullRequestBody(issue.url, payload)
-      } catch (error) {
-        await procedure.remove()
-        throw error
-      }
-      await procedure.remove()
-
-      await commitAndPushImplementation(
-        deps,
-        issueNumber,
-        remote,
-        branch,
-        headBefore,
-        defaultBranch,
-      )
-
-      const pullRequest = await withRetry(() =>
-        deps.github.createPullRequest({
-          base: defaultBranch,
-          head: branch,
-          title: issue.title,
-          body: prBody,
-        }),
-      )
-
-      await withRetry(() =>
-        deps.github.addComment(issueNumber, pullRequest.url),
-      )
-
-      await withRetry(() =>
-        deps.github.editLabels(issueNumber, {
-          remove: [LABEL_IN_PROGRESS],
-          add: [LABEL_DONE],
-        }),
-      )
-    } catch (error) {
-      try {
-        await procedure.remove()
-      } catch {
-        // ignore cleanup errors
-      }
-      throw error
-    }
+    await continueImplementationOnBranch(
+      deps,
+      issueNumber,
+      issue,
+      remote,
+      branch,
+      defaultBranch,
+    )
   } catch (error) {
     try {
       await quickResult.remove()
@@ -1248,6 +1196,13 @@ async function continueImplementationOnBranch(
     return
   }
 
+  const pair = await readSpecPair(issueNumber)
+  const workListLines = await resolveWorkListLinesForPullRequest(
+    pair.design.markdown,
+    deps.git,
+    process.cwd(),
+  )
+
   const procedure = await deps.createProcedureFile()
   try {
     let headBefore: string
@@ -1266,7 +1221,7 @@ async function continueImplementationOnBranch(
     let prBody: string
     try {
       const payload = await readFile(procedure.path, "utf8")
-      prBody = pullRequestBody(issue.url, payload)
+      prBody = pullRequestBody(issue.url, payload, workListLines)
     } catch (error) {
       await procedure.remove()
       throw error
