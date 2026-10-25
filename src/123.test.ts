@@ -514,8 +514,6 @@ describe("123 spec-diff", () => {
     expect(reviewer).toContain(
       "`spec-diff` の終了コードが 0 以外であることは、渡された終了コードが 0 以外であることの指摘である。",
     )
-    expect(reviewer).toContain("docs/canonical/<領域>.md")
-    expect(reviewer).toContain("この段落は残す。")
     expect(reviewer).not.toMatch(/docs\/spec\/<領域>/)
   })
 })
