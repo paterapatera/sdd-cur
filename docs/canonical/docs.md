@@ -226,17 +226,17 @@ README の「開発中の起動」のコードフェンスと、そのあとの�
 
 ## REQ-890
 
-もとになった課題は #164 である。
+もとになった課題は #165 である。
 
-`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `doctor` を含む。その行のバッククォートで囲んだサブコマンド名の集合は、`src/cli.ts` の `switch` の `case` の名前の集合と一致する。
-- シナリオ: 条件: `doctor` を `switch` に足した 主体: `docs/policy.md` 結果: 構成表の `src/cli.ts` の行も同じ集合を列挙する
+`docs/policy.md` の構成の表の `src/cli.ts` の行は、バッククォートで囲んだ `doctor` と `setup` を含む。その行のバッククォートで囲んだサブコマンド名の集合は、`src/cli.ts` の `switch` の `case` の名前の集合と一致する。
+- シナリオ: 条件: `setup` を `switch` に足した 主体: `docs/policy.md` 結果: 構成表の `src/cli.ts` の行も同じ集合を列挙する
 
 ## REQ-891
 
-もとになった課題は #164 である。
+もとになった課題は #165 である。
 
-`AGENTS.md` の「コマンド」のコードフェンスに、`bun src/cli.ts doctor` の行がある。そのフェンスの `bun src/cli.ts` の行から取れるサブコマンド名の集合は、`src/cli.ts` の `switch` の `case` の名前の集合と一致する。
-- シナリオ: 条件: `AGENTS.md` のコマンド例を見る 主体: `AGENTS.md` 結果: `bun src/cli.ts doctor` の行がある
+`AGENTS.md` の「コマンド」のコードフェンスに、`bun src/cli.ts doctor` の行がある。`bun src/cli.ts setup` で始まる行がある。その行に `--model`、`--high-model`、`--medium-model`、`--low-model` は無い。そのフェンスの `bun src/cli.ts` の行から取れるサブコマンド名の集合は、`src/cli.ts` の `switch` の `case` の名前の集合と一致する。
+- シナリオ: 条件: `AGENTS.md` のコマンド例を見る 主体: `AGENTS.md` 結果: `bun src/cli.ts setup` の行がある
 
 ## REQ-885
 
@@ -279,3 +279,10 @@ README に、`sdd-cur doctor` が導入の前提を一つずつ確かめるコ�
 
 `docs/policy.md` の構成の表に `src/doctor.ts` の行がある。`src/cli.ts` の行のサブコマンド列挙に `doctor` がある。`AGENTS.md` の「コマンド」の例に `bun src/cli.ts doctor` がある。
 - シナリオ: 条件: `docs/policy.md` の `src/cli.ts` の行を見る 主体: 表 結果: サブコマンド列挙に `doctor` がある
+
+## REQ-941
+
+もとになった課題は #165 である。
+
+README の最初の `##` 見出しは `他のプロジェクトで使う` である。その節に、次の六手順をこの順で書く。`bun add -g @paterapatera/sdd-cur`、プロジェクトのルートで `sdd-cur setup`、Cursor で `sdd-cur-policy` を起動して `docs/policy.md` の下書きを作る、`sdd-cur-create-issue` で課題を作り `sdd-cur` で要件と設計を進める、ランナー用に別ディレクトリへクローンして `sdd-cur run`、課題の担当者をランナーの `gh` のログインにする。
+- シナリオ: 条件: README の先頭の節を読む 主体: README 結果: 六手順がこの順である

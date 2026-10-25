@@ -151,3 +151,39 @@ high 種別は `sdd-cur-req-author`、`sdd-cur-design-author`、`sdd-cur-req-rev
 - シナリオ: 条件: 三種類のモデルフラグを別引数で渡して `install` が成功する 主体: `install` 結果: 各種別に属するコピー先の `model:` が指定したモデルになり、標準出力に十一行の最終モデルが出る
 - シナリオ: 条件: 種別フラグを一つだけ渡して `install` が成功する 主体: `install` 結果: その種別のコピー先だけ `model:` が変わり、ほかはコピー元のままである
 - シナリオ: 条件: 種別フラグの指定が不正である 主体: `install` 結果: 何もコピーせず `モデルの指定が不正です: <指定>` で失敗する
+
+## REQ-936
+
+もとになった課題は #165 である。
+
+第1引数が `setup` のとき、`src/cli.ts` は `install`、`init`、`labels` をこの順に実行する。最初に終了コードが 0 でない段で止め、それより後のコマンドは実行しない。三つが終了コード 0 のあと、`doctor` と同じ確認を行い、その標準出力、標準エラー、終了コードを出す。
+- シナリオ: 条件: `setup` が三つの段を順に実行する 主体: `setup` 結果: 最初の非 0 で止まり、三つが 0 のときだけ `doctor` と同じ確認が続く
+
+## REQ-937
+
+もとになった課題は #165 である。
+
+`setup` は `parseInstallArgs` で引数を読む。`--high-model`、`--medium-model`、`--low-model` は `install` と同じ規則である。成功したとき、受けたフラグと値は同じ並びで `install` へ渡す。`--model` は受けない。三つのモデルフラグ以外で `--` で始まる引数は、`install` と同じ規則で失敗する。
+- シナリオ: 条件: `setup` に `--high-model` と値を付ける 主体: `setup` 結果: 同じ引数列で `install` が実行される
+- シナリオ: 条件: `setup` に `--model` がある 主体: `setup` 結果: `install` も実行せず、`install` と同じ失敗になる
+
+## REQ-938
+
+もとになった課題は #165 である。
+
+`setup` でプロジェクトのルートが解析されないとき、`install` と `init` には `path.resolve(process.cwd())` の絶対パスをルート引数として渡す。`labels` と `doctor` の確認の作業ディレクトリはその絶対パスである。プロジェクトのルートが一つあるとき、`install` には解析の文字列をそのまま渡し、`init` には `assertDirectoryExists` のあと `path.resolve` した絶対パスを渡す。`labels` と `doctor` の確認の作業ディレクトリは、`init` と同じ絶対パスである。
+- シナリオ: 条件: ルートを省いてプロジェクトのルートで `setup` を実行する 主体: `setup` 結果: 三つの段と `doctor` の確認がそのルートを向く
+
+## REQ-939
+
+もとになった課題は #165 である。
+
+使い方を標準エラーへ出すとき、行全体が `sdd-cur setup [project-root] [--high-model <モデル>] [--medium-model <モデル>] [--low-model <モデル>]` である行が一つある。使い方に `--model` は無い。
+- シナリオ: 条件: `sdd-cur --help` を実行する 主体: `sdd-cur` 結果: 上の `setup` 行が使い方に含まれる
+
+## REQ-942
+
+もとになった課題は #165 である。
+
+`setup` を足しても、`install`、`init`、`labels`、`doctor` を単体で実行したときの引数、入出力、終了コードは変えない。`doctor` はファイルもラベルも変えない。
+- シナリオ: 条件: `labels` を単体で実行する 主体: `labels` 結果: 挙動は `setup` 追加前と同じである
