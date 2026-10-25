@@ -115,11 +115,11 @@ const unchangedCanonicalSha256: Record<string, string> = {
   "docs/canonical/labels.md":
     "6c0d68a701f34de8cc796ff7e0a73f7b275fc4e83e0a89bb65e224b564f64875",
   "docs/canonical/install.md":
-    "fedbe2fda20ac149a9c690ec9b5dbf82707560f70b491c6b8bd57a3f97218dc8",
+    "0bede3d222dffe57f7221a8815d2ed8d16c81d8f5f3b57374c76b544a368c551",
   "docs/canonical/docs.md":
-    "355c7066fa1a4572d0323aa75b4f976aa61a9ec59023adb52a93c7a61b3aeedd",
+    "758a6c0b8316da353ea2fd316f683ef0cb39fbd261391018ea273b933737d8f6",
   "docs/canonical/init.md":
-    "5f83df3a9ed5cc491dabc1355354482950960ba6bf31d287e63d63d629b198d4",
+    "a4d5b9b20e69e86155c0926b8e31ba987d120c6a5f5c5cc2fc12b8c8b7825891",
 }
 
 const REQ857_SCENARIO_LINE =

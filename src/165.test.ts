@@ -11,6 +11,7 @@ import {
 } from "./install.ts"
 import { runSetup } from "./setup.ts"
 
+const repoRoot = path.join(import.meta.dir, "..")
 const cliPath = path.join(import.meta.dir, "cli.ts")
 const setupPath = path.join(import.meta.dir, "setup.ts")
 const bunExe = process.execPath
@@ -400,5 +401,62 @@ describe("165 setup", () => {
     expect(cliSource).toContain('case "setup":')
     expect(cliSource).toContain("async function cmdSetup")
     expect(cliSource).toMatch(/return await runSetup\(/)
+  })
+
+  test("[9][10][11][12][13] README の他プロジェクト向け導入手順と既存節", async () => {
+    const readme = await readFile(path.join(repoRoot, "README.md"), "utf8")
+
+    const h2 = [...readme.matchAll(/^## (.+)$/gm)].map((m) => m[1])
+    expect(h2[0]).toBe("他のプロジェクトで使う")
+    const laterSections = [
+      "前提",
+      "開発中の起動",
+      "公開後の起動",
+      "役割",
+      "ラベル",
+      "ディレクトリ",
+    ]
+    let prev = 0
+    for (const title of laterSections) {
+      const idx = h2.indexOf(title)
+      expect(idx).toBeGreaterThan(0)
+      expect(idx).toBeGreaterThan(prev)
+      prev = idx
+    }
+
+    const otherStart = readme.indexOf("## 他のプロジェクトで使う")
+    const otherEnd = readme.indexOf("\n## ", otherStart + 1)
+    const otherSection = readme.slice(otherStart, otherEnd)
+    const stepKeys = [
+      "bun add -g @paterapatera/sdd-cur",
+      "sdd-cur setup",
+      "sdd-cur-policy",
+      "docs/policy.md",
+      "sdd-cur-create-issue",
+      "sdd-cur run",
+      "担当者",
+      "gh",
+      "ログイン",
+    ]
+    let pos = 0
+    for (const key of stepKeys) {
+      const i = otherSection.indexOf(key, pos)
+      expect(i).toBeGreaterThanOrEqual(0)
+      pos = i + key.length
+    }
+
+    expect(readme).toContain("導入の順は `install`、`init`、`labels` である。")
+    expect(readme).toContain(
+      "`sdd-cur doctor` は導入の前提を一つずつ確かめるコマンドである。",
+    )
+
+    const devStart = readme.indexOf("## 開発中の起動")
+    const devEnd = readme.indexOf("\n## ", devStart + 1)
+    const devSection = readme.slice(devStart, devEnd)
+    expect(devSection).not.toMatch(/\binit\b/)
+
+    expect(readme).toContain(
+      "課題ランナーは Project A の作業ディレクトリでは動かさない。",
+    )
   })
 })
