@@ -298,7 +298,7 @@ README の「開発中の起動」の、行全体が `bun test` である行の�
 
 もとになった課題は #196 である。
 
-`skills/sdd-cur/conventions.md` の「仕様の正本」に、`spec-apply` が設計の `## 正本への差分` を作業ツリーの `docs/canonical/` に書く旨を、次の二行を足す。行のあいだに空行は入れない。足す行以外の既存の文は一文字も変わらない。
+`skills/sdd-cur/conventions.md` の「仕様の正本」に、`spec-apply` が設計の `## 正本への差分` を作業ツリーの `docs/canonical/` に書く旨を、次の二行を足す。行のあいだに空行は入れない。足す行以外の既存の文は一文字も変えない。
 
 ```
 `sdd-cur spec-apply <番号>` は、設計の `## 正本への差分` を、作業ツリーの `docs/canonical/` に書く。差分対象の識別子だけを書き換える。
