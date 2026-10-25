@@ -668,7 +668,7 @@ describe("issue 170 skills and agents", () => {
   })
 })
 
-// 作業 13
+// 作業 13: canonical
 describe("issue 170 canonical conventions", () => {
   const design = readFileSync(design170Path, "utf8")
   const conventionsCanonical = readFileSync(conventionsCanonicalPath, "utf8")
